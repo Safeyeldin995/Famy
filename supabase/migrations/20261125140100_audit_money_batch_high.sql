@@ -21,6 +21,7 @@ DECLARE
   v_provider_present boolean;
   v_participant_minutes integer;
   v_count integer := 0;
+  v_auto_complete_from timestamptz := TIMESTAMPTZ '2026-11-25T17:00:00+00';
 BEGIN
   SELECT * INTO v_settings FROM public.online_session_settings() LIMIT 1;
 
@@ -95,7 +96,9 @@ BEGIN
       );
     END IF;
 
-    IF v_outcome = 'complete' AND v_booking.status = 'confirmed' THEN
+    IF v_outcome = 'complete'
+       AND v_booking.status = 'confirmed'
+       AND v_booking.end_at >= v_auto_complete_from THEN
       PERFORM set_config('app.auto_complete_in_progress', 'on', true);
       PERFORM set_config('app.audit_reason', 'online_session_auto_complete', true);
 
@@ -273,3 +276,187 @@ REVOKE ALL ON FUNCTION public.tg_validate_payment_capture()
   FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.tg_guard_payment_writes() FROM PUBLIC, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- #440: Late Paymob capture on a superseded attempt credits wallet idempotently.
+-- (Derived from 20261123230700_wallet_capture_reclaim.sql)
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.customer_wallet_entries
+  DROP CONSTRAINT IF EXISTS customer_wallet_entries_reason_check;
+ALTER TABLE public.customer_wallet_entries
+  ADD CONSTRAINT customer_wallet_entries_reason_check CHECK (reason IN (
+    'provider_cancelled',
+    'customer_cancelled_refund',
+    'admin_credit',
+    'admin_debit',
+    'checkout_spend',
+    'checkout_release',
+    'paymob_superseded_capture'
+  ));
+
+CREATE OR REPLACE FUNCTION public.paymob_apply_transaction_webhook(
+  p_paymob_transaction_id bigint, p_order_id bigint, p_integration_id bigint,
+  p_currency text, p_success boolean, p_pending boolean, p_amount_cents bigint,
+  p_provider_ref text, p_metadata jsonb DEFAULT '{}'::jsonb
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_payment public.payments%ROWTYPE;
+  v_booking public.bookings%ROWTYPE;
+  v_event public.paymob_webhook_events%ROWTYPE;
+  v_outcome text;
+  v_status public.payment_status;
+  v_meta jsonb;
+  v_released numeric;
+  v_checkout_total numeric;
+  v_shortfall numeric;
+  v_reclaim numeric;
+  v_available numeric;
+  v_key text;
+  v_entry_id uuid;
+  v_funding_payment_id uuid;
+  v_excess numeric;
+BEGIN
+  IF p_paymob_transaction_id IS NULL OR p_paymob_transaction_id <= 0
+     OR p_order_id IS NULL OR p_order_id <= 0 OR p_success IS NULL OR p_pending IS NULL THEN
+    RAISE EXCEPTION 'Invalid Paymob transaction.' USING ERRCODE = '22023';
+  END IF;
+  PERFORM pg_advisory_xact_lock(p_paymob_transaction_id);
+  SELECT * INTO v_payment FROM public.payments WHERE paymob_order_id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN public.paymob_apply_debt_settlement(
+      p_paymob_transaction_id, p_order_id, p_integration_id, p_currency,
+      p_success, p_pending, p_amount_cents, p_provider_ref
+    );
+  END IF;
+  IF v_payment.payment_method_code IS DISTINCT FROM 'paymob'
+     OR v_payment.payment_method_type IS DISTINCT FROM 'online'
+     OR v_payment.paymob_integration_id IS DISTINCT FROM p_integration_id
+     OR v_payment.currency IS DISTINCT FROM p_currency
+     OR p_amount_cents IS NULL OR ROUND(v_payment.amount * 100)::bigint <> p_amount_cents THEN
+    RAISE EXCEPTION 'Paymob transaction does not match payment.' USING ERRCODE = '23514';
+  END IF;
+  v_outcome := CASE WHEN p_pending THEN 'pending' WHEN p_success THEN 'captured' ELSE 'rejected' END;
+  v_status := v_outcome::public.payment_status;
+  SELECT * INTO v_event FROM public.paymob_webhook_events WHERE paymob_transaction_id = p_paymob_transaction_id;
+  IF FOUND THEN
+    IF v_event.payment_id IS DISTINCT FROM v_payment.id THEN
+      RAISE EXCEPTION 'Paymob transaction already belongs to another payment.' USING ERRCODE = '23514';
+    END IF;
+    IF v_event.outcome <> 'pending' OR p_pending THEN
+      RETURN jsonb_build_object('duplicate', true);
+    END IF;
+  END IF;
+  IF v_payment.status = 'captured' THEN
+    RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_captured');
+  END IF;
+  IF p_pending AND v_payment.status <> 'pending' THEN
+    RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_final');
+  END IF;
+
+  IF v_status = 'rejected' AND v_payment.booking_id IS NOT NULL THEN
+    PERFORM public.restore_customer_wallet_checkout_debit(v_payment.booking_id);
+  END IF;
+
+  v_meta := COALESCE(p_metadata, '{}'::jsonb);
+
+  IF v_status = 'captured' AND v_payment.booking_id IS NOT NULL THEN
+    SELECT p.id INTO v_funding_payment_id
+    FROM public.payments p
+    WHERE p.booking_id = v_payment.booking_id
+      AND p.id <> v_payment.id
+      AND p.status = 'captured'
+    ORDER BY p.captured_at NULLS LAST, p.created_at
+    LIMIT 1;
+
+    IF v_funding_payment_id IS NOT NULL THEN
+      v_excess := public.payment_checkout_funded_total(v_payment);
+      IF v_excess > 0.01 THEN
+        PERFORM public.lock_customer_wallet(v_payment.customer_id);
+        v_key := 'paymob_superseded_excess:' || v_payment.id::text;
+        v_entry_id := public.customer_wallet_insert_entry(
+          v_payment.customer_id,
+          'credit',
+          v_excess,
+          'paymob_superseded_capture',
+          v_payment.booking_id,
+          v_payment.id,
+          NULL,
+          v_key,
+          jsonb_build_object('funding_payment_id', v_funding_payment_id)
+        );
+      END IF;
+      v_meta := v_meta || jsonb_build_object(
+        'superseded_capture', true,
+        'superseded_by_payment_id', v_funding_payment_id,
+        'excluded_from_booking_funding', true,
+        'superseded_excess_credited', GREATEST(v_excess, 0)
+      );
+    ELSE
+      SELECT * INTO v_booking FROM public.bookings WHERE id = v_payment.booking_id FOR SHARE;
+      IF FOUND AND v_booking.status::text = 'cancelled' THEN
+        v_meta := v_meta || jsonb_build_object(
+          'late_capture_on_cancelled_booking', true,
+          'late_capture_recorded_at', now()
+        );
+      ELSIF FOUND AND v_booking.status::text IN ('pending', 'confirmed') THEN
+        v_released := COALESCE((v_payment.metadata->>'wallet_checkout_released')::numeric, 0);
+        IF v_released > 0 THEN
+          v_checkout_total := COALESCE(
+            NULLIF((v_payment.metadata->>'checkout_total')::numeric, 0),
+            v_payment.amount + COALESCE((v_payment.metadata->>'wallet_applied')::numeric, 0)
+          );
+          v_shortfall := GREATEST(v_checkout_total - v_payment.amount, 0);
+          v_reclaim := LEAST(v_released, v_shortfall);
+          IF v_reclaim > 0.01 THEN
+            PERFORM public.lock_customer_wallet(v_payment.customer_id);
+            SELECT b.available_amount INTO v_available
+            FROM public.customer_wallet_balances(v_payment.customer_id) b;
+            IF v_reclaim > COALESCE(v_available, 0) + 0.0001 THEN
+              RAISE EXCEPTION
+                'Late card capture cannot fund the booking: released wallet balance is unavailable.'
+                USING ERRCODE = '23514';
+            END IF;
+            v_key := 'checkout_spend_recapture:' || v_payment.id::text;
+            v_entry_id := public.customer_wallet_insert_entry(
+              v_payment.customer_id,
+              'debit',
+              v_reclaim,
+              'checkout_spend',
+              v_payment.booking_id,
+              v_payment.id,
+              NULL,
+              v_key,
+              jsonb_build_object('recapture_after_release', true, 'checkout_total', v_checkout_total)
+            );
+            IF v_entry_id IS NULL THEN
+              RAISE EXCEPTION 'Wallet re-claim failed for late card capture.' USING ERRCODE = '23514';
+            END IF;
+            v_meta := v_meta || jsonb_build_object(
+              'wallet_applied', v_reclaim,
+              'wallet_checkout_reclaimed', v_reclaim,
+              'wallet_checkout_released', 0
+            );
+          END IF;
+        END IF;
+      END IF;
+    END IF;
+  END IF;
+
+  INSERT INTO public.paymob_webhook_events(paymob_transaction_id, payment_id, outcome)
+  VALUES(p_paymob_transaction_id, v_payment.id, v_outcome)
+  ON CONFLICT(paymob_transaction_id) DO UPDATE SET outcome = EXCLUDED.outcome, processed_at = now();
+  UPDATE public.payments SET status = v_status, provider_ref = p_provider_ref,
+    metadata = COALESCE(metadata, '{}'::jsonb) || v_meta,
+    captured_at = CASE WHEN v_status = 'captured' THEN now() ELSE captured_at END,
+    reviewed_at = CASE WHEN v_status IN ('captured','rejected') THEN now() ELSE reviewed_at END,
+    rejection_reason = CASE WHEN v_status = 'rejected' THEN 'Paymob payment failed or was declined.' ELSE NULL END
+  WHERE id = v_payment.id;
+  RETURN jsonb_build_object(
+    'ok', true,
+    'payment_id', v_payment.id,
+    'status', v_status,
+    'outcome', v_outcome,
+    'superseded_capture', v_funding_payment_id IS NOT NULL AND v_status = 'captured'
+  );
+END;
+$$;

@@ -1706,6 +1706,7 @@ const en = {
       "This provider isn't accepting bookings right now. Browse other providers instead.",
     backToSearch: "Browse providers",
     paymentFailed: "Could not record payment method",
+    choosePaymentMethod: "Choose payment method",
     paymentDeferred: "Your booking was created. Payment details will load on the booking page.",
     promoPlaceholder: "Promo code",
     promoAvailableTitle: "Your available codes",

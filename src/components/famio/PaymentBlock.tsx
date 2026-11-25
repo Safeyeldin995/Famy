@@ -232,7 +232,7 @@ export function PaymentBlock({
     canCustomerRepay && (activeMethodsQ.data?.length ?? 0) > 0 ? (
       <div className="space-y-2 border-t border-border pt-3">
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          {t("bookFlow.choosePaymentMethod", "Choose payment method")}
+          {t("bookFlow.choosePaymentMethod")}
         </div>
         <div className="flex flex-col gap-2">
           {(activeMethodsQ.data ?? []).map((m) => (

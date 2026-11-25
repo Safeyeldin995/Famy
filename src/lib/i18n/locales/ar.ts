@@ -1697,6 +1697,7 @@ const ar: Translation = {
     unavailableBody: "هذا المحترف لا يقبل حجوزات جديدة حاليا، تصفح محترفين آخرين",
     backToSearch: "تصفح المحترفين",
     paymentFailed: "لم نتمكن من حفظ طريقة الدفع",
+    choosePaymentMethod: "اختار طريقة الدفع",
     paymentDeferred: "تم إنشاء حجزك، ستظهر تفاصيل الدفع في صفحة الحجز",
     promoPlaceholder: "كود الخصم",
     promoAvailableTitle: "أكوادك المتاحة",

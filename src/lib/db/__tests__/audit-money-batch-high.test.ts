@@ -7,6 +7,7 @@ import {
   IDS,
   queryRows,
   seedLifecycleBooking,
+  seedPaymentsForBooking,
   tryAsUser,
 } from "./booking-lifecycle.harness";
 
@@ -18,13 +19,81 @@ async function seedOnlineBookingPastEnd(): Promise<string> {
     ALTER TABLE public.bookings DISABLE TRIGGER trg_lock_booking_service_mode;
     UPDATE public.bookings
     SET service_mode = 'online',
-        start_at = now() - interval '3 hours',
-        end_at = now() - interval '2 hours',
+        start_at = timestamptz '2026-11-25T16:30:00+00',
+        end_at = timestamptz '2026-11-25T17:30:00+00',
         online_session_outcome = NULL
     WHERE id = '${bookingId}';
     ALTER TABLE public.bookings ENABLE TRIGGER trg_lock_booking_service_mode;
   `);
   return bookingId;
+}
+
+const PAYMOB_INTEGRATION_ID = 456;
+
+async function seedOnlineBookingEnding(endAtIso: string): Promise<string> {
+  const bookingId = await seedOnlineBookingPastEnd();
+  await db.exec(`
+    UPDATE public.bookings
+    SET start_at = timestamptz '${endAtIso}' - interval '1 hour',
+        end_at = timestamptz '${endAtIso}',
+        online_session_outcome = NULL
+    WHERE id = '${bookingId}';
+  `);
+  return bookingId;
+}
+
+async function addFullAttendance(bookingId: string) {
+  const times = await queryRows<{ start_at: string; end_at: string }>(
+    db,
+    "SELECT start_at::text, end_at::text FROM public.bookings WHERE id = $1",
+    [bookingId],
+  );
+  const startAt = times[0]?.start_at;
+  const endAt = times[0]?.end_at;
+  if (!startAt || !endAt) throw new Error("expected booking times");
+  await asServiceRole(db, () =>
+    db.query(
+      `INSERT INTO public.session_events (booking_id, participant, joined_at, left_at) VALUES
+        ($1, 'customer', $2::timestamptz, $3::timestamptz),
+        ($1, 'provider', $2::timestamptz, $3::timestamptz)`,
+      [bookingId, startAt, endAt],
+    ),
+  );
+}
+
+async function applyPaymobWebhook(
+  orderId: number,
+  transactionId: number,
+  amountCents: number,
+  success: boolean,
+  pending: boolean,
+) {
+  return asServiceRole(db, () =>
+    queryRows<{ payload: Record<string, unknown> }>(
+      db,
+      `SELECT public.paymob_apply_transaction_webhook(
+         $1::bigint, $2::bigint, $3::bigint, 'EGP', $4, $5, $6::bigint, 'provider-ref', '{}'::jsonb
+       ) AS payload`,
+      [transactionId, orderId, PAYMOB_INTEGRATION_ID, success, pending, amountCents],
+    ),
+  );
+}
+
+async function bindPaymobPayment(paymentId: string, orderId: number, amount: string) {
+  await asServiceRole(db, () =>
+    db.query(
+      `UPDATE public.payments
+       SET payment_method_type = 'online',
+           payment_method_code = 'paymob',
+           method = 'paymob',
+           paymob_order_id = $2,
+           paymob_integration_id = $3,
+           currency = 'EGP',
+           amount = $4::numeric
+       WHERE id = $1::uuid`,
+      [paymentId, orderId, PAYMOB_INTEGRATION_ID, amount],
+    ),
+  );
 }
 
 beforeAll(async () => {
@@ -38,23 +107,7 @@ afterAll(async () => {
 describe("audit money batch — #439 online session auto-complete", () => {
   it("marks attended lessons complete after grace window", async () => {
     const bookingId = await seedOnlineBookingPastEnd();
-    const times = await queryRows<{ start_at: string; end_at: string }>(
-      db,
-      "SELECT start_at::text, end_at::text FROM public.bookings WHERE id = $1",
-      [bookingId],
-    );
-    const startAt = times[0]?.start_at;
-    const endAt = times[0]?.end_at;
-    if (!startAt || !endAt) throw new Error("expected booking times");
-
-    await asServiceRole(db, () =>
-      db.query(
-        `INSERT INTO public.session_events (booking_id, participant, joined_at, left_at) VALUES
-          ($1, 'customer', $2::timestamptz, $3::timestamptz),
-          ($1, 'provider', $2::timestamptz, $3::timestamptz)`,
-        [bookingId, startAt, endAt],
-      ),
-    );
+    await addFullAttendance(bookingId);
 
     const resolved = await asServiceRole(db, () =>
       queryRows<{ n: number }>(db, "SELECT public.resolve_online_session_bookings()::int AS n"),
@@ -84,6 +137,91 @@ describe("audit money batch — #439 online session auto-complete", () => {
     );
     expect(row[0]?.outcome).toBe("admin_review_no_events");
     expect(row[0]?.status).toBe("confirmed");
+  });
+
+  it("does not retroactively complete lessons that ended before rollout cutoff", async () => {
+    const bookingId = await seedOnlineBookingEnding("2025-11-20T12:00:00Z");
+    await addFullAttendance(bookingId);
+
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, "SELECT public.resolve_online_session_bookings()::int AS n"),
+    );
+
+    const row = await queryRows<{ status: string; outcome: string | null }>(
+      db,
+      "SELECT status::text AS status, online_session_outcome AS outcome FROM public.bookings WHERE id = $1",
+      [bookingId],
+    );
+    expect(row[0]?.outcome).toBe("complete");
+    expect(row[0]?.status).toBe("confirmed");
+  });
+});
+
+describe("audit money batch — #440 superseded Paymob capture", () => {
+  it("credits customer wallet when an older attempt captures after retry B funded the booking", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    await asServiceRole(db, () =>
+      db.query(
+        `UPDATE public.bookings SET price_total = 500, price_provider_net = 400 WHERE id = $1`,
+        [bookingId],
+      ),
+    );
+    const { paymobId: paymentA } = await seedPaymentsForBooking(db, bookingId);
+    const due = await queryRows<{ due: string }>(
+      db,
+      `SELECT amount::text AS due FROM public.payments WHERE id = $1`,
+      [paymentA],
+    );
+    const amount = due[0]?.due ?? "500";
+    const amountCents = Math.round(Number(amount) * 100);
+    const paymentB = randomUUID();
+    const paymobMethod = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.payment_methods WHERE code = 'paymob' LIMIT 1`,
+    );
+    const methodId = paymobMethod[0]?.id;
+    if (!methodId) throw new Error("expected paymob payment method");
+
+    await bindPaymobPayment(paymentA, 880_001, amount);
+    await applyPaymobWebhook(880_001, 880_101, amountCents, false, false);
+
+    await asServiceRole(db, () =>
+      db.query(
+        `INSERT INTO public.payments (
+           id, booking_id, customer_id, amount, status, payment_method_id,
+           payment_method_type, payment_method_code, method, paymob_order_id, paymob_integration_id, currency
+         ) VALUES (
+           $1, $2, $3, $4::numeric, 'pending', $5, 'online', 'paymob', 'paymob', 880002, $6, 'EGP'
+         )`,
+        [paymentB, bookingId, IDS.customer, amount, methodId, PAYMOB_INTEGRATION_ID],
+      ),
+    );
+
+    const captureB = await applyPaymobWebhook(880_002, 880_102, amountCents, true, false);
+    expect(captureB[0]?.payload?.ok).toBe(true);
+
+    const captureA = await applyPaymobWebhook(880_001, 880_103, amountCents, true, false);
+    expect(captureA[0]?.payload?.superseded_capture).toBe(true);
+
+    const wallet = await queryRows<{ count: string; amount: string }>(
+      db,
+      `SELECT count(*)::text AS count, sum(amount)::text AS amount
+       FROM public.customer_wallet_entries
+       WHERE idempotency_key = $1`,
+      [`paymob_superseded_excess:${paymentA}`],
+    );
+    expect(wallet[0]?.count).toBe("1");
+    expect(Number(wallet[0]?.amount)).toBeCloseTo(Number(amount), 2);
+
+    const funded = await queryRows<{ count: string }>(
+      db,
+      `SELECT count(*)::text AS count
+       FROM public.payments
+       WHERE booking_id = $1 AND status = 'captured'
+         AND COALESCE((metadata->>'excluded_from_booking_funding')::boolean, false) = false`,
+      [bookingId],
+    );
+    expect(funded[0]?.count).toBe("1");
   });
 });
 
