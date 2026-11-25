@@ -37,6 +37,15 @@ BEGIN
     END IF;
   END LOOP;
 
+  -- Minimum may never exceed latest (component-wise numeric compare), or every
+  -- user on the latest release would be forced to update.
+  IF string_to_array(NEW.value->>'min_version_android', '.')::int[]
+       > string_to_array(NEW.value->>'latest_version_android', '.')::int[]
+     OR string_to_array(NEW.value->>'min_version_ios', '.')::int[]
+       > string_to_array(NEW.value->>'latest_version_ios', '.')::int[] THEN
+    RAISE EXCEPTION 'APP_RELEASE_INVALID: minimum version must not be above the latest version.' USING ERRCODE = '23514';
+  END IF;
+
   IF jsonb_typeof(NEW.value->'maintenance') IS DISTINCT FROM 'boolean' THEN
     RAISE EXCEPTION 'APP_RELEASE_INVALID: maintenance must be true or false.' USING ERRCODE = '23514';
   END IF;

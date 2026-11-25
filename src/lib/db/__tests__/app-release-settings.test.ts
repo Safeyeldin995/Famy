@@ -99,6 +99,18 @@ describe("settings.app_release", () => {
     ).rejects.toThrow(/APP_RELEASE_INVALID/);
   });
 
+  it("rejects a minimum version above the latest (would force-update everyone)", async () => {
+    await expect(
+      db.exec(
+        `UPDATE public.settings SET value = jsonb_set(value, '{min_version_ios}', '"2.0.0"') WHERE key = 'app_release'`,
+      ),
+    ).rejects.toThrow(/APP_RELEASE_INVALID/);
+    // 1.10.0 > 1.9.0 numerically even though it sorts lower as text.
+    await db.exec(
+      `UPDATE public.settings SET value = value || '{"min_version_android":"1.9.0","latest_version_android":"1.10.0"}' WHERE key = 'app_release'`,
+    );
+  });
+
   it("leaves other settings keys alone", async () => {
     await db.exec(`INSERT INTO public.settings (key, value) VALUES ('other', '{"a": 1}'::jsonb)`);
     const rows = await db.query<{ n: number }>(

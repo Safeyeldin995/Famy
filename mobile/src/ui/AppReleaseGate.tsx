@@ -85,16 +85,18 @@ export function AppReleaseGate({ children }: { children: ReactNode }) {
   if (decision.kind === "maintenance") {
     return <MaintenanceScreen message={decision.message} checking={checking} onRetry={check} />;
   }
-  if (decision.kind === "force_update") {
+  // Without a real store page there is nothing to send the user to: never trap them.
+  if (decision.kind === "force_update" && storeUrl) {
     return <ForceUpdateScreen storeUrl={storeUrl} />;
   }
-  const showBanner = decision.kind === "soft_update" && dismissedVersion !== decision.latest;
+  const showBanner =
+    !!storeUrl && decision.kind === "soft_update" && dismissedVersion !== decision.latest;
   return (
     <View style={styles.flex}>
       {children}
       {showBanner ? (
         <SoftUpdateBanner
-          storeUrl={storeUrl}
+          storeUrl={storeUrl!}
           onDismiss={() => {
             setDismissedVersion(decision.latest);
             AsyncStorage.setItem(DISMISS_KEY, decision.latest).catch(() => undefined);
@@ -183,6 +185,7 @@ function SoftUpdateBanner({ storeUrl, onDismiss }: { storeUrl: string; onDismiss
       </Text>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={t("appRelease.softUpdate")}
         onPress={() => void Linking.openURL(storeUrl).catch(() => undefined)}
         style={styles.bannerAction}
       >
@@ -190,7 +193,12 @@ function SoftUpdateBanner({ storeUrl, onDismiss }: { storeUrl: string; onDismiss
           {t("appRelease.softUpdate")}
         </Text>
       </Pressable>
-      <Pressable accessibilityRole="button" onPress={onDismiss} style={styles.bannerAction}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("appRelease.softDismiss")}
+        onPress={onDismiss}
+        style={styles.bannerAction}
+      >
         <Text tone="muted">{t("appRelease.softDismiss")}</Text>
       </Pressable>
     </View>
@@ -212,8 +220,8 @@ const styles = StyleSheet.create({
   button: { alignSelf: "stretch", marginTop: space.md },
   banner: {
     position: "absolute",
-    left: space.lg,
-    right: space.lg,
+    start: space.lg,
+    end: space.lg,
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,

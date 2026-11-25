@@ -105,6 +105,9 @@ describe("appStoreUpdateUrl", () => {
     expect(appStoreUpdateUrl("android", { play_url: "javascript:alert(1)" })).toBe(
       "market://details?id=com.famy.app",
     );
-    expect(appStoreUpdateUrl("ios", null)).toBe("itms-apps://apps.apple.com/app/famy");
+    expect(appStoreUpdateUrl("ios", null)).toBeNull();
+    expect(appStoreUpdateUrl("ios", { app_store_url: "https://apps.apple.com/app/id123" })).toBe(
+      "https://apps.apple.com/app/id123",
+    );
   });
 });

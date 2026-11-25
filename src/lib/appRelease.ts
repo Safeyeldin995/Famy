@@ -155,16 +155,18 @@ export function validateAppReleaseSettings(s: AppReleaseSettings): AppReleaseVal
   return errors;
 }
 
-/** Store page for the update button. Uses settings.store_links when present. */
+/**
+ * Store page for the update button. Uses settings.store_links when present.
+ * iOS has no usable fallback (the App Store needs the numeric app id), so it
+ * returns null and the gate must fail open instead of trapping the user.
+ */
 export function appStoreUpdateUrl(
   platform: AppReleasePlatform,
   storeLinks: { play_url?: unknown; app_store_url?: unknown } | null | undefined,
-): string {
+): string | null {
   if (platform === "ios") {
     const url = storeLinks?.app_store_url;
-    return typeof url === "string" && url.startsWith("https://")
-      ? url
-      : "itms-apps://apps.apple.com/app/famy";
+    return typeof url === "string" && url.startsWith("https://") ? url : null;
   }
   const url = storeLinks?.play_url;
   return typeof url === "string" && url.startsWith("https://")
