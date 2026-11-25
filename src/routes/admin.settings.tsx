@@ -999,6 +999,7 @@ function AdminSettings() {
         </h1>
         <p className="text-xs text-muted-foreground">{t("admin.settings.subtitle")}</p>
       </div>
+      <ReleaseFeaturesSection />
       <BillingSection />
       <ProviderSettlementSettingsSection />
       <CancellationPolicySection />
@@ -1006,7 +1007,6 @@ function AdminSettings() {
       <CategoriesSection />
       <ServiceAreasSection />
       <ReminderRulesSection />
-      <ReleaseFeaturesSection />
       <PlatformContentSection />
     </div>
   );
