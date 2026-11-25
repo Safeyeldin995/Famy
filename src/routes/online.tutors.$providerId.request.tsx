@@ -2,11 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { OnlineLessonRequestForm } from "@/components/online/OnlineLessonRequestForm";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
-import { ONLINE_WEB_ROUTE_IDS, onlineWebTutorRequestPath } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 
 export const Route = createFileRoute("/online/tutors/$providerId/request")({
-  beforeLoad: async ({ params }) => {
-    await requireOnlineWebSession(onlineWebTutorRequestPath(params.providerId));
+  beforeLoad: async ({ location }) => {
+    await requireOnlineWebSession(location.href);
   },
   component: OnlineTutorRequestRoute,
 });

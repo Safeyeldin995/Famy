@@ -2,6 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { otpService } from "@/lib/otp/OtpService";
 import { SetPasswordScreen } from "@/routes/auth.set-password";
 import { consumeOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
+import { safeOnlineWebReturnTo } from "@/lib/web/onlineWebSession";
+import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 
 export const Route = createFileRoute("/online/set-password")({
   beforeLoad: async () => {
@@ -19,7 +21,7 @@ function OnlineSetPassword() {
   return (
     <SetPasswordScreen
       setPasswordContext={setPasswordContext}
-      customerSuccessPath={consumeOnlineWebReturnTo()}
+      customerSuccessPath={safeOnlineWebReturnTo(consumeOnlineWebReturnTo(), ONLINE_WEB_ROUTE_IDS.tutors)}
     />
   );
 }

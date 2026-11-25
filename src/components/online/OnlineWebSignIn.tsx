@@ -11,6 +11,7 @@ import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpF
 import { interpretSignupSendForLoginPhoneContinue } from "@/lib/auth/loginPhoneContinue";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
+import { safeOnlineWebReturnTo } from "@/lib/web/onlineWebSession";
 
 type Step = "phone" | "password";
 
@@ -44,7 +45,7 @@ export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
     }
     setProfile({ phone: e164 });
     setAuthed(true);
-    nav({ to: returnTo, replace: true });
+    nav({ href: safeOnlineWebReturnTo(returnTo, ONLINE_WEB_ROUTE_IDS.home), replace: true });
   };
 
   const continueWithPhone = async () => {

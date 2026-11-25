@@ -28,11 +28,34 @@ function syncRemoteTracks(room: Room, remoteVideoHost: HTMLDivElement, audioHost
   });
 }
 
+const REMOTE_TILE_ATTR = "data-lk-remote-tile";
+
+/**
+ * Detach a track from every media element. Elements this module created for remote
+ * tracks (and their tiles) are removed; React-owned elements such as the local
+ * preview are only cleared, so they can be re-attached when the camera comes back.
+ */
+export function detachTrackElements(
+  track: { detach: () => HTMLMediaElement[] },
+  reactOwned: HTMLMediaElement | null,
+) {
+  for (const el of track.detach()) {
+    if (el === reactOwned) {
+      el.srcObject = null;
+      continue;
+    }
+    const tile = el.parentElement?.hasAttribute(REMOTE_TILE_ATTR) ? el.parentElement : null;
+    el.remove();
+    tile?.remove();
+  }
+}
+
 function attachRemoteTrack(track: RemoteTrack, remoteVideoHost: HTMLDivElement, audioHost: HTMLDivElement) {
   const element = track.attach();
   if (track.kind === Track.Kind.Video) {
     element.className = "h-full w-full object-cover";
     const tile = document.createElement("div");
+    tile.setAttribute(REMOTE_TILE_ATTR, "1");
     tile.className = "relative aspect-video w-full overflow-hidden rounded-2xl bg-black";
     tile.appendChild(element);
     remoteVideoHost.appendChild(tile);
@@ -73,7 +96,7 @@ export function OnlineWebSessionRoom({ bookingId, displayName, onLeave }: Props)
     if (next && track && track.kind === Track.Kind.Video && localVideo) {
       track.attach(localVideo);
     } else if (!next && track) {
-      track.detach().forEach((el) => el.remove());
+      detachTrackElements(track, localVideo);
     }
   }, [camEnabled]);
 
@@ -92,7 +115,7 @@ export function OnlineWebSessionRoom({ bookingId, displayName, onLeave }: Props)
       attachRemoteTrack(track, remoteVideoHost, audioHost);
     };
     const onTrackUnsubscribed = (track: RemoteTrack) => {
-      track.detach().forEach((el) => el.remove());
+      detachTrackElements(track, null);
     };
 
     void (async () => {

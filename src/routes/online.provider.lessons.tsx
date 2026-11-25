@@ -15,8 +15,8 @@ import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/online/provider/lessons")({
-  beforeLoad: async () => {
-    await requireOnlineWebSession(ONLINE_WEB_ROUTE_IDS.providerLessons);
+  beforeLoad: async ({ location }) => {
+    await requireOnlineWebSession(location.href);
   },
   component: OnlineProviderLessons,
 });

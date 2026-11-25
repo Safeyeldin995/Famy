@@ -8,8 +8,8 @@ import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/format";
 
 export const Route = createFileRoute("/online/wallet")({
-  beforeLoad: async () => {
-    await requireOnlineWebSession("/online/wallet");
+  beforeLoad: async ({ location }) => {
+    await requireOnlineWebSession(location.href);
   },
   component: OnlineWallet,
 });

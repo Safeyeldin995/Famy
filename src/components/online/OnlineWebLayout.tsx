@@ -6,6 +6,7 @@ import wordmark from "@/assets/famy-wordmark.png";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { useOnlineWebNavTabs } from "@/lib/web/useOnlineWebNavTabs";
+import { useOnlineWebSessionGate } from "@/lib/web/useOnlineWebSessionGate";
 
 const NAV_COMPACT_MAX_PX = 400;
 
@@ -13,6 +14,7 @@ export function OnlineWebLayout() {
   const { t } = useTranslation();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const tabs = useOnlineWebNavTabs();
+  const canRenderPage = useOnlineWebSessionGate();
   const [compactNav, setCompactNav] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -117,7 +119,7 @@ export function OnlineWebLayout() {
         )}
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-5">
-        <Outlet />
+        {canRenderPage ? <Outlet /> : null}
       </main>
     </div>
   );

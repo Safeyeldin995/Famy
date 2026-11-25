@@ -184,7 +184,8 @@ export function SetPasswordScreen({
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
     ]).catch(() => null);
     if (customerSuccessPath) {
-      nav({ to: customerSuccessPath, replace: true });
+      // href keeps any search (e.g. ?paymob_return=1) on the destination.
+      nav({ href: customerSuccessPath, replace: true });
       return;
     }
     nav({ to: prof?.full_name ? "/home" : "/setup", replace: true });

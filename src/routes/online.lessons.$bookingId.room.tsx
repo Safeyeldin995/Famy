@@ -3,11 +3,11 @@ import { OnlineWebSessionRoom } from "@/components/online/OnlineWebSessionRoom";
 import { useBooking } from "@/lib/db/queries";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
-import { onlineWebLessonPath, onlineWebLessonRoomPath } from "@/lib/web/onlineWebSurface";
+import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 
 export const Route = createFileRoute("/online/lessons/$bookingId/room")({
-  beforeLoad: async ({ params }) => {
-    await requireOnlineWebSession(onlineWebLessonRoomPath(params.bookingId));
+  beforeLoad: async ({ location }) => {
+    await requireOnlineWebSession(location.href);
   },
   component: OnlineLessonRoomRoute,
 });

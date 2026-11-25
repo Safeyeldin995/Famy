@@ -41,11 +41,25 @@ const HTML_SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
   "Content-Security-Policy": "frame-ancestors 'none'",
 };
 
-function applyHtmlSecurityHeaders(response: Response): Response {
+const PERMISSIONS_POLICY_DEFAULT = "camera=(), microphone=(), geolocation=(self)";
+const PERMISSIONS_POLICY_ONLINE = "camera=(self), microphone=(self), geolocation=(self)";
+
+/**
+ * Camera/mic stay blocked site-wide except on the online-lessons surface, whose
+ * live room (LiveKit) needs them. Permissions-Policy is fixed per document, and the
+ * room is usually reached by client-side navigation from another /online page, so
+ * the whole /online document must allow same-origin capture, not just /room URLs.
+ */
+export function permissionsPolicyForPath(pathname: string): string {
+  return pathname === "/online" || pathname.startsWith("/online/")
+    ? PERMISSIONS_POLICY_ONLINE
+    : PERMISSIONS_POLICY_DEFAULT;
+}
+
+function applyHtmlSecurityHeaders(response: Response, pathname = "/"): Response {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("text/html")) return response;
 
@@ -53,6 +67,7 @@ function applyHtmlSecurityHeaders(response: Response): Response {
   for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) {
     headers.set(name, value);
   }
+  headers.set("Permissions-Policy", permissionsPolicyForPath(pathname));
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -87,12 +102,16 @@ async function normalizeCatastrophicSsrResponse(
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const pathname = new URL(request.url).pathname;
       const qaMeta = handleQaMetaRequest(request, process.env);
-      if (qaMeta) return applyHtmlSecurityHeaders(qaMeta);
+      if (qaMeta) return applyHtmlSecurityHeaders(qaMeta, pathname);
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return applyHtmlSecurityHeaders(await normalizeCatastrophicSsrResponse(request, response));
+      return applyHtmlSecurityHeaders(
+        await normalizeCatastrophicSsrResponse(request, response),
+        pathname,
+      );
     } catch (error) {
       console.error(error);
       await logServerError(error, new URL(request.url).pathname, "server_fetch_handler");

@@ -4,15 +4,14 @@ import { useTranslation } from "react-i18next";
 import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
 import { QueryError } from "@/components/famio/QueryError";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
-import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { filterWebOnlineBookingRows } from "@/lib/web/webOnlineDataBoundary";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/online/provider/requests")({
-  beforeLoad: async () => {
-    await requireOnlineWebSession(ONLINE_WEB_ROUTE_IDS.providerRequests);
+  beforeLoad: async ({ location }) => {
+    await requireOnlineWebSession(location.href);
   },
   component: OnlineProviderRequests,
 });

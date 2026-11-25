@@ -44,4 +44,22 @@ describe("server HTML security headers", () => {
     expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
     expect(await response.text()).toBe("<html><body>ok</body></html>");
   });
+
+  it.each([
+    ["/online/lessons/abc/room", "camera=(self), microphone=(self), geolocation=(self)"],
+    ["/online/lessons/abc", "camera=(self), microphone=(self), geolocation=(self)"],
+    ["/online", "camera=(self), microphone=(self), geolocation=(self)"],
+    ["/onlineX", "camera=(), microphone=(), geolocation=(self)"],
+    ["/bookings", "camera=(), microphone=(), geolocation=(self)"],
+  ])("Permissions-Policy for %s", async (path, expected) => {
+    fetchMock.mockResolvedValue(
+      new Response("<html></html>", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+    );
+    const { default: server } = await import("../server");
+    const response = await server.fetch(new Request(`http://localhost${path}`), {}, {});
+    expect(response.headers.get("Permissions-Policy")).toBe(expected);
+  });
 });
