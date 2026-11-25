@@ -9,7 +9,7 @@ import { localized } from "@/lib/presentation";
 import { Field, Choices, QueryState, ActionError, ui } from "./Page";
 import { Text } from "./Text";
 import { Button } from "./Button";
-import { colors } from "./theme";
+import { colors, space } from "./theme";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 
 export function FamilyMemberForm({
@@ -121,7 +121,7 @@ export function FamilyMemberForm({
           <Text>{t("familyMembers.healthConsent")}</Text>
         </Pressable>
       )}
-      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: 16, gap: 12 }}>
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: space.lg, gap: space.md }}>
         <Text size="xs" weight="bold" tone="muted">
           {t("studentEducation.sectionTitle")}
         </Text>
@@ -160,7 +160,7 @@ export function FamilyMemberForm({
           />
         </QueryState>
       </View>
-      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: 16, gap: 12 }}>
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: space.lg, gap: space.md }}>
         <Text size="xs" weight="bold" tone="muted">
           {t("familyMembers.emergencyContact")} ({t("familyMembers.optional")})
         </Text>
@@ -211,11 +211,11 @@ function FamilyChoiceGrid({
   onChange: (value: string) => void;
 }) {
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.sm }}>
       <Text size="xs" weight="bold" tone="muted">
         {label}
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
         {options.map((option) => (
           <Pressable
             key={option.value}
@@ -227,7 +227,7 @@ function FamilyChoiceGrid({
               width: columns === 4 ? "23%" : "48%",
               flexGrow: 1,
               minHeight: 44,
-              paddingVertical: 12,
+              paddingVertical: space.md,
               borderWidth: 1,
               borderRadius: 16,
               borderColor: value === option.value ? colors.brand : colors.border,

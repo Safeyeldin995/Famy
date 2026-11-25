@@ -70,7 +70,7 @@ export function CustomerChips({
       horizontal
       style={{ flexGrow: 0, height: 44 }}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8 }}
+      contentContainerStyle={{ gap: space.sm }}
     >
       {options.map((option) => (
         <Pressable
@@ -85,7 +85,7 @@ export function CustomerChips({
             borderWidth: 0,
             borderColor: value === option.value ? colors.brand : colors.border,
             backgroundColor: value === option.value ? colors.brand : colors.surface2,
-            paddingHorizontal: 16,
+            paddingHorizontal: space.lg,
             justifyContent: "center",
           }}
         >
@@ -125,9 +125,9 @@ export function CustomerMenuRow({
       style={[
         customerStyle.row,
         {
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          gap: 16,
+          paddingHorizontal: space.xl,
+          paddingVertical: space.lg,
+          gap: space.lg,
           borderBottomWidth: last ? 0 : 1,
           borderBottomColor: colors.border,
         },
@@ -136,7 +136,7 @@ export function CustomerMenuRow({
       <View style={customerStyle.icon}>
         <Icon size={20} color={colors.brand} />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.xs }}>
         <Text size="lg" weight="heavy">
           {label}
         </Text>
@@ -153,7 +153,7 @@ export function CustomerMenuRow({
             minWidth: 22,
             height: 22,
             borderRadius: 11,
-            paddingHorizontal: 6,
+            paddingHorizontal: space.sm,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.brand,
@@ -170,7 +170,7 @@ export function CustomerMenuRow({
 }
 export function CustomerMenuSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 12, marginTop: 32 }}>
+    <View style={{ gap: space.md, marginTop: space.xxxl }}>
       <Text size="xs" weight="heavy" tone="muted">
         {title}
       </Text>

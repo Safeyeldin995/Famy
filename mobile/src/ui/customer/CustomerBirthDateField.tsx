@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { space } from "../theme";
 import { useTranslation } from "react-i18next";
 import { customerDayKey } from "../../../../src/components/famio/customerDates";
 import { BottomSheetSelect } from "../provider/BottomSheetSelect";
@@ -39,11 +40,11 @@ export function CustomerBirthDateField({
     year === String(todayYear) && Number(month) === todayMonth ? todayDay : 31,
   );
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.sm }}>
       <Text size="xs" weight="bold" tone="muted">
         {t("familyMembers.dateOfBirth")}
       </Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.sm }}>
         <BottomSheetSelect
           label={t("customerRound2.year")}
           value={year}

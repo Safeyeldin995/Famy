@@ -61,7 +61,7 @@ export default function MapSurface({
   }, [keyConfigured, onMessage, center.lat, center.lng, interactive]);
 
   if (!keyConfigured) {
-    return <View style={{ flex: 1, backgroundColor: "#F3EEF0" }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.surface2 }} />;
   }
 
   return (

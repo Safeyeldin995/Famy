@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { space } from "@/ui/theme";
 import { View, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -45,7 +46,7 @@ export default function ProviderOnlineSessionScreen() {
         </View>
       ) : null}
       {state.status === "error" ? (
-        <View style={{ gap: 12, padding: 16 }}>
+        <View style={{ gap: space.md, padding: space.lg }}>
           <Text>{t(`onlineSession.errors.${state.code}`, { defaultValue: state.code })}</Text>
           <Button label={t("onlineSession.joinFailed")} onPress={() => router.back()} />
         </View>

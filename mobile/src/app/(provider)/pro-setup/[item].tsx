@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { space } from "@/ui/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { mergeExperiencePayload, type SetupSnapshot } from "@shared/provider/setupHelpers";
@@ -176,7 +177,7 @@ export default function ProSetupItemScreen() {
         />
       }
       queries={queries}
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ paddingTop: space.sm }}
     >
       <QueryState query={providerQ}>{body}</QueryState>
     </Page>

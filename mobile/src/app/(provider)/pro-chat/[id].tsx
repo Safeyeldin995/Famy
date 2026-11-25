@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     marginTop: space.lg,
     alignSelf: "center",
     borderRadius: 999,
-    backgroundColor: "#C6F0E3",
+    backgroundColor: colors.chatPresenceNotice,
   },
   thread: { paddingHorizontal: space.md, paddingVertical: space.lg, gap: space.xs },
   emptyThread: { alignItems: "center", paddingVertical: space.xxl },

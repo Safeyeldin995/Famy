@@ -5,7 +5,7 @@ import { money } from "@/lib/presentation";
 import { uiListSeparator } from "@shared/format/uiJoin";
 import { Tag } from "lucide-react-native";
 import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { PromoCard } from "@/ui/PromoCard";
 import { Text } from "@/ui/Text";
@@ -19,9 +19,9 @@ export default function Promos() {
       title={t("profile.promoCodes")}
       queries={[q, used]}
       header={<CustomerPageHeader hero title={t("promoCodes.title")} backTo="/profile" />}
-      contentStyle={{ paddingTop: 8, gap: 32 }}
+      contentStyle={{ paddingTop: space.sm, gap: space.xxxl }}
     >
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: space.md }}>
         <View style={customerStyle.row}>
           <Tag size={16} color={colors.brand} />
           <Text weight="heavy" tone="muted">
@@ -41,7 +41,7 @@ export default function Promos() {
           ))}
         </QueryState>
       </View>
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: space.md }}>
         <Text weight="heavy" tone="muted">
           {t("promoCodes.history")}
         </Text>

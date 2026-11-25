@@ -144,8 +144,8 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
               backgroundColor: colors.foreground,
               flexDirection: "row",
               alignItems: "center",
-              padding: 20,
-              gap: 16,
+              padding: space.xl,
+              gap: space.lg,
             }}
           >
             <View
@@ -166,7 +166,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                 {model.done}/{model.total}
               </Text>
             </View>
-            <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ flex: 1, gap: space.sm }}>
               <Text weight="heavy" style={{ color: colors.brandForeground }}>
                 {t(model.titleKey, { remaining: model.remaining })}
               </Text>
@@ -176,7 +176,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
             </View>
           </View>
         ) : (
-          <View style={[proCard.card, { backgroundColor: "#E7F7EF" }]}>
+          <View style={[proCard.card, { backgroundColor: colors.successTint }]}>
             <Text weight="heavy" tone="success">
               {t("providerComplete.title")}
             </Text>
@@ -200,7 +200,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                   minHeight: 68,
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
+                  gap: space.md,
                   borderBottomWidth: 1,
                   borderBottomColor: colors.border,
                 }}
@@ -210,14 +210,14 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                     width: 40,
                     height: 40,
                     borderRadius: 12,
-                    backgroundColor: done ? "#E7F7EF" : colors.surface2,
+                    backgroundColor: done ? colors.successTint : colors.surface2,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
                   <Icon size={20} color={done ? colors.success : colors.muted} />
                 </View>
-                <View style={{ flex: 1, gap: 4 }}>
+                <View style={{ flex: 1, gap: space.xs }}>
                   <Text weight="bold" size="sm">
                     {t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
                   </Text>
@@ -247,13 +247,13 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
               </Pressable>
             );
           })}
-          <View style={{ minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ minHeight: 68, flexDirection: "row", alignItems: "center", gap: space.md }}>
             <View
               style={{
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                backgroundColor: "#FFF5DF",
+                backgroundColor: colors.warningTint,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -299,7 +299,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
       title={t("providerApply.checklist")}
       header={<View />}
       queries={queries}
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ paddingTop: space.sm }}
     >
       <QueryState query={p}>{ready ? body : null}</QueryState>
     </Page>

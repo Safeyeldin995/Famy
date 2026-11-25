@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { space } from "../theme";
 import { useTranslation } from "react-i18next";
 import { memberAgeFromDate, memberAgeToDate, memberMaxYears } from "@shared/familyMemberAge";
 import { BottomSheetSelect } from "../provider/BottomSheetSelect";
@@ -18,9 +19,9 @@ export function FamilyMemberAgeField({
   const options = (max: number) =>
     Array.from({ length: max + 1 }, (_, n) => ({ value: String(n), label: String(n) }));
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.sm }}>
       <Text weight="bold">{t("memberAge.label")}</Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.sm }}>
         <BottomSheetSelect
           label={t("memberAge.years")}
           value={age ? String(age.years) : ""}

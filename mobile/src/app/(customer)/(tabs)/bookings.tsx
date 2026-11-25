@@ -122,7 +122,7 @@ export default function Bookings() {
                 accessibilityRole="button"
                 accessibilityLabel={`${parties.data?.get(b.id)?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")}, ${t(`status.${b.status}`)}`}
                 onPress={() => router.push({ pathname: "/booking/[id]", params: { id: b.id } })}
-                style={({ pressed }) => [{ padding: 16, gap: 12 }, pressed && ui.pressed]}
+                style={({ pressed }) => [{ padding: space.lg, gap: space.md }, pressed && ui.pressed]}
               >
                 <View style={[customerStyle.row, { alignItems: "flex-start" }]}>
                   <View>
@@ -151,8 +151,8 @@ export default function Bookings() {
                       />
                     ) : null}
                   </View>
-                  <View style={{ flex: 1, gap: 8 }}>
-                    <View style={[customerStyle.row, { alignItems: "flex-start", gap: 8 }]}>
+                  <View style={{ flex: 1, gap: space.sm }}>
+                    <View style={[customerStyle.row, { alignItems: "flex-start", gap: space.sm }]}>
                       <View style={{ flex: 1 }}>
                         <Text weight="bold">
                           {party?.other_name ||
@@ -166,8 +166,8 @@ export default function Bookings() {
                       <View
                         style={{
                           borderRadius: 999,
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
+                          paddingHorizontal: space.md,
+                          paddingVertical: space.sm,
                           backgroundColor: statusStyle.backgroundColor,
                         }}
                       >
@@ -176,8 +176,8 @@ export default function Bookings() {
                         </Text>
                       </View>
                     </View>
-                    <View style={[customerStyle.row, { flexWrap: "wrap", gap: 8 }]}>
-                      <View style={[customerStyle.row, { gap: 4 }]}>
+                    <View style={[customerStyle.row, { flexWrap: "wrap", gap: space.sm }]}>
+                      <View style={[customerStyle.row, { gap: space.xs }]}>
                         <CalendarDays size={12} color={colors.muted} />
                         <Text size="xs" tone="muted">
                           {start.toLocaleDateString(locale, {
@@ -187,7 +187,7 @@ export default function Bookings() {
                           })}
                         </Text>
                       </View>
-                      <View style={[customerStyle.row, { gap: 4 }]}>
+                      <View style={[customerStyle.row, { gap: space.xs }]}>
                         <Clock size={12} color={colors.muted} />
                         <Text size="xs" tone="muted">
                           {start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}
@@ -206,7 +206,7 @@ export default function Bookings() {
                 <View
                   style={[
                     ui.priceRow,
-                    { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
+                    { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md },
                   ]}
                 >
                   <Text weight="heavy" tone={past ? "default" : "brand"}>
@@ -221,8 +221,8 @@ export default function Bookings() {
               {past ? (
                 <View
                   style={{
-                    padding: 16,
-                    paddingTop: 12,
+                    padding: space.lg,
+                    paddingTop: space.md,
                     borderTopWidth: 1,
                     borderTopColor: colors.border,
                   }}

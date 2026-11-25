@@ -1,3 +1,7 @@
+/** Keep in sync with `theme.space` — no theme import (breaks `mobile/qa/a11y-rtl.cjs`). */
+const TAB_BAR_LABEL_GAP = 12;
+const TAB_SCROLL_EXTRA = 16;
+
 /** Max system font scale multipliers (accessibility on, layouts stay stable on Android). */
 export const BODY_FONT_SCALE_CAP = 1.2;
 export const COMPACT_FONT_SCALE_CAP = 1.2;
@@ -30,11 +34,14 @@ export function scaledTabBarHeight(
   bottomInset: number,
 ) {
   const labelLines = fontScale > 1.3 ? 2 : 1;
-  return Math.max(80, 44 + labelLines * labelLineHeight * fontScale + 12) + bottomInset;
+  return Math.max(80, 44 + labelLines * labelLineHeight * fontScale + TAB_BAR_LABEL_GAP) + bottomInset;
 }
 
 /** Bottom padding for tab screens that scroll outside `Page` (e.g. customer home). */
-/** Default trailing gap matches `theme.space.lg` (16) without importing theme (a11y-rtl VM check). */
-export function tabScrollContentPadding(fontScale: number, bottomInset: number, extra = 16) {
-  return scaledTabBarHeight(fontScale, 22, bottomInset) + 12 + extra;
+export function tabScrollContentPadding(
+  fontScale: number,
+  bottomInset: number,
+  extra = TAB_SCROLL_EXTRA,
+) {
+  return scaledTabBarHeight(fontScale, 22, bottomInset) + TAB_BAR_LABEL_GAP + extra;
 }

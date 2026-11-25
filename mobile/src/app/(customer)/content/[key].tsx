@@ -18,7 +18,7 @@ export default function Content() {
       title={t(`profile.${contentKey}`)}
       queries={[q]}
       header={<CustomerPageHeader title={t(`profile.${contentKey}`)} backTo="/profile" />}
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ paddingTop: space.sm }}
     >
       <View style={[customerStyle.card, { padding: space.xl, borderRadius: radius.xl, ...shadow.card }]}>
         <QueryState query={q} empty={!body} emptyKey="content.empty">

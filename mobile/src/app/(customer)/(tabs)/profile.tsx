@@ -69,15 +69,15 @@ export default function Profile() {
           }
         />
       }
-      contentStyle={{ gap: 0, paddingTop: 16 }}
+      contentStyle={{ gap: 0, paddingTop: space.lg }}
     >
       <QueryState query={profile}>
-        <View style={[styles.card, { flexDirection: "row", alignItems: "center", gap: 20 }]}>
+        <View style={[styles.card, { flexDirection: "row", alignItems: "center", gap: space.xl }]}>
           <CustomerProfilePhoto
             src={profile.data?.avatar_url}
             name={profile.data?.full_name || t("profile.famioUser")}
           />
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: space.xs }}>
             <Text size="xl" weight="heavy">
               {profile.data?.full_name || t("profile.famioUser")}
             </Text>
@@ -99,7 +99,7 @@ export default function Profile() {
           </View>
         </View>
       </QueryState>
-      <View style={{ paddingTop: 16 }}>
+      <View style={{ paddingTop: space.lg }}>
         <CustomerMenuSection title={t("profile.myFamio")}>
           <CustomerMenuRow
             Icon={Heart}
@@ -172,7 +172,7 @@ export default function Profile() {
           />
         </CustomerMenuSection>
         <ActionError error={actionError} />
-        <View style={{ gap: 8, marginTop: 24 }}>
+        <View style={{ gap: space.sm, marginTop: space.xxl }}>
           <Button
             variant="secondary"
             label={t("profile.logout")}

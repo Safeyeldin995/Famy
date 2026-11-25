@@ -223,7 +223,7 @@ export default function ProviderProfile() {
           <>
             <View style={{ alignItems: "center", gap: space.sm }}>
               <Avatar raw={p.profile.avatar_url} size={96} round />
-              <Text size="xxl" weight="heavy" style={{ textAlign: "center", marginTop: 4 }}>
+              <Text size="xxl" weight="heavy" style={{ textAlign: "center", marginTop: space.xs }}>
                 {name}
               </Text>
               <Text tone="muted">
@@ -233,7 +233,7 @@ export default function ProviderProfile() {
               </Text>
               <View style={[customerStyle.row, { justifyContent: "center", flexWrap: "wrap" }]}>
                 {Number(p.ratings.rating_count) > 0 ? (
-                  <View style={[customerStyle.row, { gap: 4 }]}>
+                  <View style={[customerStyle.row, { gap: space.xs }]}>
                     <Star size={16} color={colors.warning} fill={colors.warning} />
                     <Text size="sm">
                       {providerRatingSummary(
@@ -249,7 +249,7 @@ export default function ProviderProfile() {
                   </Text>
                 )}
                 {p.is_verified ? (
-                  <View style={[customerStyle.row, { gap: 4 }]}>
+                  <View style={[customerStyle.row, { gap: space.xs }]}>
                     <BadgeCheck size={16} color={colors.success} />
                     <Text size="sm" tone="success">
                       {t("providerPage.idVerified")}
@@ -262,7 +262,7 @@ export default function ProviderProfile() {
               style={[
                 customerStyle.card,
                 customerStyle.row,
-                { paddingVertical: 12, paddingHorizontal: 0 },
+                { paddingVertical: space.md, paddingHorizontal: 0 },
               ]}
             >
               {[
@@ -280,7 +280,7 @@ export default function ProviderProfile() {
                   key={label}
                   style={{
                     flex: 1,
-                    paddingHorizontal: 8,
+                    paddingHorizontal: space.sm,
                     borderStartWidth: index ? 1 : 0,
                     borderStartColor: colors.border,
                   }}
@@ -316,10 +316,10 @@ export default function ProviderProfile() {
                       <View
                         key={s.id}
                         style={{
-                          paddingVertical: 12,
+                          paddingVertical: space.md,
                           borderBottomWidth: 1,
                           borderBottomColor: colors.border,
-                          gap: 8,
+                          gap: space.sm,
                         }}
                       >
                         <View style={[customerStyle.row, { justifyContent: "space-between" }]}>
@@ -367,9 +367,9 @@ export default function ProviderProfile() {
                         key={key}
                         style={{
                           borderRadius: 16,
-                          padding: 14,
+                          padding: space.lg,
                           backgroundColor: colors.surface2,
-                          gap: 4,
+                          gap: space.xs,
                         }}
                       >
                         <Text weight="bold">
@@ -400,7 +400,7 @@ export default function ProviderProfile() {
                 </Section>
               ) : null}
               {!available.length ? (
-                <View style={{ borderRadius: 16, padding: 16, backgroundColor: colors.surface2 }}>
+                <View style={{ borderRadius: 16, padding: space.lg, backgroundColor: colors.surface2 }}>
                   <Text tone="muted" style={{ textAlign: "center" }}>
                     {t("providerPage.notBookable", { name: firstName })}
                   </Text>
@@ -454,8 +454,8 @@ export default function ProviderProfile() {
                     <View
                       key={r.id}
                       style={{
-                        paddingVertical: 12,
-                        gap: 8,
+                        paddingVertical: space.md,
+                        gap: space.sm,
                         borderBottomWidth: 1,
                         borderBottomColor: colors.border,
                       }}

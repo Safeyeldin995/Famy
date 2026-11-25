@@ -44,7 +44,7 @@ function ToggleRow({
         paddingVertical: space.sm,
       }}
     >
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.xs }}>
         <Text weight="bold">{label}</Text>
         {sub ? (
           <Text tone="muted" size="sm">
@@ -62,7 +62,7 @@ function ToggleRow({
           borderRadius: 14,
           backgroundColor: on ? colors.brand : colors.border,
           justifyContent: "center",
-          paddingHorizontal: 2,
+          paddingHorizontal: space.xs,
         }}
       >
         <View
@@ -110,7 +110,7 @@ export default function ProNotificationPreferencesScreen() {
       title={t("notifPrefs.title")}
       header={<ProviderHeader title={t("notifPrefs.title")} />}
       queries={[prefsQ]}
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ paddingTop: space.sm }}
     >
       <QueryState query={prefsQ}>
         <View style={proCard.card}>

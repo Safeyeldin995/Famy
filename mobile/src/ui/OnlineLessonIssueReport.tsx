@@ -7,7 +7,7 @@ import { onlineLessonReportWindow } from "@shared/livekit/sessionAccess";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { Choices, ui } from "./Page";
-import { colors } from "./theme";
+import { colors, space } from "./theme";
 import { bodyTextInputProps } from "@/ui/a11y";
 
 type Props = { bookingId: string; startAt: string; endAt: string };
@@ -36,7 +36,7 @@ export function OnlineLessonIssueReport({ bookingId, startAt, endAt }: Props) {
   if (!window.open) return null;
   if (done) {
     return (
-      <View style={[ui.card, { gap: 8 }]}>
+      <View style={[ui.card, { gap: space.sm }]}>
         <Text weight="bold">{t("onlineSession.lessonReportSubmitted")}</Text>
         <Text tone="muted">{t("onlineSession.lessonReportReviewEta")}</Text>
       </View>
@@ -44,7 +44,7 @@ export function OnlineLessonIssueReport({ bookingId, startAt, endAt }: Props) {
   }
 
   return (
-    <View style={[ui.card, { gap: 10 }]}>
+    <View style={[ui.card, { gap: space.md }]}>
       <Text weight="bold">{t("onlineSession.lessonReportTitle")}</Text>
       <Choices
         layout="chips"
@@ -66,7 +66,7 @@ export function OnlineLessonIssueReport({ bookingId, startAt, endAt }: Props) {
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 12,
-          padding: 12,
+          padding: space.md,
           textAlignVertical: "top",
         }}
         {...bodyTextInputProps()}

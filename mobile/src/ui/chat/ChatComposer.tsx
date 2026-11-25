@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.md,
   },
   warning: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: colors.composerWarningTint,
     borderRadius: radius.lg,
     padding: space.md,
     marginBottom: space.sm,

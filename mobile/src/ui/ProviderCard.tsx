@@ -96,8 +96,8 @@ export function ProviderCard({
         size={56}
         round
       />
-      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: space.xs }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
           <Text size="lg" weight="bold" style={{ flexShrink: 1 }}>
             {p.profile.full_name || t("provider2.unnamed")}
           </Text>
@@ -121,7 +121,7 @@ export function ProviderCard({
             .filter(Boolean)
             .join(uiListSeparator(i18n.language)) || localized(service, i18n.language)}
         </Text>
-        <View style={[ui.wrap, { gap: 4, marginTop: 4 }]}>
+        <View style={[ui.wrap, { gap: space.xs, marginTop: space.xs }]}>
           {Number(p.ratings.rating_count) > 0 ? (
             <Star size={14} color={colors.warning} fill={colors.warning} />
           ) : null}
@@ -136,12 +136,12 @@ export function ProviderCard({
           </Text>
         </View>
         {subtitle ? (
-          <Text weight="bold" style={{ marginTop: 4 }}>
+          <Text weight="bold" style={{ marginTop: space.xs }}>
             {subtitle}
           </Text>
         ) : (
           p.hourly_rate != null && (
-            <Text weight="bold" style={{ marginTop: 4 }}>
+            <Text weight="bold" style={{ marginTop: space.xs }}>
               {packageInfo
                 ? joinUiParts(
                     [customerMoney(p.hourly_rate, i18n.language), t(packageInfo.key, packageInfo.values)],

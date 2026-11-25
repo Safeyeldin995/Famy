@@ -83,7 +83,7 @@ export function WeeklyHoursEditor({
         }}
         style={[
           direction,
-          { minHeight: 44, alignItems: "center", gap: 10, opacity: disabled ? 0.5 : 1 },
+          { minHeight: 44, alignItems: "center", gap: space.md, opacity: disabled ? 0.5 : 1 },
         ]}
       >
         <View
@@ -102,7 +102,7 @@ export function WeeklyHoursEditor({
         </View>
         <Text weight="bold">{t("providerSetup.sameHours")}</Text>
       </Pressable>
-      <View style={[direction, { flexWrap: "wrap", gap: 8 }]}>
+      <View style={[direction, { flexWrap: "wrap", gap: space.sm }]}>
         {chipOrder.map((weekday) => {
           const on = value.some((row) => row.weekday === weekday);
           return (
@@ -115,7 +115,7 @@ export function WeeklyHoursEditor({
               onPress={() => toggleDay(weekday)}
               style={{
                 ...direction,
-                gap: 6,
+                gap: space.sm,
                 opacity: disabled ? 0.5 : 1,
                 minHeight: 44,
                 minWidth: 44,
@@ -143,7 +143,7 @@ export function WeeklyHoursEditor({
               {t(`pro.schedule.days.${dayKeys[row.weekday]}`)}
             </Text>
           )}
-          <View style={[direction, { gap: 12 }]}>
+          <View style={[direction, { gap: space.md }]}>
             {(["start_time", "end_time"] as const).map((key) => (
               <BottomSheetSelect
                 key={key}

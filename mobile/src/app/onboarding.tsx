@@ -53,7 +53,7 @@ export default function Onboarding() {
       edges={["left", "right"]}
       style={[styles.page, { direction: ar ? "rtl" : "ltr" }]}
     >
-      <View style={[styles.content, { paddingTop: Math.max(insets.top, 8) }]}>
+      <View style={[styles.content, { paddingTop: Math.max(insets.top, space.sm) }]}>
         <View style={styles.header}>
           <View style={styles.side}>
             <Pressable
@@ -108,7 +108,7 @@ export default function Onboarding() {
             {t(`onboarding.slide${index + 1}Body`)}
           </Text>
         </View>
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
           {/* Product decision: progress reads left to right in both languages.
               `direction` is not honoured on every native platform, so flip the
               row against the active layout direction instead. */}
@@ -158,23 +158,23 @@ export default function Onboarding() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "white" },
   content: { flex: 1, paddingHorizontal: space.xl, paddingBottom: space.lg },
-  header: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 },
+  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.md },
   side: { flex: 1 },
   skip: {
     minHeight: 44,
     minWidth: 44,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
     justifyContent: "center",
     alignSelf: "flex-start",
   },
   wordmark: { height: 40, width: 120 },
   language: {
     minHeight: 44,
-    paddingHorizontal: 12,
+    paddingHorizontal: space.md,
     borderRadius: 999,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: space.sm,
     backgroundColor: "white",
     shadowColor: colors.ink,
     shadowOpacity: 0.06,
@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
     minHeight: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: space.sm,
   },
   copy: { alignItems: "center" },
   title: { textAlign: "center", lineHeight: 30 },
-  body: { marginTop: 12, maxWidth: 320, textAlign: "center", lineHeight: 23 },
-  footer: { marginTop: 24, paddingTop: 8 },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 12 },
+  body: { marginTop: space.md, maxWidth: 320, textAlign: "center", lineHeight: 23 },
+  footer: { marginTop: space.xxl, paddingTop: space.sm },
+  dots: { flexDirection: "row", justifyContent: "center", gap: space.sm, marginBottom: space.md },
   dot: { height: 8, borderRadius: 999 },
-  counter: { textAlign: "center", marginBottom: 16, lineHeight: 16 },
+  counter: { textAlign: "center", marginBottom: space.lg, lineHeight: 16 },
 });

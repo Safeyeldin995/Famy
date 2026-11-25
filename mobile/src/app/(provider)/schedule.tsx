@@ -207,8 +207,8 @@ export default function ProviderSchedule() {
           {t("pro.common.saved")}
         </Text>
       ) : null}
-      <View style={[proCard.card, { gap: 16 }]}>
-        <View style={{ gap: 8 }}>
+      <View style={[proCard.card, { gap: space.lg }]}>
+        <View style={{ gap: space.sm }}>
           <Text weight="heavy">{t("pro.schedule.minNoticeQuestion")}</Text>
           <Text size="xs" tone="muted">
             {t("pro.schedule.minNoticeHelper")}
@@ -221,7 +221,7 @@ export default function ProviderSchedule() {
             onSelect={(min_notice_hours) => persistRules({ min_notice_hours })}
           />
         </View>
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: space.sm }}>
           <Text weight="heavy">{t("pro.schedule.bufferQuestion")}</Text>
           <Text size="xs" tone="muted">
             {t("pro.schedule.bufferHelper")}
@@ -256,8 +256,8 @@ export default function ProviderSchedule() {
             style={{
               backgroundColor: vacation ? colors.brandTint : colors.surface2,
               borderRadius: 999,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              paddingHorizontal: space.md,
+              paddingVertical: space.sm,
             }}
           >
             {t(vacation ? "scheduleUi.on" : "scheduleUi.off")}
@@ -287,7 +287,7 @@ export default function ProviderSchedule() {
                 accessibilityRole="button"
                 accessibilityLabel={t("scheduleUi.add")}
                 onPress={() => setDateSheet(kind)}
-                style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 12 }}
+                style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space.md }}
               >
                 <Text weight="bold" tone="brand">
                   {t("scheduleUi.add")}

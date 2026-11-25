@@ -8,7 +8,7 @@ import { useSession } from "@/lib/session";
 import { uploadAvatar } from "@/lib/provider/documentUpload";
 import { Avatar } from "../ProviderCard";
 import { Text } from "../Text";
-import { colors } from "../theme";
+import { colors, space } from "../theme";
 
 export function CustomerProfilePhoto({ src, name }: { src?: string | null; name: string }) {
   const { t, i18n } = useTranslation();
@@ -36,12 +36,12 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
     }
   }
   return (
-    <View style={{ gap: 4 }}>
+    <View style={{ gap: space.xs }}>
       <View
         testID="customer-profile-photo"
         style={{
-          paddingBottom: 8,
-          ...(ar ? { paddingStart: 10 } : { paddingEnd: 10 }),
+          paddingBottom: space.sm,
+          ...(ar ? { paddingStart: space.md } : { paddingEnd: space.md }),
           alignSelf: "flex-start",
           direction: "ltr",
         }}

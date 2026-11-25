@@ -37,7 +37,7 @@ export default function Help() {
           backTo="/profile"
         />
       }
-      contentStyle={{ paddingTop: 0, gap: 16 }}
+      contentStyle={{ paddingTop: 0, gap: space.lg }}
       scrollHeader
     >
       <View style={[ui.card, { marginTop: -32, borderRadius: radius.xl, padding: space.xl }]}>
@@ -45,7 +45,7 @@ export default function Help() {
           {t("helpC.heroTitle")}
         </Text>
         <QueryState query={q} empty={!phone && !whatsapp} emptyKey="mobile.supportUnavailable">
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: space.sm }}>
             {[
               {
                 key: "chat",
@@ -98,7 +98,7 @@ export default function Help() {
         </QueryState>
       </View>
       <ActionError error={error} />
-      <Text size="xs" weight="bold" style={{ marginTop: 8 }}>
+      <Text size="xs" weight="bold" style={{ marginTop: space.sm }}>
         {t("helpC.faqsTitle")}
       </Text>
       <View
@@ -124,7 +124,7 @@ export default function Help() {
               borderColor: colors.border,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
               <Text weight="heavy" style={{ flex: 1 }}>
                 {f.q}
               </Text>
@@ -135,7 +135,7 @@ export default function Help() {
               />
             </View>
             {expanded === i && (
-              <Text size="xs" tone="muted" style={{ marginTop: 8, lineHeight: 20 }}>
+              <Text size="xs" tone="muted" style={{ marginTop: space.sm, lineHeight: 20 }}>
                 {f.a}
               </Text>
             )}

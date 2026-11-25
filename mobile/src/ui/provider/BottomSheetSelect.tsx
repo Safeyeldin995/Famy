@@ -68,7 +68,7 @@ export function BottomSheetSelect({
           />
           <View
             accessibilityViewIsModal
-            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.xl) }]}
           >
             <View style={styles.grab} />
             <View style={[styles.heading, direction]}>

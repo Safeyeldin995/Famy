@@ -83,7 +83,7 @@ export default function GuestProvider() {
               </Text>
               <View style={[customerStyle.row, { justifyContent: "center", flexWrap: "wrap" }]}>
                 {Number(p.ratings.rating_count) > 0 ? (
-                  <View style={[customerStyle.row, { gap: 4 }]}>
+                  <View style={[customerStyle.row, { gap: space.xs }]}>
                     <Star size={16} color={colors.warning} fill={colors.warning} />
                     <Text size="sm">
                       {providerRatingSummary(
@@ -99,7 +99,7 @@ export default function GuestProvider() {
                   </Text>
                 )}
                 {p.is_verified ? (
-                  <View style={[customerStyle.row, { gap: 4 }]}>
+                  <View style={[customerStyle.row, { gap: space.xs }]}>
                     <BadgeCheck size={16} color={colors.success} />
                     <Text size="sm" tone="success">
                       {t("providerPage.idVerified")}
@@ -129,7 +129,7 @@ export default function GuestProvider() {
                     customerStyle.row,
                     {
                       justifyContent: "space-between",
-                      paddingVertical: 12,
+                      paddingVertical: space.md,
                       borderBottomWidth: 1,
                       borderBottomColor: colors.border,
                     },
@@ -160,7 +160,7 @@ export default function GuestProvider() {
                   <View
                     key={r.id}
                     style={{
-                      gap: 4,
+                      gap: space.xs,
                       padding: space.md,
                       borderRadius: radius.lg,
                       backgroundColor: colors.surface,
@@ -168,7 +168,7 @@ export default function GuestProvider() {
                       borderColor: colors.border,
                     }}
                   >
-                    <View style={[customerStyle.row, { gap: 4 }]}>
+                    <View style={[customerStyle.row, { gap: space.xs }]}>
                       <Star size={14} color={colors.warning} fill={colors.warning} />
                       <Text size="sm" weight="bold">
                         {r.rating}

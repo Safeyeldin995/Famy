@@ -1,4 +1,7 @@
 import { isValidLatLng } from "@shared/geo/latLng";
+import { colors } from "../theme";
+
+const mapBackground = colors.surface2.toLowerCase();
 
 export type MapPosition = { lat: number; lng: number };
 
@@ -32,7 +35,7 @@ export function googleMapDocument(center: MapPosition, interactive: boolean, api
   const zoom = interactive ? 16 : 15;
   const gesture = interactive ? "greedy" : "none";
   const drag = interactive ? "true" : "false";
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://maps.googleapis.com; style-src 'unsafe-inline'; img-src https://*.googleapis.com https://*.gstatic.com data:; connect-src https://maps.googleapis.com https://*.googleapis.com"><style>html,body,#map{height:100%;width:100%;margin:0;background:#f3eef0}</style></head><body><div id="map"></div><script>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://maps.googleapis.com; style-src 'unsafe-inline'; img-src https://*.googleapis.com https://*.gstatic.com data:; connect-src https://maps.googleapis.com https://*.googleapis.com"><style>html,body,#map{height:100%;width:100%;margin:0;background:${mapBackground}}</style></head><body><div id="map"></div><script>
     function send(value){var data=JSON.stringify(value);if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(data);else window.parent.postMessage(data,'*')}
     window.gm_authFailure=function(){send({type:'unavailable'})};
     var loaded=false;setTimeout(function(){if(!loaded)send({type:'unavailable'})},10000);

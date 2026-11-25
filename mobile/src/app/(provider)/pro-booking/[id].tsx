@@ -122,7 +122,7 @@ export default function ProBookingDetail() {
       <QueryState query={q} skeleton="detail">
         {b ? (
           <>
-            <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
+            <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: space.md }]}>
               <View
                 style={{
                   width: 44,

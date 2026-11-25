@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { space } from "../theme";
 import { useTranslation } from "react-i18next";
 import {
   computeRebookFormBootstrap,
@@ -146,7 +147,7 @@ export function BookRebookGate({
   ) {
     return (
       <>
-        <Text style={{ marginBottom: 8 }}>{t("bookFlow.rebookSourceUnavailable")}</Text>
+        <Text style={{ marginBottom: space.sm }}>{t("bookFlow.rebookSourceUnavailable")}</Text>
         {children(freshBooking)}
       </>
     );

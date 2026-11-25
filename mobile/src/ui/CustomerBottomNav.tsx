@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { Text } from "./Text";
-import { colors } from "./theme";
+import { colors, space } from "./theme";
 
 const tabs = { home: Home, bookings: Calendar, profile: User };
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
@@ -20,7 +20,7 @@ export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBa
       style={[
         styles.bar,
         {
-          paddingBottom: Math.max(insets.bottom, 8),
+          paddingBottom: Math.max(insets.bottom, space.sm),
           flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
         },
       ]}
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(230,224,228,.5)",
     backgroundColor: "rgba(255,255,255,.95)",
-    shadowColor: "#25141d",
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 24,
@@ -90,9 +90,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 64,
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingTop: 10,
+    gap: space.xs,
+    paddingHorizontal: space.sm,
+    paddingTop: space.md,
     borderRadius: 24,
   },
   icon: { height: 36, width: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },

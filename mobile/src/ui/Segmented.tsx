@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import type { ComponentType } from "react";
 import { Text } from "./Text";
-import { colors, radius, shadow } from "./theme";
+import { colors, radius, shadow, space } from "./theme";
 
 type IconType = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
@@ -19,7 +19,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <View
-      style={[styles.track, brandSelection && { borderRadius: 999, padding: 6, gap: 6 }]}
+      style={[styles.track, brandSelection && { borderRadius: 999, padding: space.sm, gap: space.sm }]}
       accessibilityRole="tablist"
     >
       {options.map((option) => {
@@ -54,8 +54,8 @@ export function Segmented<T extends string>({
               <View
                 style={{
                   minWidth: 22,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
+                  paddingHorizontal: space.sm,
+                  paddingVertical: space.xs,
                   borderRadius: 999,
                   backgroundColor: colors.brand,
                   alignItems: "center",
@@ -77,8 +77,8 @@ export function Segmented<T extends string>({
 const styles = StyleSheet.create({
   track: {
     flexDirection: "row",
-    gap: 4,
-    padding: 4,
+    gap: space.xs,
+    padding: space.xs,
     borderRadius: radius.lg,
     backgroundColor: colors.surface2,
   },
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: space.sm,
   },
   active: { backgroundColor: colors.surface, ...shadow.card, shadowOpacity: 0.06 },
 });

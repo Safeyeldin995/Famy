@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { space } from "@/ui/theme";
 import { useTranslation } from "react-i18next";
 import {
   canUploadDocument,
@@ -30,7 +31,7 @@ export default function ProDocumentsScreen() {
       title={t("providerDocuments.title")}
       header={<ProviderHeader title={t("providerDocuments.title")} />}
       queries={[p, docsQ]}
-      contentStyle={{ gap: 16, paddingTop: 4 }}
+      contentStyle={{ gap: space.lg, paddingTop: space.xs }}
     >
       <QueryState query={p}>
         <QueryState query={docsQ}>

@@ -33,7 +33,7 @@ export default function ProviderProfile() {
   };
 
   return (
-    <Page tab title={t("pro.nav.profile")} queries={[p, servicesQ]} contentStyle={{ gap: 16 }}>
+    <Page tab title={t("pro.nav.profile")} queries={[p, servicesQ]} contentStyle={{ gap: space.lg }}>
       <QueryState query={p}>
         <View
           style={[
@@ -43,7 +43,7 @@ export default function ProviderProfile() {
               padding: space.xl,
               flexDirection: "row",
               alignItems: "center",
-              gap: 16,
+              gap: space.lg,
             },
           ]}
         >
@@ -82,7 +82,7 @@ export default function ProviderProfile() {
               <Camera size={14} color={colors.brandForeground} />
             </View>
           </Pressable>
-          <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flex: 1, gap: space.sm }}>
             <Text size="lg" weight="heavy">
               {profile?.full_name || t("greetings.there")}
             </Text>
@@ -91,10 +91,10 @@ export default function ProviderProfile() {
                 alignSelf: "flex-start",
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4,
-                backgroundColor: provider?.is_verified ? "#E7F7EF" : colors.surface2,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
+                gap: space.xs,
+                backgroundColor: provider?.is_verified ? colors.successTint : colors.surface2,
+                paddingHorizontal: space.md,
+                paddingVertical: space.xs,
                 borderRadius: 999,
               }}
             >
@@ -135,7 +135,7 @@ export default function ProviderProfile() {
           style={{
             backgroundColor: colors.surface2,
             borderRadius: radius.lg,
-            padding: 16,
+            padding: space.lg,
             minHeight: 72,
           }}
         >
@@ -162,7 +162,7 @@ export default function ProviderProfile() {
             accessibilityRole="button"
             accessibilityLabel={t("pro.serviceRequest.addServiceLink")}
             onPress={() => router.push("/pro-profile-edit")}
-            style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}
+            style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space.sm }}
           >
             <Text weight="bold" tone="brand" size="sm">
               {t("pro.serviceRequest.addServiceLink")}

@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   name: { flexShrink: 1 },
   closedTag: {
     paddingHorizontal: space.sm,
-    paddingVertical: 2,
+    paddingVertical: space.xs,
     borderRadius: radius.pill,
     backgroundColor: colors.surface2,
   },

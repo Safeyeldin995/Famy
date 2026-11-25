@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { space } from "@/ui/theme";
 import { useTranslation } from "react-i18next";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { Page, QueryState } from "@/ui/Page";
@@ -17,7 +18,7 @@ export default function CustomerWalletScreen() {
       <Text tone="muted">{t("wallet.customer.terms")}</Text>
       <QueryState query={balances} />
       {balances.data ? (
-        <View style={{ gap: 8, marginTop: 12 }}>
+        <View style={{ gap: space.sm, marginTop: space.md }}>
           <Text weight="bold">
             {t("wallet.customer.availableBalance", {
               amount: customerMoney(balances.data.available_amount, i18n.language),
@@ -28,7 +29,7 @@ export default function CustomerWalletScreen() {
 
       <QueryState query={entries} />
       {(entries.data ?? []).map((entry) => (
-        <View key={entry.id} style={{ marginTop: 12, gap: 6 }}>
+        <View key={entry.id} style={{ marginTop: space.md, gap: space.sm }}>
           <Text>
             {t(`wallet.customer.reason.${entry.reason}`, { defaultValue: entry.reason })} ·{" "}
             {entry.direction === "credit" ? "+" : "-"}

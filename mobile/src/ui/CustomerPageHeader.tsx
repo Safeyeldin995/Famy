@@ -38,7 +38,7 @@ export function CustomerPageHeader({
   );
   if (hero)
     return (
-      <LinearGradient colors={["#F32B88", colors.brand]} style={styles.hero}>
+      <LinearGradient colors={[colors.brandGradientStart, colors.brand]} style={styles.hero}>
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           {back}
           {right}
@@ -47,7 +47,7 @@ export function CustomerPageHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text tone="inverse" style={{ marginTop: 8, opacity: 0.75 }}>
+          <Text tone="inverse" style={{ marginTop: space.sm, opacity: 0.75 }}>
             {subtitle}
           </Text>
         ) : null}
@@ -62,7 +62,7 @@ export function CustomerPageHeader({
             {title}
           </Text>
           {subtitle ? (
-            <Text size="sm" tone="muted" style={{ marginTop: 4 }}>
+            <Text size="sm" tone="muted" style={{ marginTop: space.xs }}>
               {subtitle}
             </Text>
           ) : null}

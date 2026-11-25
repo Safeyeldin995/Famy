@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { Check } from "lucide-react-native";
 import { Text } from "../Text";
-import { colors } from "../theme";
+import { colors, space } from "../theme";
 export function BookingServiceCard({
   selected,
   title,
@@ -24,8 +24,8 @@ export function BookingServiceCard({
     <View
       style={{
         borderRadius: 18,
-        padding: 14,
-        gap: 14,
+        padding: space.lg,
+        gap: space.lg,
         backgroundColor: colors.surface,
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? colors.brand : colors.border,
@@ -36,7 +36,7 @@ export function BookingServiceCard({
         accessibilityLabel={title}
         accessibilityState={{ checked: selected }}
         onPress={onPress}
-        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}
+        style={{ flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44 }}
       >
         <View
           style={{
@@ -50,7 +50,7 @@ export function BookingServiceCard({
         >
           {icon}
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.xs }}>
           <Text weight="bold">{title}</Text>
           <Text size="xs" tone="muted">
             {subtitle}

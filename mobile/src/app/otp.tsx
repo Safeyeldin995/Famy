@@ -28,6 +28,7 @@ import { Button } from "@/ui/Button";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { OtpCodeInput } from "@/ui/OtpCodeInput";
 import { Text } from "@/ui/Text";
+import { ErrorBanner } from "@/ui/ErrorBanner";
 import { colors, fonts, radius, space } from "@/ui/theme";
 
 type OtpContext = {
@@ -321,13 +322,7 @@ export default function OtpScreen() {
         </Text>
       </View>
 
-      {error ? (
-        <View style={styles.error}>
-          <Text size="sm" weight="bold" tone="danger">
-            {error}
-          </Text>
-        </View>
-      ) : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
       <Pressable
         accessibilityRole="button"
@@ -374,5 +369,4 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   ltr: { direction: "ltr", alignSelf: "center" },
   timerRow: { flexDirection: "row", alignItems: "center", gap: space.xs, justifyContent: "center" },
-  error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

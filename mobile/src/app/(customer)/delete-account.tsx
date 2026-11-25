@@ -61,7 +61,7 @@ export default function DeleteAccountScreen() {
     <Page
       title={t("accountDeletion.title")}
       header={<CustomerPageHeader title={t("accountDeletion.title")} backTo="/profile" />}
-      contentStyle={{ gap: 24 }}
+      contentStyle={{ gap: space.xxl }}
     >
       <Text tone="muted">{t("accountDeletion.intro")}</Text>
       <View style={styles.card}>

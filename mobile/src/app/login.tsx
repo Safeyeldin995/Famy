@@ -36,6 +36,7 @@ import { AuthLabeledField, AuthPasswordField, AuthPhoneField } from "@/ui/auth/A
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
+import { ErrorBanner } from "@/ui/ErrorBanner";
 import { colors, radius, space } from "@/ui/theme";
 
 type Role = "customer" | "provider";
@@ -305,13 +306,7 @@ export default function Login() {
         </AuthLabeledField>
       ) : null}
 
-      {error ? (
-        <View style={styles.error}>
-          <Text size="sm" weight="bold" tone="danger">
-            {error}
-          </Text>
-        </View>
-      ) : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
       {showOAuth ? (
         <View style={{ gap: space.md }}>
@@ -362,8 +357,8 @@ export default function Login() {
                 (loading || oauthLoading !== null) && styles.oauthDisabled,
               ]}
             >
-              <AppleMark color="#fff" />
-              <Text weight="heavy" style={{ color: "#fff" }}>
+              <AppleMark color={colors.paymentMarkForeground} />
+              <Text weight="heavy" style={{ color: colors.paymentMarkForeground }}>
                 {oauthLoading === "apple"
                   ? t("oauth.redirectingApple")
                   : t("oauth.continueWithApple")}
@@ -466,9 +461,8 @@ function AppleMark({ color = colors.foreground }: { color?: string }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.xxl, gap: space.xxl, paddingBottom: 48 },
+  content: { padding: space.xxl, gap: space.xxl, paddingBottom: space.xxxl + space.lg },
   wordmark: { width: 120, height: 38, alignSelf: "flex-start" },
-  error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
   dividerRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   oauthBtn: {
@@ -485,7 +479,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  oauthApple: { backgroundColor: "#000" },
+  oauthApple: { backgroundColor: colors.oauthAppleBackground },
   oauthPressed: { opacity: 0.92 },
   oauthDisabled: { opacity: 0.6 },
   appleBtn: { width: "100%", height: 56 },

@@ -38,7 +38,7 @@ export function MessageBubble({
           mine ? styles.mine : styles.theirs,
           customer && {
             borderRadius: 20,
-            paddingVertical: 10,
+            paddingVertical: space.md,
             ...(mine ? { borderBottomEndRadius: 6 } : { borderBottomStartRadius: 6 }),
           },
         ]}

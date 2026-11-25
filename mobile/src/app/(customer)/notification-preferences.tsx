@@ -10,7 +10,7 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { customerStyle } from "@/ui/customer/Primitives";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { useState } from "react";
 import { enableCustomerPushNotifications } from "@/lib/push";
 import { useToast } from "@/ui/Toast";
@@ -44,7 +44,7 @@ export default function CustomerNotificationPreferences() {
             {t("notifPrefs.pushUnsupported")}
           </Text>
         ) : (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: space.sm }}>
             <Button
               variant="secondary"
               label={t(enabling ? "notifPrefs.enabling" : "notifPrefs.enable")}
@@ -80,9 +80,9 @@ export default function CustomerNotificationPreferences() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
+                gap: space.md,
+                paddingHorizontal: space.lg,
+                paddingVertical: space.lg,
                 borderTopWidth: index ? 1 : 0,
                 borderTopColor: colors.border,
               }}
@@ -107,7 +107,7 @@ export default function CustomerNotificationPreferences() {
                     { onSuccess: () => toast.show(t("mobile.settingsSaved")) },
                   )
                 }
-                style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 }}
+                style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: space.sm }}
               >
                 <Text size="xs" weight="bold" tone={prefs.data?.[key] ? "brand" : "muted"}>
                   {t(
@@ -121,7 +121,7 @@ export default function CustomerNotificationPreferences() {
                     width: 48,
                     height: 28,
                     borderRadius: 14,
-                    padding: 2,
+                    padding: space.xs,
                     backgroundColor: prefs.data?.[key] ? colors.brand : colors.surface2,
                   }}
                 >

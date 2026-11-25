@@ -113,7 +113,7 @@ export default function Notifications() {
                   >
                     <Icon size={20} color={offer ? "white" : colors.brand} />
                   </View>
-                  <View style={{ flex: 1, gap: 4 }}>
+                  <View style={{ flex: 1, gap: space.xs }}>
                     <View style={ui.wrap}>
                       <Text size="lg" weight="heavy" style={{ flexShrink: 1 }}>
                         {text.title}
