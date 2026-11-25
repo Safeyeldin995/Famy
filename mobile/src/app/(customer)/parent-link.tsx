@@ -119,7 +119,6 @@ export default function ParentLinkScreen() {
                 borderColor: colors.border,
                 borderRadius: radius.lg,
                 paddingHorizontal: space.md,
-                textAlign: "left",
               }}
             />
             <Button
