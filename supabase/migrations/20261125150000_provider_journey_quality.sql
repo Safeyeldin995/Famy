@@ -308,7 +308,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') IS NOT TRUE THEN
+  IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'admin') IS NOT TRUE THEN
     RAISE EXCEPTION 'Admin authorization required.' USING ERRCODE = '42501';
   END IF;
 
@@ -320,7 +320,7 @@ BEGIN
   WHERE d.status = 'approved'
     AND d.expires_at IS NOT NULL
     AND d.expires_at <= now() + make_interval(days => GREATEST(1, LEAST(COALESCE(p_within_days, 30), 90)))
-    AND p.id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
+    AND p.id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity)
   ORDER BY d.expires_at ASC;
 END;
 $$;
@@ -328,6 +328,9 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_expiring_provider_documents(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_expiring_provider_documents(integer) TO authenticated;
 
+-- If #502/#505 (or later PRs) redefine admin_work_queue_counts on main after this branch,
+-- merge from the latest main body and preserve every queue key added there plus
+-- applications_over_sla and documents_expiring_soon from this migration.
 CREATE OR REPLACE FUNCTION public.admin_work_queue_counts()
 RETURNS TABLE(queue text, item_count bigint)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
