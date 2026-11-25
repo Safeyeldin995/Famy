@@ -20,6 +20,7 @@ import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
+import { BookingProblem } from "./BookingProblem";
 import { useToast } from "./Toast";
 import { customerRebookParams, shouldShowCustomerRebook } from "@shared/booking/customerRebook";
 export function BookingActions({
@@ -277,6 +278,9 @@ export function BookingActions({
           )}
         </>
       )}
+      {booking.service_mode !== "online" && booking.status !== "pending" ? (
+        <BookingProblem booking={booking} />
+      ) : null}
       {!suppressRebook && shouldShowCustomerRebook(booking.status) ? (
         <Button
           label={t("mobile.bookAgain")}

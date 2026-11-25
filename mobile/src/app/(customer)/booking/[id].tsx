@@ -1,7 +1,7 @@
 import { PaymentBlock } from "@/ui/PaymentBlock";
 import { bookingDurationUnitKey } from "@/lib/bookingDuration";
 import { BookingActions } from "@/ui/BookingActions";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import {
   Calendar,
@@ -12,7 +12,7 @@ import {
   MapPin,
   Phone,
 } from "lucide-react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   useBooking,
@@ -52,7 +52,15 @@ export default function BookingDetail() {
   }>();
   const { t, i18n } = useTranslation();
   const { session } = useSession();
-  const q = useBooking(id);
+  // Poll the status only while this screen is the one being looked at.
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const q = useBooking(id, { live: focused });
   const payment = useBookingPayment(id);
   const party = useBookingParty(id);
   const b = q.data;

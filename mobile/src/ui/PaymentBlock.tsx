@@ -7,6 +7,7 @@ import { refundOwed } from "@shared/payments/refundOwed";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBookingPayment } from "@/lib/queries";
 import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
 import {
@@ -22,10 +23,18 @@ import { Button } from "./Button";
 import { Text } from "./Text";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { money } from "@/lib/presentation";
+import { useWalletBalances } from "@/lib/walletQueries";
+import { walletSplitView } from "@/lib/customerCasesPure";
 import {
   paymobChannelForPaymentBlock,
   resolvePaymobCheckoutChannelForPayment,
 } from "@/lib/paymobPaymentChannel";
+
+/** True once customer_apply_wallet_at_checkout ran for this payment (amount is then the card part). */
+function walletAlreadyApplied(metadata: unknown): boolean {
+  const m = metadata as { wallet_checkout?: { applied?: unknown } } | null | undefined;
+  return m?.wallet_checkout?.applied === true;
+}
 
 export function PaymentBlock({
   bookingId,
@@ -42,6 +51,7 @@ export function PaymentBlock({
   const q = useBookingPayment(bookingId);
   const methods = useActivePaymentMethods();
   const create = useCreatePayment();
+  const wallet = useWalletBalances();
   const recoveryStarted = useRef(false);
   const [selection, setSelection] = useState<PendingPaymentSelection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,10 +71,19 @@ export function PaymentBlock({
       live = false;
     };
   }, [bookingId, t]);
+  const qc = useQueryClient();
   const refetchPayment = q.refetch;
+  const refetchWallet = wallet.refetch;
+  // The wallet balance is part of what this card promises, so it is refreshed with
+  // the payment: on mount, on app focus, and after every checkout attempt. Wallet
+  // entries are invalidated too, because a checkout may have spent from them.
   const refresh = useCallback(async () => {
-    await Promise.all([refetchPayment(), refetchBooking()]);
-  }, [refetchPayment, refetchBooking]);
+    void qc.invalidateQueries({ queryKey: ["customer-wallet-entries"] });
+    await Promise.all([refetchPayment(), refetchBooking(), refetchWallet()]);
+  }, [qc, refetchPayment, refetchBooking, refetchWallet]);
+  useEffect(() => {
+    void refetchWallet();
+  }, [refetchWallet]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") void refresh();
@@ -106,6 +125,17 @@ export function PaymentBlock({
   });
   const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
   const paymobChannel = paymobChannelForPaymentBlock({ payment: p, selection });
+  // The Paymob checkout route spends the wallet balance first (server side);
+  // show the customer that split before they pay.
+  const walletView = walletSplitView({
+    eligible: type === "online" && p?.status === "pending" && !walletAlreadyApplied(p?.metadata),
+    total: p?.amount ?? total,
+    available: wallet.data?.available_amount,
+    balanceFetching: wallet.isFetching,
+    balanceOk: wallet.isSuccess,
+  });
+  const split =
+    walletView.kind === "split" ? walletView : { walletPart: 0, cardPart: 0, walletOnly: false };
   async function checkout() {
     setBusy(true);
     setError("");
@@ -320,9 +350,26 @@ export function PaymentBlock({
           {type === "online" && (
             <>
               <PaymentLogos />
+              {paymentEligible && p.status === "pending" && walletView.kind === "checking" && (
+                <Text size="sm" tone="muted">
+                  {t("payment.walletChecking")}
+                </Text>
+              )}
+              {paymentEligible && p.status === "pending" && walletView.kind === "split" && (
+                <Text weight="bold" style={moneyTextStyle(i18n.language)}>
+                  {split.walletOnly
+                    ? t("payment.walletCoversAll", {
+                        wallet: money(split.walletPart, i18n.language),
+                      })
+                    : t("payment.walletWillCover", {
+                        wallet: money(split.walletPart, i18n.language),
+                        card: money(split.cardPart, i18n.language),
+                      })}
+                </Text>
+              )}
               {paymentEligible && p.status === "pending" && (
                 <Button
-                  label={t("mobileBooking.payOnline")}
+                  label={t(split.walletOnly ? "payment.payWithWallet" : "mobileBooking.payOnline")}
                   loading={busy}
                   onPress={() => void checkout()}
                 />
