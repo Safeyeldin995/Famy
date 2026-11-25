@@ -6,7 +6,8 @@ import { PrimaryButton } from "@/components/famio/ui";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useBookingPayment, useCreatePayment } from "@/lib/db/payment-queries";
-import { moneyHeld } from "@/lib/payments/refundOwed";
+import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { onlineWebPayMode } from "@/lib/web/onlineWebPayMode";
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { formatEGP } from "@/lib/format";
 
@@ -46,13 +47,14 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
   const cardDue = Math.max(0, total - walletBalance);
   const walletOnly = cardDue <= 0.01;
 
-  const captured = moneyHeld({
-    paymentStatus: paymentQ.data?.status,
-    methodType: paymentQ.data?.payment_method_type,
-    proofPath: paymentQ.data?.proof_path,
-  });
-
-  if (captured || paymentQ.isLoading) return null;
+  if (paymentQ.isLoading) return null;
+  const mode = onlineWebPayMode(paymentQ.data);
+  if (mode === "hidden") return null;
+  // A transfer started elsewhere (e.g. the app) can't go through wallet/Paymob checkout;
+  // show the same transfer instructions + receipt upload the booking page uses.
+  if (mode === "manual_transfer") {
+    return <PaymentBlock bookingId={bookingId} viewer="customer" bookingStatus="confirmed" />;
+  }
 
   const payOnce = async () => {
     if (!onlineMethod) {

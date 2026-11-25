@@ -7,6 +7,7 @@ import { BottomSheetSelect } from "./BottomSheetSelect";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, space } from "@/ui/theme";
+import { bodyTextInputProps } from "../a11y";
 
 type Parts = { year: string; month: string; day: string };
 const todayParts = (): Parts => {
@@ -138,6 +139,7 @@ export function ScheduleDateSheet({
           {range ? dateField("end") : null}
           <Text weight="bold">{t("scheduleUi.reason")}</Text>
           <TextInput
+            {...bodyTextInputProps()}
             accessibilityLabel={t("scheduleUi.reason")}
             value={reason}
             onChangeText={setReason}

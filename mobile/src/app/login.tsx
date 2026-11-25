@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   oauthApple: { backgroundColor: colors.oauthAppleBackground },
   oauthPressed: { opacity: 0.92 },
   oauthDisabled: { opacity: 0.6 },
-  appleBtn: { width: "100%", height: 56 },
+  appleBtn: { width: "100%", height: 48 },
   providerLink: { marginTop: space.md, paddingVertical: space.sm },
   termsRow: { marginTop: space.sm },
 });
