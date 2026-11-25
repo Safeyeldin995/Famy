@@ -23,6 +23,7 @@ import {
 import {
   providerPriceChangeDirty,
   providerPriceNeedsAdminReview,
+  providerServicePriceEditingBlocked,
 } from "@shared/provider/providerPriceChangeRequest";
 import { useMyProvider, useUpdateProvider } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
@@ -207,6 +208,7 @@ export default function ProProfileEditScreen() {
           const livePrice = (row?.price_override as number | null) ?? null;
           const pendingPrice = (row?.pending_price_override as number | null) ?? null;
           const priceChangeReason = (row?.price_change_reason as string | null) ?? null;
+          const priceLocked = providerServicePriceEditingBlocked(rowStatus);
           const needsReview = providerPriceNeedsAdminReview(
             provider?.onboarding_status as string,
             row?.status as string | undefined,
@@ -291,6 +293,11 @@ export default function ProProfileEditScreen() {
               ) : null}
               {on && !tutoring && service.provider_pricing_allowed ? (
                 <>
+                  {priceLocked ? (
+                    <Text tone="muted" size="sm">
+                      {t("pro.serviceLifecycle.priceResumeFirst")}
+                    </Text>
+                  ) : null}
                   {priceChangeReason && !pendingPrice ? (
                     <Text tone="danger" size="sm">
                       {t("pro.profile.priceChangeRejected", { reason: priceChangeReason })}
@@ -308,10 +315,10 @@ export default function ProProfileEditScreen() {
                     min={min}
                     max={max}
                     value={current}
-                    disabled={pendingPrice != null}
+                    disabled={pendingPrice != null || priceLocked}
                     onChange={(price) => setPriceDrafts((d) => ({ ...d, [id]: price }))}
                   />
-                  {needsReview ? (
+                  {!priceLocked && needsReview ? (
                     pendingPrice != null ? (
                       <Button
                         variant="secondary"
@@ -357,7 +364,7 @@ export default function ProProfileEditScreen() {
                         }}
                       />
                     ) : null
-                  ) : (
+                  ) : !priceLocked ? (
                     <Button
                       variant="secondary"
                       label={t("common.save")}
@@ -377,8 +384,8 @@ export default function ProProfileEditScreen() {
                         );
                       }}
                     />
-                  )}
-                  {!isPriceInRange(current, min, max) ? (
+                  ) : null}
+                  {!priceLocked && !isPriceInRange(current, min, max) ? (
                     <Text tone="danger" size="sm">
                       {t("pricePicker.outOfRange")}
                     </Text>

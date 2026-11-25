@@ -2715,6 +2715,7 @@ const en = {
       paused: "Service paused",
       resumed: "Service is active again",
       removed: "Service removed",
+      priceResumeFirst: "Resume this service before you change the price.",
     },
     serviceRequest: {
       addServiceLink: "+ Add a service",

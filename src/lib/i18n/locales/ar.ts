@@ -2684,6 +2684,7 @@ const ar: Translation = {
       paused: "الخدمة اتوقفت مؤقتا",
       resumed: "الخدمة رجعت شغالة",
       removed: "الخدمة اتلغت",
+      priceResumeFirst: "شغّل الخدمة تاني الأول، وبعدين تقدر تغير السعر.",
     },
     serviceRequest: {
       addServiceLink: "+ أضف خدمة",
