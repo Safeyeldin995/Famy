@@ -105,7 +105,10 @@ AS $$
           b.customer_id = auth.uid()
           OR pv.profile_id = auth.uid()
         )
-        AND (cust.avatar_url = p_name OR prov.avatar_url = p_name)
+        AND (
+          (cust.avatar_url = p_name AND split_part(p_name, '/', 1) = cust.id::text)
+          OR (prov.avatar_url = p_name AND split_part(p_name, '/', 1) = prov.id::text)
+        )
     );
 $$;
 
