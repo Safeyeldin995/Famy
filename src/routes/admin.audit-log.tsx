@@ -17,7 +17,21 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/audit-log")({ component: AdminAuditLog });
 
-const SENSITIVE_KEY_PATTERN = /password|token|secret|api[_-]?key|credential|authorization/i;
+const SENSITIVE_KEY_PATTERN = /password|secret|api[_-]?key|credential|authorization/i;
+const GUARDIAN_AUDIT_KEYS = new Set(["flag_token", "requested_parent_phone", "parent_email"]);
+
+function maskAuditValue(key: string, value: unknown): unknown {
+  if (key === "flag_token") return "[redacted]";
+  if (key === "requested_parent_phone" && typeof value === "string" && value.length >= 3) {
+    return `***${value.slice(-3)}`;
+  }
+  if (key === "parent_email" && typeof value === "string") {
+    const at = value.indexOf("@");
+    if (at > 1) return `${value.slice(0, 1)}***@${value.slice(at + 1)}`;
+    return "***";
+  }
+  return value;
+}
 
 /**
  * Recursively strips sensitive-looking keys at every nesting depth, not
@@ -31,7 +45,11 @@ function redactDeep(value: any): any {
   if (value !== null && typeof value === "object") {
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(value)) {
-      if (SENSITIVE_KEY_PATTERN.test(k)) continue;
+      if (GUARDIAN_AUDIT_KEYS.has(k)) {
+        out[k] = maskAuditValue(k, v);
+        continue;
+      }
+      if (/token/i.test(k) || SENSITIVE_KEY_PATTERN.test(k)) continue;
       out[k] = redactDeep(v);
     }
     return out;
