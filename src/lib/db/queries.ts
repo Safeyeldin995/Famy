@@ -1,5 +1,5 @@
 import { cairoWallTime, packageRuleStart } from "@/lib/pricing/servicePackages";
-import { cairoWeekday, customerDayKey } from "@/components/famio/customerDates";
+import { slotLookupCalendar } from "@/components/famio/customerDates";
 /**
  * Famy data-access layer.
  *
@@ -524,10 +524,10 @@ export function useAvailableSlots(
     queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.serviceMode ?? 'in_person', opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
-      const weekday = cairoWeekday(d);
+      const cairoWallSlots = !!opts?.cairoTime;
+      const { dateStr, weekday } = slotLookupCalendar(d, cairoWallSlots);
       const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = customerDayKey(d);
       const atTime = (hour: number, minute: number) => {
         if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
         const value = new Date(d); value.setHours(hour, minute, 0, 0); return value;
@@ -577,7 +577,7 @@ export function useAvailableSlots(
       const bufferMs = provider.buffer_minutes * 60000;
 
       const rules = rulesRes.data ?? [];
-      const booked = bookingsRes.data ?? [];
+      const booked = (bookingsRes.data ?? []) as { start_at: string; end_at: string }[];
       const slots: { label: string; start: Date; end: Date; available?: boolean }[] = [];
 
       for (const rule of rules) {

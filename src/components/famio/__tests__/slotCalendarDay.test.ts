@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cairoWeekday, customerDayKey } from "../customerDates";
+import { cairoWeekday, customerDayKey, pickerCalendarDayKey, slotLookupCalendar } from "../customerDates";
 
 // Slot vacation/exception matching must use Africa/Cairo calendar days, not UTC ISO dates.
 
@@ -23,5 +23,21 @@ describe("slot calendar day (Africa/Cairo)", () => {
     expect(pickedDay >= vacationStart && pickedDay <= vacationEnd).toBe(true);
     const dayBefore = customerDayKey(new Date("2026-11-30T23:30:00+02:00"));
     expect(dayBefore >= vacationStart && dayBefore <= vacationEnd).toBe(false);
+  });
+
+  it("keeps Cairo-wall slot lookup on the picker's calendar day under Asia/Dubai", () => {
+    const previousTz = process.env.TZ;
+    process.env.TZ = "Asia/Dubai";
+    try {
+      const fridayPicker = new Date(2026, 10, 27);
+      fridayPicker.setHours(0, 0, 0, 0);
+      expect(pickerCalendarDayKey(fridayPicker)).toBe("2026-11-27");
+      expect(customerDayKey(fridayPicker)).toBe("2026-11-26");
+      const lookup = slotLookupCalendar(fridayPicker, true);
+      expect(lookup).toEqual({ dateStr: "2026-11-27", weekday: 5 });
+    } finally {
+      if (previousTz === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTz;
+    }
   });
 });

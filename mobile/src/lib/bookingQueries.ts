@@ -7,7 +7,7 @@ import {
 } from "./cacheInvalidation";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
-import { cairoWeekday, customerDayKey } from "../../../src/components/famio/customerDates";
+import { slotLookupCalendar } from "../../../src/components/famio/customerDates";
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
 import {
@@ -221,12 +221,12 @@ export function useAvailableSlots(
     ],
     queryFn: async () => {
       const d = date!;
-      const weekday = cairoWeekday(d);
+      const cairoWallSlots = !!opts?.cairoTime;
+      const { dateStr, weekday } = slotLookupCalendar(d, cairoWallSlots);
       const dayStart = new Date(d);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d);
       dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = customerDayKey(d);
       const atTime = (hour: number, minute: number) => {
         if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
         const value = new Date(d);
@@ -291,7 +291,7 @@ export function useAvailableSlots(
       const bufferMs = provider.buffer_minutes * 60000;
 
       const rules = rulesRes.data ?? [];
-      const booked = bookingsRes.data ?? [];
+      const booked = (bookingsRes.data ?? []) as { start_at: string; end_at: string }[];
       const slots: { label: string; start: Date; end: Date; available?: boolean }[] = [];
 
       for (const rule of rules) {

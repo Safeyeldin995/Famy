@@ -89,6 +89,7 @@ BEGIN
 
   SELECT * INTO v_booking FROM public.bookings WHERE id = v_req.booking_id;
   v_is_provider := EXISTS (SELECT 1 FROM public.providers p WHERE p.id = v_booking.provider_id AND p.profile_id = auth.uid());
+  -- The party who did NOT make this proposal is the one who must respond.
   v_expected_responder_is_provider := (v_req.requested_by = v_booking.customer_id);
 
   IF v_expected_responder_is_provider AND NOT v_is_provider THEN
@@ -97,6 +98,7 @@ BEGIN
   IF NOT v_expected_responder_is_provider AND v_booking.customer_id <> auth.uid() THEN
     RAISE EXCEPTION 'Only the customer can respond to this request.' USING ERRCODE = '42501';
   END IF;
+  -- Customer may only accept/reject a provider counter-proposal, never counter it again.
   IF p_action = 'counter' AND NOT v_expected_responder_is_provider THEN
     RAISE EXCEPTION 'Only the provider may propose a different time.' USING ERRCODE = '42501';
   END IF;
@@ -127,7 +129,7 @@ BEGIN
       SET status = 'rejected', responded_by = auth.uid(), response_reason = p_reason, responded_at = now()
       WHERE id = p_request_id;
 
-  ELSE
+  ELSE -- counter
     IF p_counter_start IS NULL OR p_counter_end IS NULL OR p_counter_end <= p_counter_start THEN
       RAISE EXCEPTION 'A valid counter-proposed time range is required.' USING ERRCODE = '23514';
     END IF;
@@ -152,3 +154,7 @@ BEGIN
   RETURN COALESCE(v_new_id, p_request_id);
 END;
 $$;
+REVOKE EXECUTE ON FUNCTION public.request_reschedule(uuid, timestamptz, timestamptz, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.request_reschedule(uuid, timestamptz, timestamptz, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.respond_reschedule(uuid, text, text, timestamptz, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.respond_reschedule(uuid, text, text, timestamptz, timestamptz) TO authenticated;
