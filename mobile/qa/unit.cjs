@@ -308,6 +308,11 @@ assert.deepEqual(mapNotificationDeepLink("/booking/b1?review=1", "customer"), {
   pathname: "/booking/[id]",
   params: { id: "b1", review: "1" },
 });
+assert.deepEqual(mapNotificationDeepLink("/pro/setup/hours", "provider"), {
+  pathname: "/pro-setup/[item]",
+  params: { item: "hours" },
+});
+assert.deepEqual(mapNotificationDeepLink("/pro/documents", "provider"), { pathname: "/pro-documents" });
 assert.deepEqual(mapNotificationDeepLink("/home", "customer"), { pathname: "/home" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), { pathname: "/dashboard" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "customer"), { pathname: "/home" });

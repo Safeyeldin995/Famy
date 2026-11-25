@@ -22,6 +22,7 @@ import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
 import { BookingProblem } from "./BookingProblem";
 import { useToast } from "./Toast";
+import { customerRebookParams, shouldShowCustomerRebook } from "@shared/booking/customerRebook";
 import { hapticSuccess } from "./haptics";
 export function BookingActions({
   booking,
@@ -289,13 +290,13 @@ export function BookingActions({
       {booking.service_mode !== "online" && booking.status !== "pending" ? (
         <BookingProblem booking={booking} />
       ) : null}
-      {!suppressRebook ? (
+      {!suppressRebook && shouldShowCustomerRebook(booking.status) ? (
         <Button
           label={t("mobile.bookAgain")}
           onPress={() =>
             router.push({
               pathname: "/book/[providerId]",
-              params: { providerId: booking.provider_id, rebookFrom: booking.id },
+              params: customerRebookParams(booking),
             })
           }
         />

@@ -65,6 +65,22 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/booking/b1?review=1", "customer")).toEqual({
       pathname: "/booking/[id]",
       params: { id: "b1", review: "1" },
+      });
+    });
+
+  it("maps wallet and provider setup sections", () => {
+    expect(mapNotificationDeepLink("/wallet", "customer")).toEqual({ pathname: "/wallet" });
+    expect(mapNotificationDeepLink("/wallet", "provider")).toEqual({ pathname: "/dashboard" });
+    expect(mapNotificationDeepLink("/pro/documents", "provider")).toEqual({
+      pathname: "/pro-documents",
+    });
+    expect(mapNotificationDeepLink("/pro/setup/personal", "provider")).toEqual({
+      pathname: "/pro-setup/[item]",
+      params: { item: "personal" },
+    });
+    expect(mapNotificationDeepLink("/pro/setup/references", "provider")).toEqual({
+      pathname: "/pro-setup/[item]",
+      params: { item: "reference" },
     });
   });
 
