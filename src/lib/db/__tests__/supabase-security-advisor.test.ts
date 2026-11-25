@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import {
   createMigrationReplayDb,
+  grantAdminOnlyRole,
   readMigrationFile,
   replayAllMigrations,
 } from "./migration-replay.harness";
@@ -24,9 +25,10 @@ beforeAll(async () => {
   await db.exec(`
     INSERT INTO auth.users(id) VALUES ('${admin}'), ('${customer}')
     ON CONFLICT (id) DO NOTHING;
-    INSERT INTO public.user_roles(user_id, role) VALUES ('${admin}', 'admin')
+    INSERT INTO public.user_roles(user_id, role) VALUES ('${customer}', 'customer')
     ON CONFLICT DO NOTHING;
   `);
+  await grantAdminOnlyRole(db, admin);
 }, 120000);
 
 afterAll(async () => {

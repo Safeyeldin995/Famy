@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { handleUserBannedSession, isUserBannedAuthError } from "@/lib/auth/bannedAccountSession";
 import { clearMobileAuthCookies } from "@/lib/auth/mobileAuthCookies";
+import { resolveWorkspace, type Workspace } from "./workspace";
 import { supabase } from "./supabase";
 
 type SessionState = { session: Session | null; ready: boolean };
@@ -57,21 +58,31 @@ export function useSession() {
   return useContext(SessionContext);
 }
 
-export type Workspace = "customer" | "provider" | "admin";
+/** True when the signed-in user is an admin-only account (no customer/provider tabs). */
+export function useAdminOnlyMobileBlock(): { ready: boolean; blocked: boolean } {
+  const { session, ready } = useSession();
+  const [blocked, setBlocked] = useState<boolean | null>(null);
 
-/** Mirrors the web landing rule: admin, then provider, then customer. */
-export async function resolveWorkspace(
-  userId: string,
-): Promise<{ workspace: Workspace; roles: string[] }> {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  const roles = (data ?? []).map((r) => r.role as string);
-  const workspace: Workspace = roles.includes("admin")
-    ? "admin"
-    : roles.includes("provider")
-      ? "provider"
-      : "customer";
-  return { workspace, roles };
+  useEffect(() => {
+    if (!ready) return;
+    if (!session) {
+      setBlocked(false);
+      return;
+    }
+    let cancelled = false;
+    resolveWorkspace(session.user.id).then((r) => {
+      if (!cancelled) setBlocked(r.workspace === "admin");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, session]);
+
+  return { ready: ready && blocked !== null, blocked: blocked === true };
 }
+
+export type { Workspace } from "./workspace";
+export { resolveWorkspace } from "./workspace";
 
 /** Mirrors the web splash/login rule: a customer without a name finishes setup first. */
 export async function customerLandingPath(userId: string): Promise<"/home" | "/setup"> {

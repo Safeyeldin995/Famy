@@ -260,8 +260,11 @@ const ar: Translation = {
     price: {"subtotal": "المجموع الفرعي", "extras_total": "الإضافات", "travel_fee": "رسوم الانتقال", "platform_fee": "رسوم المنصة", "vat": "الضريبة", "discount": "الخصم", "total": "الإجمالي"},
     comingSoon: "الشاشة دي لسه مش متاحة في التطبيق",
     workspaceOnWebTitle: "الشاشات دي لسه على الويب",
-    workspaceOnWebBody: "شاشات مقدم الخدمة ولوحة الإدارة بتتجهز للتطبيق، لحد ما تخلص، كمل من الموقع بنفس الحساب",
+    workspaceOnWebBody: "شاشات مقدم الخدمة بتتجهز للتطبيق، لحد ما تخلص، كمل من الموقع بنفس الحساب",
+    adminAccountTitle: "الحساب ده حساب إدارة، استخدم لوحة التحكم على الموقع",
+    adminAccountBody: "تسجيل الدخول للوحة الإدارة بيتم من الموقع فقط",
     openOnWeb: "افتح الموقع",
+    openAdminOnWeb: "افتح لوحة التحكم",
   },
   customerHome: {
     profileEdit: "عدل الاسم والعنوان",
@@ -4105,7 +4108,10 @@ const ar: Translation = {
     identityConflictTypes: {
       dual_normal_roles: "الحساب مسجل كعميل ومقدم خدمة معا",
       provider_row_missing_role: "بيانات مقدم الخدمة موجودة، لكن صلاحية مقدم الخدمة غير مفعلة",
-      admin_normal_role_count: "يجب أن يكون لحساب المشرف دور عادي واحد فقط",
+      admin_has_customer_role: "حساب المشرف ما زال يحمل دور عميل",
+      admin_has_provider_role: "حساب المشرف ما زال يحمل دور مقدم خدمة",
+      admin_has_provider_row: "حساب المشرف ما زال مرتبطا بسجل مقدم خدمة",
+      admin_has_booking: "حساب المشرف ما زال لديه حجوزات كعميل",
       unknown: "بيانات الحساب تحتاج إلى مراجعة قبل اتخاذ القرار",
     },
     locationNames: {

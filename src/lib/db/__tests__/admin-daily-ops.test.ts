@@ -17,14 +17,6 @@ let bookingId: string;
 
 beforeAll(async () => {
   db = await createBookingLifecycleDb();
-  await db.exec(`
-    INSERT INTO auth.users (id, raw_user_meta_data) VALUES
-      ('${IDS.adminUser}', '{"full_name":"Lifecycle Admin"}')
-    ON CONFLICT (id) DO NOTHING;
-    INSERT INTO public.user_roles (user_id, role) VALUES
-      ('${IDS.adminUser}', 'admin')
-    ON CONFLICT DO NOTHING;
-  `);
   const seeded = await seedLifecycleBooking(db);
   bookingId = seeded.bookingId;
   await completeHappyPath(db, bookingId);

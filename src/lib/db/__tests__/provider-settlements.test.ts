@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
+import { grantAdminOnlyRole } from "./migration-replay.harness";
 import {
   IDS,
   asServiceRole,
@@ -52,10 +53,6 @@ beforeAll(async () => {
       ('${DEBT_NET.user}', '{"signup_role":"provider","full_name":"Debt Net Provider"}')
     ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.user_roles (user_id, role) VALUES
-      ('${IDS.adminUser}', 'admin')
-    ON CONFLICT DO NOTHING;
-
     INSERT INTO public.providers (
       id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode,
       min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar
@@ -66,6 +63,7 @@ beforeAll(async () => {
       ('${DEBT_NET.provider}', '${DEBT_NET.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
     ON CONFLICT (id) DO NOTHING;
   `);
+  await grantAdminOnlyRole(db, IDS.adminUser);
 }, 180_000);
 
 afterAll(async () => {

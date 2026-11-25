@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
 import { cairoDatePlusDays, stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
-import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { createMigrationReplayDb, grantAdminOnlyRole, replayAllMigrations } from "./migration-replay.harness";
 
 /** Fixed Cairo local times — daytime slot that stays inside 00:00–23:59 availability rules. */
 export const LIFECYCLE_SLOT_START = "10:00";
@@ -86,10 +86,6 @@ export async function seedLifecycleBooking(
       ('${IDS.adminUser}', '{"full_name":"Lifecycle Admin"}')
     ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.user_roles (user_id, role) VALUES
-      ('${IDS.adminUser}', 'admin')
-    ON CONFLICT DO NOTHING;
-
     -- Bookings require a customer contact phone (booking_requires_customer_phone).
     UPDATE public.profiles
     SET phone = '010' || lpad((abs(hashtext(id::text)) % 100000000)::text, 8, '0')
@@ -143,6 +139,8 @@ export async function seedLifecycleBooking(
     SELECT '${IDS.otherProvider}', day, '00:00'::time, '23:59'::time FROM generate_series(0, 6) AS day
     ON CONFLICT DO NOTHING;
   `);
+
+  await grantAdminOnlyRole(db, IDS.adminUser);
 
   await asUser(db, IDS.adminUser, () =>
     db.exec(`
