@@ -132,11 +132,14 @@ export default function ProBookingDetail() {
 
   const openSupport = () => {
     const digits = supportQ.data?.whatsapp?.replace(/\D/g, "");
-    if (!digits) return;
+    if (!digits) {
+      router.push("/pro-help");
+      return;
+    }
     const text = encodeURIComponent(
-      t("pro.support.zoneChangeSubject") + ` #${shortBookingCode(String(b?.id ?? ""))}`,
+      t("pro.support.bookingHelpSubject") + ` #${shortBookingCode(String(b?.id ?? ""))}`,
     );
-    void Linking.openURL(`https://wa.me/${digits}?text=${text}`);
+    void Linking.openURL(`https://wa.me/${digits}?text=${text}`).catch(() => router.push("/pro-help"));
   };
 
   const openBookingChat = async () => {

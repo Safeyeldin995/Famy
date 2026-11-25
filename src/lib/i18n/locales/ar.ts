@@ -1244,6 +1244,16 @@ const ar: Translation = {
     withdrawTitle: "سحب هذا الطلب؟",
     withdrawn: "تم سحب الطلب",
     noneOpen: "لا يوجد طلب إعادة جدولة مفتوح",
+    sameDuration: "مدة الحجز هتفضل زي ما هي: {{duration}}",
+    errors: {
+      notOpen: "الطلب ده مبقاش مفتوح، حدث الصفحة",
+      sameLength: "التأجيل لازم يحافظ على نفس مدة الحجز",
+      notReschedulable: "الحجز ده مبقاش ينفع يتأجل",
+      reasonRequired: "اكتب سبب الرفض",
+      slotTaken: "الميعاد ده مش متاح، اختار ميعاد تاني",
+      invalidTime: "الميعاد اللي اخترته مش صحيح",
+      notAllowed: "مش مسموح لك تعمل الخطوة دي",
+    },
     history: "السجل",
     byCustomer: "العميل",
     byProvider: "مزود الخدمة",
@@ -2158,6 +2168,7 @@ const ar: Translation = {
       whatsapp: "راسل الدعم على واتساب",
       call: "اتصل بالدعم",
       zoneChangeSubject: "طلب تعديل مناطق الخدمة",
+      bookingHelpSubject: "محتاج مساعدة في حجز",
     },
     statuses: {
       pending: "قيد الانتظار",
@@ -2837,6 +2848,10 @@ const ar: Translation = {
     notPending: "طلب تغيير السعر هذا لم يعد بانتظار المراجعة",
   },
   payment: {
+    errors: {
+      notCompleted: "تقدر تأكد استلام الفلوس بعد ما الحجز يخلص",
+      notAllowed: "مش مسموح لك تعدل الدفع ده",
+    },
     walletWillCover: "رصيدك ({{wallet}}) هيتخصم الأول، والباقي {{card}} بالكارت",
     walletChecking: "بنراجع رصيد محفظتك",
     walletCoversAll: "رصيدك ({{wallet}}) يغطي المبلغ كله",

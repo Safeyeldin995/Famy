@@ -1258,6 +1258,16 @@ const en = {
     withdrawTitle: "Withdraw this request?",
     withdrawn: "Request withdrawn",
     noneOpen: "No open reschedule request.",
+    sameDuration: "The booking keeps the same length: {{duration}}",
+    errors: {
+      notOpen: "This request is no longer open. Refresh the page.",
+      sameLength: "A reschedule must keep the same booking length.",
+      notReschedulable: "This booking can no longer be rescheduled.",
+      reasonRequired: "Add a reason for declining.",
+      slotTaken: "This time isn't available. Pick another time.",
+      invalidTime: "The time you picked isn't valid.",
+      notAllowed: "You're not allowed to do this.",
+    },
     history: "History",
     byCustomer: "Customer",
     byProvider: "Provider",
@@ -2197,6 +2207,7 @@ const en = {
       whatsapp: "Message support on WhatsApp",
       call: "Call support",
       zoneChangeSubject: "Request to change my service areas",
+      bookingHelpSubject: "I need help with a booking",
     },
     statuses: {
       pending: "Pending",
@@ -2896,6 +2907,10 @@ const en = {
     notPending: "This price change is no longer pending.",
   },
   payment: {
+    errors: {
+      notCompleted: "You can confirm the payment once the booking is completed.",
+      notAllowed: "You're not allowed to change this payment.",
+    },
     walletWillCover: "Your balance ({{wallet}}) is used first, the remaining {{card}} by card",
     walletChecking: "Checking your wallet balance",
     walletCoversAll: "Your balance ({{wallet}}) covers the full amount",

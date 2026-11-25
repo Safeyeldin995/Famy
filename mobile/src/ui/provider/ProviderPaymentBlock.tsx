@@ -10,6 +10,7 @@ import {
   useRejectPayment,
 } from "@/lib/provider/payments";
 import { money } from "@/lib/presentation";
+import { providerPaymentErrorKey } from "@/lib/serverErrorMessages";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
@@ -17,12 +18,7 @@ import { proCard } from "./cards";
 import { bodyTextInputProps } from "../a11y";
 
 function paymentErrorMessage(error: unknown, t: (key: string) => string) {
-  const message =
-    error && typeof error === "object" && "message" in error
-      ? String((error as { message?: unknown }).message ?? "")
-      : "";
-  if (message.trim()) return message.trim();
-  return t("common.somethingWentWrong");
+  return t(providerPaymentErrorKey(error));
 }
 
 export function ProviderPaymentBlock({
