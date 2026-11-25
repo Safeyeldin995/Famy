@@ -26,6 +26,7 @@ import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as OnlineRouteImport } from './routes/online'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ProRouteImport } from './routes/pro'
@@ -73,6 +74,13 @@ import { Route as FamilyMembersIdRouteImport } from './routes/family-members.$id
 import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as OnlineIndexRouteImport } from './routes/online.index'
+import { Route as OnlineLessonsRouteImport } from './routes/online.lessons'
+import { Route as OnlineLoginRouteImport } from './routes/online.login'
+import { Route as OnlineOtpRouteImport } from './routes/online.otp'
+import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
+import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
+import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
 import { Route as PayFeesReturnRouteImport } from './routes/pay.fees-return'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
@@ -88,6 +96,7 @@ import { Route as PreviewMessagesRouteImport } from './routes/preview.messages'
 import { Route as PreviewNotificationPreferencesRouteImport } from './routes/preview.notification-preferences'
 import { Route as PreviewNotificationsRouteImport } from './routes/preview.notifications'
 import { Route as PreviewOnboardingRouteImport } from './routes/preview.onboarding'
+import { Route as PreviewOnlineRouteImport } from './routes/preview.online'
 import { Route as PreviewOtpRouteImport } from './routes/preview.otp'
 import { Route as PreviewProRouteImport } from './routes/preview.pro'
 import { Route as PreviewProfileRouteImport } from './routes/preview.profile'
@@ -119,6 +128,12 @@ import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
+import { Route as OnlineLessonsIndexRouteImport } from './routes/online.lessons.index'
+import { Route as OnlineLessonsBookingIdRouteImport } from './routes/online.lessons.$bookingId'
+import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
+import { Route as OnlineProviderRequestsRouteImport } from './routes/online.provider.requests'
+import { Route as OnlineTutorsIndexRouteImport } from './routes/online.tutors.index'
+import { Route as OnlineTutorsProviderIdRouteImport } from './routes/online.tutors.$providerId'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
@@ -145,6 +160,7 @@ import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zo
 import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
 import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
+import { Route as PreviewOnlineWalkthroughRouteImport } from './routes/preview.online.walkthrough'
 import { Route as PreviewProIndexRouteImport } from './routes/preview.pro.index'
 import { Route as PreviewProApplyRouteImport } from './routes/preview.pro.apply'
 import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro.availability'
@@ -168,6 +184,10 @@ import { Route as ApiMobileOtpContextRouteImport } from './routes/api.mobile.otp
 import { Route as ApiMobileOtpResendRouteImport } from './routes/api.mobile.otp.resend'
 import { Route as ApiMobileOtpSendRouteImport } from './routes/api.mobile.otp.send'
 import { Route as ApiMobileOtpVerifyRouteImport } from './routes/api.mobile.otp.verify'
+import { Route as OnlineLessonsBookingIdIndexRouteImport } from './routes/online.lessons.$bookingId.index'
+import { Route as OnlineLessonsBookingIdRoomRouteImport } from './routes/online.lessons.$bookingId.room'
+import { Route as OnlineTutorsProviderIdIndexRouteImport } from './routes/online.tutors.$providerId.index'
+import { Route as OnlineTutorsProviderIdRequestRouteImport } from './routes/online.tutors.$providerId.request'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
 import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
@@ -259,6 +279,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineRoute = OnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OtpRoute = OtpRouteImport.update({
@@ -498,6 +523,41 @@ const MessagesIdRoute = MessagesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => MessagesRoute,
 } as any)
+const OnlineIndexRoute = OnlineIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineLessonsRoute = OnlineLessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineLoginRoute = OnlineLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineOtpRoute = OnlineOtpRouteImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineSetPasswordRoute = OnlineSetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineTutorsRoute = OnlineTutorsRouteImport.update({
+  id: '/tutors',
+  path: '/tutors',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineWalletRoute = OnlineWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const PayFeesReturnRoute = PayFeesReturnRouteImport.update({
   id: '/pay/fees-return',
   path: '/pay/fees-return',
@@ -572,6 +632,11 @@ const PreviewNotificationsRoute = PreviewNotificationsRouteImport.update({
 const PreviewOnboardingRoute = PreviewOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewOnlineRoute = PreviewOnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
   getParentRoute: () => PreviewRoute,
 } as any)
 const PreviewOtpRoute = PreviewOtpRouteImport.update({
@@ -731,6 +796,36 @@ const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnlineLessonsIndexRoute = OnlineLessonsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnlineLessonsRoute,
+} as any)
+const OnlineLessonsBookingIdRoute = OnlineLessonsBookingIdRouteImport.update({
+  id: '/$bookingId',
+  path: '/$bookingId',
+  getParentRoute: () => OnlineLessonsRoute,
+} as any)
+const OnlineProviderLessonsRoute = OnlineProviderLessonsRouteImport.update({
+  id: '/provider/lessons',
+  path: '/provider/lessons',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineProviderRequestsRoute = OnlineProviderRequestsRouteImport.update({
+  id: '/provider/requests',
+  path: '/provider/requests',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineTutorsIndexRoute = OnlineTutorsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnlineTutorsRoute,
+} as any)
+const OnlineTutorsProviderIdRoute = OnlineTutorsProviderIdRouteImport.update({
+  id: '/$providerId',
+  path: '/$providerId',
+  getParentRoute: () => OnlineTutorsRoute,
+} as any)
 const PreviewAccountDeleteRoute = PreviewAccountDeleteRouteImport.update({
   id: '/account/delete',
   path: '/account/delete',
@@ -863,6 +958,12 @@ const PreviewChatIdRoute = PreviewChatIdRouteImport.update({
   path: '/chat/$id',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewOnlineWalkthroughRoute =
+  PreviewOnlineWalkthroughRouteImport.update({
+    id: '/walkthrough',
+    path: '/walkthrough',
+    getParentRoute: () => PreviewOnlineRoute,
+  } as any)
 const PreviewProIndexRoute = PreviewProIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -983,6 +1084,30 @@ const ApiMobileOtpVerifyRoute = ApiMobileOtpVerifyRouteImport.update({
   path: '/api/mobile/otp/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnlineLessonsBookingIdIndexRoute =
+  OnlineLessonsBookingIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OnlineLessonsBookingIdRoute,
+  } as any)
+const OnlineLessonsBookingIdRoomRoute =
+  OnlineLessonsBookingIdRoomRouteImport.update({
+    id: '/room',
+    path: '/room',
+    getParentRoute: () => OnlineLessonsBookingIdRoute,
+  } as any)
+const OnlineTutorsProviderIdIndexRoute =
+  OnlineTutorsProviderIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OnlineTutorsProviderIdRoute,
+  } as any)
+const OnlineTutorsProviderIdRequestRoute =
+  OnlineTutorsProviderIdRequestRouteImport.update({
+    id: '/request',
+    path: '/request',
+    getParentRoute: () => OnlineTutorsProviderIdRoute,
+  } as any)
 const PreviewAdminCustomerIdRoute = PreviewAdminCustomerIdRouteImport.update({
   id: '/customer/$id',
   path: '/customer/$id',
@@ -1039,6 +1164,7 @@ export interface FileRoutesByFullPath {
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/online': typeof OnlineRouteWithChildren
   '/otp': typeof OtpRoute
   '/preview': typeof PreviewRouteWithChildren
   '/pro': typeof ProRouteWithChildren
@@ -1083,6 +1209,12 @@ export interface FileRoutesByFullPath {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/lessons': typeof OnlineLessonsRouteWithChildren
+  '/online/login': typeof OnlineLoginRoute
+  '/online/otp': typeof OnlineOtpRoute
+  '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/tutors': typeof OnlineTutorsRouteWithChildren
+  '/online/wallet': typeof OnlineWalletRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1097,6 +1229,7 @@ export interface FileRoutesByFullPath {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/pro': typeof PreviewProRouteWithChildren
   '/preview/profile': typeof PreviewProfileRoute
@@ -1118,6 +1251,7 @@ export interface FileRoutesByFullPath {
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/online/': typeof OnlineIndexRoute
   '/preview/': typeof PreviewIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
@@ -1132,6 +1266,10 @@ export interface FileRoutesByFullPath {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
+  '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
+  '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRouteWithChildren
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1156,6 +1294,7 @@ export interface FileRoutesByFullPath {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1170,6 +1309,8 @@ export interface FileRoutesByFullPath {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons/': typeof OnlineLessonsIndexRoute
+  '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
@@ -1181,11 +1322,15 @@ export interface FileRoutesByFullPath {
   '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
+  '/online/lessons/$bookingId/room': typeof OnlineLessonsBookingIdRoomRoute
+  '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1246,6 +1391,10 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/login': typeof OnlineLoginRoute
+  '/online/otp': typeof OnlineOtpRoute
+  '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/wallet': typeof OnlineWalletRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
@@ -1258,6 +1407,7 @@ export interface FileRoutesByTo {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/profile': typeof PreviewProfileRoute
   '/preview/promo-codes': typeof PreviewPromoCodesRoute
@@ -1278,6 +1428,7 @@ export interface FileRoutesByTo {
   '/addresses': typeof AddressesIndexRoute
   '/admin': typeof AdminIndexRoute
   '/messages': typeof MessagesIndexRoute
+  '/online': typeof OnlineIndexRoute
   '/preview': typeof PreviewIndexRoute
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
@@ -1292,6 +1443,8 @@ export interface FileRoutesByTo {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1316,6 +1469,7 @@ export interface FileRoutesByTo {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1330,6 +1484,8 @@ export interface FileRoutesByTo {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons': typeof OnlineLessonsIndexRoute
+  '/online/tutors': typeof OnlineTutorsIndexRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
   '/preview/pro': typeof PreviewProIndexRoute
@@ -1341,11 +1497,15 @@ export interface FileRoutesByTo {
   '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
+  '/online/lessons/$bookingId/room': typeof OnlineLessonsBookingIdRoomRoute
+  '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1368,6 +1528,7 @@ export interface FileRoutesById {
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/online': typeof OnlineRouteWithChildren
   '/otp': typeof OtpRoute
   '/preview': typeof PreviewRouteWithChildren
   '/pro': typeof ProRouteWithChildren
@@ -1412,6 +1573,12 @@ export interface FileRoutesById {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/lessons': typeof OnlineLessonsRouteWithChildren
+  '/online/login': typeof OnlineLoginRoute
+  '/online/otp': typeof OnlineOtpRoute
+  '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/tutors': typeof OnlineTutorsRouteWithChildren
+  '/online/wallet': typeof OnlineWalletRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1426,6 +1593,7 @@ export interface FileRoutesById {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/pro': typeof PreviewProRouteWithChildren
   '/preview/profile': typeof PreviewProfileRoute
@@ -1447,6 +1615,7 @@ export interface FileRoutesById {
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/online/': typeof OnlineIndexRoute
   '/preview/': typeof PreviewIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
@@ -1461,6 +1630,10 @@ export interface FileRoutesById {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
+  '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
+  '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRouteWithChildren
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1485,6 +1658,7 @@ export interface FileRoutesById {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1499,6 +1673,8 @@ export interface FileRoutesById {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons/': typeof OnlineLessonsIndexRoute
+  '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
@@ -1510,11 +1686,15 @@ export interface FileRoutesById {
   '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
+  '/online/lessons/$bookingId/room': typeof OnlineLessonsBookingIdRoomRoute
+  '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider_/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider_/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1538,6 +1718,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/online'
     | '/otp'
     | '/preview'
     | '/pro'
@@ -1582,6 +1763,12 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/lessons'
+    | '/online/login'
+    | '/online/otp'
+    | '/online/set-password'
+    | '/online/tutors'
+    | '/online/wallet'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1596,6 +1783,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/pro'
     | '/preview/profile'
@@ -1617,6 +1805,7 @@ export interface FileRouteTypes {
     | '/addresses/'
     | '/admin/'
     | '/messages/'
+    | '/online/'
     | '/preview/'
     | '/pro/'
     | '/admin/customer/$id'
@@ -1631,6 +1820,10 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/lessons/$bookingId'
+    | '/online/provider/lessons'
+    | '/online/provider/requests'
+    | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1655,6 +1848,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -1669,6 +1863,8 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons/'
+    | '/online/tutors/'
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
@@ -1680,11 +1876,15 @@ export interface FileRouteTypes {
     | '/api/mobile/otp/resend'
     | '/api/mobile/otp/send'
     | '/api/mobile/otp/verify'
+    | '/online/lessons/$bookingId/room'
+    | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId/'
+    | '/online/tutors/$providerId/'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   fileRoutesByTo: FileRoutesByTo
@@ -1745,6 +1945,10 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/login'
+    | '/online/otp'
+    | '/online/set-password'
+    | '/online/wallet'
     | '/pay/fees-return'
     | '/preview/bookings'
     | '/preview/family-members'
@@ -1757,6 +1961,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/profile'
     | '/preview/promo-codes'
@@ -1777,6 +1982,7 @@ export interface FileRouteTypes {
     | '/addresses'
     | '/admin'
     | '/messages'
+    | '/online'
     | '/preview'
     | '/pro'
     | '/admin/customer/$id'
@@ -1791,6 +1997,8 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/provider/lessons'
+    | '/online/provider/requests'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1815,6 +2023,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -1829,6 +2038,8 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons'
+    | '/online/tutors'
     | '/preview/addresses'
     | '/preview/admin'
     | '/preview/pro'
@@ -1840,11 +2051,15 @@ export interface FileRouteTypes {
     | '/api/mobile/otp/resend'
     | '/api/mobile/otp/send'
     | '/api/mobile/otp/verify'
+    | '/online/lessons/$bookingId/room'
+    | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId'
+    | '/online/tutors/$providerId'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   id:
@@ -1866,6 +2081,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/online'
     | '/otp'
     | '/preview'
     | '/pro'
@@ -1910,6 +2126,12 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/lessons'
+    | '/online/login'
+    | '/online/otp'
+    | '/online/set-password'
+    | '/online/tutors'
+    | '/online/wallet'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1924,6 +2146,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/pro'
     | '/preview/profile'
@@ -1945,6 +2168,7 @@ export interface FileRouteTypes {
     | '/addresses/'
     | '/admin/'
     | '/messages/'
+    | '/online/'
     | '/preview/'
     | '/pro/'
     | '/admin/customer/$id'
@@ -1959,6 +2183,10 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/lessons/$bookingId'
+    | '/online/provider/lessons'
+    | '/online/provider/requests'
+    | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1983,6 +2211,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -1997,6 +2226,8 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons/'
+    | '/online/tutors/'
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
@@ -2008,11 +2239,15 @@ export interface FileRouteTypes {
     | '/api/mobile/otp/resend'
     | '/api/mobile/otp/send'
     | '/api/mobile/otp/verify'
+    | '/online/lessons/$bookingId/room'
+    | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId/'
+    | '/online/tutors/$providerId/'
     | '/admin/provider_/$id/statement/print'
     | '/preview/admin/provider_/$id/statement/print'
   fileRoutesById: FileRoutesById
@@ -2035,6 +2270,7 @@ export interface RootRouteChildren {
   NotificationPreferencesRoute: typeof NotificationPreferencesRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
+  OnlineRoute: typeof OnlineRouteWithChildren
   OtpRoute: typeof OtpRoute
   PreviewRoute: typeof PreviewRouteWithChildren
   ProRoute: typeof ProRouteWithChildren
@@ -2191,6 +2427,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/online': {
+      id: '/online'
+      path: '/online'
+      fullPath: '/online'
+      preLoaderRoute: typeof OnlineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/otp': {
@@ -2522,6 +2765,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesIdRouteImport
       parentRoute: typeof MessagesRoute
     }
+    '/online/': {
+      id: '/online/'
+      path: '/'
+      fullPath: '/online/'
+      preLoaderRoute: typeof OnlineIndexRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/lessons': {
+      id: '/online/lessons'
+      path: '/lessons'
+      fullPath: '/online/lessons'
+      preLoaderRoute: typeof OnlineLessonsRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/login': {
+      id: '/online/login'
+      path: '/login'
+      fullPath: '/online/login'
+      preLoaderRoute: typeof OnlineLoginRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/otp': {
+      id: '/online/otp'
+      path: '/otp'
+      fullPath: '/online/otp'
+      preLoaderRoute: typeof OnlineOtpRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/set-password': {
+      id: '/online/set-password'
+      path: '/set-password'
+      fullPath: '/online/set-password'
+      preLoaderRoute: typeof OnlineSetPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/tutors': {
+      id: '/online/tutors'
+      path: '/tutors'
+      fullPath: '/online/tutors'
+      preLoaderRoute: typeof OnlineTutorsRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/wallet': {
+      id: '/online/wallet'
+      path: '/wallet'
+      fullPath: '/online/wallet'
+      preLoaderRoute: typeof OnlineWalletRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/pay/fees-return': {
       id: '/pay/fees-return'
       path: '/pay/fees-return'
@@ -2625,6 +2917,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/preview/onboarding'
       preLoaderRoute: typeof PreviewOnboardingRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/online': {
+      id: '/preview/online'
+      path: '/online'
+      fullPath: '/preview/online'
+      preLoaderRoute: typeof PreviewOnlineRouteImport
       parentRoute: typeof PreviewRoute
     }
     '/preview/otp': {
@@ -2844,6 +3143,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/online/lessons/': {
+      id: '/online/lessons/'
+      path: '/'
+      fullPath: '/online/lessons/'
+      preLoaderRoute: typeof OnlineLessonsIndexRouteImport
+      parentRoute: typeof OnlineLessonsRoute
+    }
+    '/online/lessons/$bookingId': {
+      id: '/online/lessons/$bookingId'
+      path: '/$bookingId'
+      fullPath: '/online/lessons/$bookingId'
+      preLoaderRoute: typeof OnlineLessonsBookingIdRouteImport
+      parentRoute: typeof OnlineLessonsRoute
+    }
+    '/online/provider/lessons': {
+      id: '/online/provider/lessons'
+      path: '/provider/lessons'
+      fullPath: '/online/provider/lessons'
+      preLoaderRoute: typeof OnlineProviderLessonsRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/provider/requests': {
+      id: '/online/provider/requests'
+      path: '/provider/requests'
+      fullPath: '/online/provider/requests'
+      preLoaderRoute: typeof OnlineProviderRequestsRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/tutors/': {
+      id: '/online/tutors/'
+      path: '/'
+      fullPath: '/online/tutors/'
+      preLoaderRoute: typeof OnlineTutorsIndexRouteImport
+      parentRoute: typeof OnlineTutorsRoute
+    }
+    '/online/tutors/$providerId': {
+      id: '/online/tutors/$providerId'
+      path: '/$providerId'
+      fullPath: '/online/tutors/$providerId'
+      preLoaderRoute: typeof OnlineTutorsProviderIdRouteImport
+      parentRoute: typeof OnlineTutorsRoute
+    }
     '/preview/account/delete': {
       id: '/preview/account/delete'
       path: '/account/delete'
@@ -3026,6 +3367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewChatIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/online/walkthrough': {
+      id: '/preview/online/walkthrough'
+      path: '/walkthrough'
+      fullPath: '/preview/online/walkthrough'
+      preLoaderRoute: typeof PreviewOnlineWalkthroughRouteImport
+      parentRoute: typeof PreviewOnlineRoute
+    }
     '/preview/pro/': {
       id: '/preview/pro/'
       path: '/'
@@ -3187,6 +3535,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileOtpVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/online/lessons/$bookingId/': {
+      id: '/online/lessons/$bookingId/'
+      path: '/'
+      fullPath: '/online/lessons/$bookingId/'
+      preLoaderRoute: typeof OnlineLessonsBookingIdIndexRouteImport
+      parentRoute: typeof OnlineLessonsBookingIdRoute
+    }
+    '/online/lessons/$bookingId/room': {
+      id: '/online/lessons/$bookingId/room'
+      path: '/room'
+      fullPath: '/online/lessons/$bookingId/room'
+      preLoaderRoute: typeof OnlineLessonsBookingIdRoomRouteImport
+      parentRoute: typeof OnlineLessonsBookingIdRoute
+    }
+    '/online/tutors/$providerId/': {
+      id: '/online/tutors/$providerId/'
+      path: '/'
+      fullPath: '/online/tutors/$providerId/'
+      preLoaderRoute: typeof OnlineTutorsProviderIdIndexRouteImport
+      parentRoute: typeof OnlineTutorsProviderIdRoute
+    }
+    '/online/tutors/$providerId/request': {
+      id: '/online/tutors/$providerId/request'
+      path: '/request'
+      fullPath: '/online/tutors/$providerId/request'
+      preLoaderRoute: typeof OnlineTutorsProviderIdRequestRouteImport
+      parentRoute: typeof OnlineTutorsProviderIdRoute
+    }
     '/preview/admin/customer/$id': {
       id: '/preview/admin/customer/$id'
       path: '/customer/$id'
@@ -3347,6 +3723,93 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
 )
 
+interface OnlineLessonsBookingIdRouteChildren {
+  OnlineLessonsBookingIdRoomRoute: typeof OnlineLessonsBookingIdRoomRoute
+  OnlineLessonsBookingIdIndexRoute: typeof OnlineLessonsBookingIdIndexRoute
+}
+
+const OnlineLessonsBookingIdRouteChildren: OnlineLessonsBookingIdRouteChildren =
+  {
+    OnlineLessonsBookingIdRoomRoute: OnlineLessonsBookingIdRoomRoute,
+    OnlineLessonsBookingIdIndexRoute: OnlineLessonsBookingIdIndexRoute,
+  }
+
+const OnlineLessonsBookingIdRouteWithChildren =
+  OnlineLessonsBookingIdRoute._addFileChildren(
+    OnlineLessonsBookingIdRouteChildren,
+  )
+
+interface OnlineLessonsRouteChildren {
+  OnlineLessonsBookingIdRoute: typeof OnlineLessonsBookingIdRouteWithChildren
+  OnlineLessonsIndexRoute: typeof OnlineLessonsIndexRoute
+}
+
+const OnlineLessonsRouteChildren: OnlineLessonsRouteChildren = {
+  OnlineLessonsBookingIdRoute: OnlineLessonsBookingIdRouteWithChildren,
+  OnlineLessonsIndexRoute: OnlineLessonsIndexRoute,
+}
+
+const OnlineLessonsRouteWithChildren = OnlineLessonsRoute._addFileChildren(
+  OnlineLessonsRouteChildren,
+)
+
+interface OnlineTutorsProviderIdRouteChildren {
+  OnlineTutorsProviderIdRequestRoute: typeof OnlineTutorsProviderIdRequestRoute
+  OnlineTutorsProviderIdIndexRoute: typeof OnlineTutorsProviderIdIndexRoute
+}
+
+const OnlineTutorsProviderIdRouteChildren: OnlineTutorsProviderIdRouteChildren =
+  {
+    OnlineTutorsProviderIdRequestRoute: OnlineTutorsProviderIdRequestRoute,
+    OnlineTutorsProviderIdIndexRoute: OnlineTutorsProviderIdIndexRoute,
+  }
+
+const OnlineTutorsProviderIdRouteWithChildren =
+  OnlineTutorsProviderIdRoute._addFileChildren(
+    OnlineTutorsProviderIdRouteChildren,
+  )
+
+interface OnlineTutorsRouteChildren {
+  OnlineTutorsProviderIdRoute: typeof OnlineTutorsProviderIdRouteWithChildren
+  OnlineTutorsIndexRoute: typeof OnlineTutorsIndexRoute
+}
+
+const OnlineTutorsRouteChildren: OnlineTutorsRouteChildren = {
+  OnlineTutorsProviderIdRoute: OnlineTutorsProviderIdRouteWithChildren,
+  OnlineTutorsIndexRoute: OnlineTutorsIndexRoute,
+}
+
+const OnlineTutorsRouteWithChildren = OnlineTutorsRoute._addFileChildren(
+  OnlineTutorsRouteChildren,
+)
+
+interface OnlineRouteChildren {
+  OnlineLessonsRoute: typeof OnlineLessonsRouteWithChildren
+  OnlineLoginRoute: typeof OnlineLoginRoute
+  OnlineOtpRoute: typeof OnlineOtpRoute
+  OnlineSetPasswordRoute: typeof OnlineSetPasswordRoute
+  OnlineTutorsRoute: typeof OnlineTutorsRouteWithChildren
+  OnlineWalletRoute: typeof OnlineWalletRoute
+  OnlineIndexRoute: typeof OnlineIndexRoute
+  OnlineProviderLessonsRoute: typeof OnlineProviderLessonsRoute
+  OnlineProviderRequestsRoute: typeof OnlineProviderRequestsRoute
+}
+
+const OnlineRouteChildren: OnlineRouteChildren = {
+  OnlineLessonsRoute: OnlineLessonsRouteWithChildren,
+  OnlineLoginRoute: OnlineLoginRoute,
+  OnlineOtpRoute: OnlineOtpRoute,
+  OnlineSetPasswordRoute: OnlineSetPasswordRoute,
+  OnlineTutorsRoute: OnlineTutorsRouteWithChildren,
+  OnlineWalletRoute: OnlineWalletRoute,
+  OnlineIndexRoute: OnlineIndexRoute,
+  OnlineProviderLessonsRoute: OnlineProviderLessonsRoute,
+  OnlineProviderRequestsRoute: OnlineProviderRequestsRoute,
+}
+
+const OnlineRouteWithChildren =
+  OnlineRoute._addFileChildren(OnlineRouteChildren)
+
 interface PreviewAddressesRouteChildren {
   PreviewAddressesIdRoute: typeof PreviewAddressesIdRoute
   PreviewAddressesNewRoute: typeof PreviewAddressesNewRoute
@@ -3417,6 +3880,18 @@ const PreviewAdminRouteWithChildren = PreviewAdminRoute._addFileChildren(
   PreviewAdminRouteChildren,
 )
 
+interface PreviewOnlineRouteChildren {
+  PreviewOnlineWalkthroughRoute: typeof PreviewOnlineWalkthroughRoute
+}
+
+const PreviewOnlineRouteChildren: PreviewOnlineRouteChildren = {
+  PreviewOnlineWalkthroughRoute: PreviewOnlineWalkthroughRoute,
+}
+
+const PreviewOnlineRouteWithChildren = PreviewOnlineRoute._addFileChildren(
+  PreviewOnlineRouteChildren,
+)
+
 interface PreviewProRouteChildren {
   PreviewProApplyRoute: typeof PreviewProApplyRoute
   PreviewProAvailabilityRoute: typeof PreviewProAvailabilityRoute
@@ -3468,6 +3943,7 @@ interface PreviewRouteChildren {
   PreviewNotificationPreferencesRoute: typeof PreviewNotificationPreferencesRoute
   PreviewNotificationsRoute: typeof PreviewNotificationsRoute
   PreviewOnboardingRoute: typeof PreviewOnboardingRoute
+  PreviewOnlineRoute: typeof PreviewOnlineRouteWithChildren
   PreviewOtpRoute: typeof PreviewOtpRoute
   PreviewProRoute: typeof PreviewProRouteWithChildren
   PreviewProfileRoute: typeof PreviewProfileRoute
@@ -3497,6 +3973,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewNotificationPreferencesRoute: PreviewNotificationPreferencesRoute,
   PreviewNotificationsRoute: PreviewNotificationsRoute,
   PreviewOnboardingRoute: PreviewOnboardingRoute,
+  PreviewOnlineRoute: PreviewOnlineRouteWithChildren,
   PreviewOtpRoute: PreviewOtpRoute,
   PreviewProRoute: PreviewProRouteWithChildren,
   PreviewProfileRoute: PreviewProfileRoute,
@@ -3571,6 +4048,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationPreferencesRoute: NotificationPreferencesRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
+  OnlineRoute: OnlineRouteWithChildren,
   OtpRoute: OtpRoute,
   PreviewRoute: PreviewRouteWithChildren,
   ProRoute: ProRouteWithChildren,

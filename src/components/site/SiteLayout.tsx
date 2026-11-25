@@ -9,6 +9,7 @@ import { StoreBadges } from "./StoreBadges";
 
 const NAV = [
   { to: "/", key: "site.nav.home" },
+  { to: "/online", key: "site.nav.onlineLessons" },
   { to: "/about", key: "site.nav.about" },
   { to: "/help", key: "site.footer.help" },
   { to: "/contact", key: "site.nav.contact" },

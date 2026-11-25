@@ -70,6 +70,27 @@ export function useUpdateProfile() {
   });
 }
 
+export function useUpdateProfileDateOfBirth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { date_of_birth: string }) => {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error('auth required');
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ date_of_birth: input.date_of_birth } as never)
+        .eq('id', user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
 export type AddressLabel = 'home' | 'work' | 'family' | 'other';
 
 export type AddressInput = {
@@ -449,13 +470,19 @@ type ProviderBookingSettings = {
 
 async function fetchProviderBookingSettings(
   providerId: string,
-  opts?: { serviceId?: string; addressId?: string },
+  opts?: { serviceId?: string; addressId?: string; serviceMode?: 'in_person' | 'online' },
 ): Promise<ProviderBookingSettings | null> {
-  const args: { p_provider_id: string; p_service_id?: string; p_address_id?: string } = {
+  const args: {
+    p_provider_id: string;
+    p_service_id?: string;
+    p_address_id?: string;
+    p_service_mode?: string;
+  } = {
     p_provider_id: providerId,
   };
   if (opts?.serviceId) args.p_service_id = opts.serviceId;
   if (opts?.addressId) args.p_address_id = opts.addressId;
+  if (opts?.serviceMode) args.p_service_mode = opts.serviceMode;
   const { data, error } = await supabase.rpc('marketplace_provider_booking_settings', args);
   if (error) throw error;
   return data?.[0] ?? null;
@@ -489,11 +516,11 @@ export function useAvailableSlots(
   providerId: string | undefined,
   date: Date | null,
   slotMinutes = 120,
-  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
+  opts?: { serviceId?: string | null; addressId?: string | null; serviceMode?: 'in_person' | 'online'; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.serviceMode ?? 'in_person', opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
@@ -512,6 +539,7 @@ export function useAvailableSlots(
       const provider = await fetchProviderBookingSettings(providerId!, {
         serviceId: opts?.serviceId ?? undefined,
         addressId: opts?.addressId ?? undefined,
+        serviceMode: opts?.serviceMode ?? 'in_person',
       });
       if (!provider) return [];
 
@@ -592,18 +620,21 @@ export function useAvailableSlots(
 }
 
 // ---------- Bookings ----------
-export function useMyBookings() {
+export function useMyBookings(opts?: { serviceMode?: "in_person" | "online" }) {
   return useQuery({
-    queryKey: ['my-bookings'],
+    queryKey: ['my-bookings', opts?.serviceMode ?? "all"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('bookings')
         .select(`*, service:services(*)`)
-        .eq('customer_id', user.id)
-        .order('start_at', { ascending: false });
+        .eq('customer_id', user.id);
+      if (opts?.serviceMode) {
+        query = query.eq('service_mode', opts.serviceMode);
+      }
+      const { data, error } = await query.order('start_at', { ascending: false });
       if (error) throw error;
       const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
       const providers = new Map((await Promise.all(providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const))));
@@ -619,7 +650,9 @@ export function useBooking(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select(`*, service:services(*), location:booking_locations(*)`)
+        .select(
+          `*, service:services(*), location:booking_locations(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url)`,
+        )
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
@@ -740,6 +773,28 @@ export type CreateBookingResult = Tables['bookings']['Row'] & {
   fetch_degraded?: boolean;
 };
 
+/** RPC payload for `create_booking` — preserves explicit `null` (online has no address). */
+export function buildCreateBookingRpcArgs(input: CreateBookingInput) {
+  return {
+    p_provider_id: input.provider_id,
+    p_service_id: input.service_id,
+    p_address_id: input.address_id,
+    p_start_at: input.start_at,
+    p_end_at: input.end_at,
+    p_idempotency_key: input.idempotency_key,
+    p_family_member_id: input.family_member_id ?? undefined,
+    p_notes: input.notes ?? undefined,
+    p_promo_code_id: input.promo_code_id ?? undefined,
+    p_requirement_selections: (input.requirement_selections ?? []) as never,
+    p_teaching_capability_id: input.teaching_capability_id ?? undefined,
+    p_teaching_subject_code: input.teaching_subject_code ?? undefined,
+    p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
+    p_teaching_level_code: input.teaching_level_code ?? undefined,
+    p_supervision_mode: input.supervision_mode ?? undefined,
+    p_service_mode: input.service_mode ?? "in_person",
+  };
+}
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
@@ -748,24 +803,7 @@ export function useCreateBooking() {
       if (!session?.user) {
         throw new Error('auth required');
       }
-      const { data, error } = await supabase.rpc('create_booking', {
-        p_provider_id: input.provider_id,
-        p_service_id: input.service_id,
-        p_address_id: input.address_id ?? undefined,
-        p_start_at: input.start_at,
-        p_end_at: input.end_at,
-        p_idempotency_key: input.idempotency_key,
-        p_family_member_id: input.family_member_id ?? undefined,
-        p_notes: input.notes ?? undefined,
-        p_promo_code_id: input.promo_code_id ?? undefined,
-        p_requirement_selections: (input.requirement_selections ?? []) as never,
-        p_teaching_capability_id: input.teaching_capability_id ?? undefined,
-        p_teaching_subject_code: input.teaching_subject_code ?? undefined,
-        p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
-        p_teaching_level_code: input.teaching_level_code ?? undefined,
-        p_supervision_mode: input.supervision_mode ?? undefined,
-        p_service_mode: input.service_mode ?? "in_person",
-      } as never);
+      const { data, error } = await supabase.rpc('create_booking', buildCreateBookingRpcArgs(input) as never);
       if (error) {
         throw mapBookingRpcError(error);
       }

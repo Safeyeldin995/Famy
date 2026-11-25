@@ -29,6 +29,19 @@ describe("isWebSurfacePathAllowed", () => {
     expect(isWebSurfacePathAllowed("/account/delete", {}, off)).toBe(true);
   });
 
+  it("allows the online-lesson web tree under /online/*", () => {
+    expect(isWebSurfacePathAllowed("/online", {}, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/online/login", {}, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/online/wallet", {}, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/online/provider/requests", {}, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/online/room/booking-1", {}, off)).toBe(true);
+  });
+
+  it("allows online lesson paymob return", () => {
+    expect(isWebSurfacePathAllowed("/online/lessons/id-1", { paymob_return: "1" }, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/online/lessons/id-1", {}, off)).toBe(true);
+  });
+
   it("allows booking only with paymob_return=1", () => {
     expect(isWebSurfacePathAllowed("/booking/book-1", {}, off)).toBe(false);
     expect(isWebSurfacePathAllowed("/booking/book-1", { paymob_return: "1" }, off)).toBe(true);

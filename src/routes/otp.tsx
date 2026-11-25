@@ -50,9 +50,15 @@ function Otp() {
 export function OtpScreen({
   otpContext,
   previewMode = false,
+  loginPath = "/login",
+  setPasswordPath = "/auth/set-password",
 }: {
   otpContext: OtpContextData;
   previewMode?: boolean;
+  /** Where to send the user when the flow is abandoned (e.g. online web login). */
+  loginPath?: string;
+  /** Successful signup verification continues here (online web uses `/online/set-password`). */
+  setPasswordPath?: string;
 }) {
   const { profile } = useApp();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -80,9 +86,9 @@ export function OtpScreen({
     if (previewMode) return;
     void otpService.abandonOtpFlow().then(() => {
       toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
-      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : loginPath, replace: true });
     });
-  }, [nav, otpContext.purpose, otpExpiresIn, previewMode, t]);
+  }, [loginPath, nav, otpContext.purpose, otpExpiresIn, previewMode, t]);
 
   useEffect(() => {
     if (previewMode || otpContext.delivery !== "firebase") return;
@@ -121,7 +127,7 @@ export function OtpScreen({
               );
         setErrorMsg(msg);
         toast.error(msg);
-        nav({ to: "/login", replace: true });
+        nav({ to: loginPath, replace: true });
         return;
       }
       if (res.error === "firebase_session_lost") {
@@ -137,7 +143,7 @@ export function OtpScreen({
       setCode(["", "", "", "", "", ""]);
       return;
     }
-    nav({ to: "/auth/set-password", replace: true });
+    nav({ to: setPasswordPath, replace: true });
   };
 
   const resend = async () => {
@@ -150,7 +156,7 @@ export function OtpScreen({
       const msg = t("auth.sessionExpired", "Your verification session expired. Start again.");
       setErrorMsg(msg);
       toast.error(msg);
-      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : loginPath, replace: true });
       return;
     }
     setResending(true);
@@ -170,7 +176,7 @@ export function OtpScreen({
             setErrorMsg(msg);
           }
           nav({
-            to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+            to: otpContext.purpose === "reset" ? "/auth/forgot" : loginPath,
             replace: true,
           });
           return;
@@ -187,7 +193,7 @@ export function OtpScreen({
       toast.error(msg);
       setErrorMsg(msg);
       nav({
-        to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+        to: otpContext.purpose === "reset" ? "/auth/forgot" : loginPath,
         replace: true,
       });
     } finally {
@@ -201,7 +207,7 @@ export function OtpScreen({
       return;
     }
     await otpService.abandonOtpFlow();
-    nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+    nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : loginPath, replace: true });
   };
 
   return (
