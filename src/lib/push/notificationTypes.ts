@@ -38,7 +38,11 @@ export type FamyNotificationType =
   | "provider_price_change_rejected"
   | "teaching_capability_pending"
   | "teaching_capability_approved"
-  | "teaching_capability_rejected";
+  | "teaching_capability_rejected"
+  | "parent_link_requested"
+  | "parent_link_approved"
+  | "parent_link_rejected"
+  | "parent_link_revoked";
 
 export type NotificationTypeRow = {
   type: FamyNotificationType;
@@ -77,4 +81,8 @@ export const NOTIFICATION_TYPE_INVENTORY: readonly NotificationTypeRow[] = [
   { type: "teaching_capability_pending", category: "provider", typicalDeepLink: "/pro/onboarding", recipient: "provider" },
   { type: "teaching_capability_approved", category: "provider", typicalDeepLink: "/pro/onboarding", recipient: "provider" },
   { type: "teaching_capability_rejected", category: "provider", typicalDeepLink: "/pro/onboarding", recipient: "provider" },
+  { type: "parent_link_requested", category: "system", typicalDeepLink: "/family-members", recipient: "customer" },
+  { type: "parent_link_approved", category: "system", typicalDeepLink: "/parent-link", recipient: "customer" },
+  { type: "parent_link_rejected", category: "system", typicalDeepLink: "/parent-link", recipient: "customer" },
+  { type: "parent_link_revoked", category: "system", typicalDeepLink: "/parent-link or /family-members", recipient: "customer" },
 ] as const;

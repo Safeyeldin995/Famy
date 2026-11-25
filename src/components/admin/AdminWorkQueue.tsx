@@ -48,6 +48,11 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     key: "online_lesson_issue_reports",
     route: "/admin/online-lesson-issues",
   },
+  {
+    key: "stale_student_parent_links",
+    route: "/admin/student-links",
+    search: { status: "pending" },
+  },
 ];
 
 export function AdminWorkQueue({ counts }: { counts: Record<AdminWorkQueueKey, number> }) {

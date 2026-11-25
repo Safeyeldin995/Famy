@@ -15,6 +15,7 @@ import { buildBookingRequest } from "@/lib/booking/bookingRequest";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
+import { OnlineWebParentLinkGate } from "@/components/online/OnlineWebParentLinkGate";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import type { CapabilityPickValue } from "@/lib/tutoring/providerCapabilityCascade";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
@@ -164,6 +165,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
 
   return (
     <OnlineWebCustomerDobGate>
+      <OnlineWebParentLinkGate>
       <div className="space-y-5">
         {tutoringServices.length > 1 ? (
           <label className="block">
@@ -264,6 +266,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
           {t("onlineWeb.walkthrough.requestLesson")}
         </PrimaryButton>
       </div>
+      </OnlineWebParentLinkGate>
     </OnlineWebCustomerDobGate>
   );
 }

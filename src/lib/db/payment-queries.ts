@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { bookingAmountDue } from '@/lib/payments/amountDue';
+import { isApprovedParentOfStudent } from '@/lib/db/student-parent-link-queries';
 
 export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
 
@@ -78,7 +79,11 @@ export function useCreatePayment() {
         .eq('id', input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
-      if (booking.customer_id !== user.id) {
+      const isOwner = booking.customer_id === user.id;
+      const isParent = isOwner
+        ? false
+        : Boolean(await isApprovedParentOfStudent(user.id, booking.customer_id));
+      if (!isOwner && !isParent) {
         throw new Error('You cannot record payment for this booking.');
       }
       // Includes earlier unpaid cancellation fees added to this booking.
@@ -92,7 +97,7 @@ export function useCreatePayment() {
         .from('payments')
         .insert({
           booking_id: input.bookingId,
-          customer_id: user.id,
+          customer_id: booking.customer_id,
           payment_method_id: input.paymentMethodId,
           amount,
           currency: booking.currency ?? 'EGP',

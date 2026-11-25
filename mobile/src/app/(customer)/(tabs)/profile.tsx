@@ -134,6 +134,11 @@ export default function Profile() {
             label={t("profile.family")}
             detail={t("profile.familySub")}
             onPress={() => router.push("/family-members")}
+          />
+          <CustomerMenuRow
+            Icon={Users}
+            label={t("parentLink.menu")}
+            onPress={() => router.push("/parent-link")}
             last
           />
         </CustomerMenuSection>

@@ -15,6 +15,8 @@ const emptyQueue = Object.fromEntries(
     "bookings_needing_action",
     "bookings_lifecycle_attention",
     "payments_pending_review",
+    "online_lesson_issue_reports",
+    "stale_student_parent_links",
   ].map((key) => [key, 0]),
 ) as Record<AdminWorkQueueKey, number>;
 

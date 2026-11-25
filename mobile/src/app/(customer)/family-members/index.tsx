@@ -4,7 +4,9 @@ import { uiListSeparator } from "@shared/format/uiJoin";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/queries";
+import { supabase } from "@/lib/supabase";
 import { Page, QueryState, Confirm, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
@@ -19,11 +21,52 @@ export default function FamilyMembers() {
   const toast = useToast();
   const q = useFamilyMembers();
   const remove = useDeactivateFamilyMember();
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
+  const linkedQ = useQuery({
+    queryKey: ["parent-linked-students"],
+    queryFn: async () => {
+      const { data, error } = await (
+        supabase.rpc as unknown as (fn: string) => PromiseLike<{
+          data: Array<{
+            link_id: string;
+            student_id: string;
+            student_name: string;
+            status: string;
+          }> | null;
+          error: { message: string } | null;
+        }>
+      )("parent_linked_students");
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        link_id: string;
+        student_id: string;
+        student_name: string;
+        status: string;
+      }>;
+    },
+  });
+  const respond = useMutation({
+    mutationFn: async (input: { linkId: string; approve: boolean }) => {
+      const { error } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => PromiseLike<{ error: { message: string } | null }>
+      )("respond_parent_link", {
+        p_link_id: input.linkId,
+        p_approve: input.approve,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["parent-linked-students"] });
+    },
+  });
   return (
     <Page
       title={t("familyMembers.title")}
-      queries={[q]}
+      queries={[q, linkedQ]}
       footer={
         q.data?.length ? (
           <Button
@@ -58,6 +101,42 @@ export default function FamilyMembers() {
         />
       )}
       <ActionError error={remove.error} />
+      {(linkedQ.data ?? []).length > 0 ? (
+        <View style={{ gap: space.md, marginBottom: space.lg }}>
+          <Text size="lg" weight="heavy">
+            {t("familyMembers.linkedChildren")}
+          </Text>
+          {(linkedQ.data ?? []).map((row) => (
+            <View key={row.link_id} style={[customerStyle.card, { borderRadius: 24 }]}>
+              <Text size="lg" weight="heavy">
+                {row.student_name}
+              </Text>
+              <Text size="xs" tone="muted">
+                {row.status === "pending"
+                  ? t("familyMembers.pendingApproval")
+                  : t(`admin.studentLinks.status.${row.status}`)}
+              </Text>
+              {row.status === "pending" ? (
+                <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
+                  <Button
+                    label={t("familyMembers.approveLink")}
+                    style={{ flex: 1 }}
+                    loading={respond.isPending}
+                    onPress={() => respond.mutate({ linkId: row.link_id, approve: true })}
+                  />
+                  <Button
+                    variant="secondary"
+                    label={t("familyMembers.declineLink")}
+                    style={{ flex: 1 }}
+                    loading={respond.isPending}
+                    onPress={() => respond.mutate({ linkId: row.link_id, approve: false })}
+                  />
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
       <QueryState query={q}>
         {!q.data?.length ? (
           <CustomerEmpty
@@ -102,7 +181,12 @@ export default function FamilyMembers() {
               <View
                 style={[
                   customerStyle.row,
-                  { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: space.sm },
+                  {
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                    paddingTop: space.md,
+                    gap: space.sm,
+                  },
                 ]}
               >
                 <Button

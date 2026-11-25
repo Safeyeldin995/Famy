@@ -88,7 +88,10 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
     titleKey: "admin.layout.group.customers",
     titleFallback: "Customers",
-    items: [{ to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound }],
+    items: [
+      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
+      { to: "/admin/student-links", labelKey: "admin.layout.nav.studentLinks", icon: UserRound },
+    ],
   },
   {
     titleKey: "admin.layout.group.finance",

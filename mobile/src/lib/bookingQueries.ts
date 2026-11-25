@@ -535,7 +535,22 @@ export function useCreatePayment() {
         .eq("id", input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
-      if (booking.customer_id !== user.id) {
+      const isOwner = booking.customer_id === user.id;
+      let isParent = false;
+      if (!isOwner) {
+        const { data: parentOk, error: parentErr } = await (
+          supabase.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => PromiseLike<{ data: boolean | null; error: { message: string } | null }>
+        )("is_approved_parent_of_student", {
+          p_parent_id: user.id,
+          p_student_id: booking.customer_id,
+        });
+        if (parentErr) throw parentErr;
+        isParent = Boolean(parentOk);
+      }
+      if (!isOwner && !isParent) {
         throw new Error("You cannot record payment for this booking.");
       }
       // Includes earlier unpaid cancellation fees added to this booking.
@@ -550,7 +565,7 @@ export function useCreatePayment() {
         .from("payments")
         .insert({
           booking_id: input.bookingId,
-          customer_id: user.id,
+          customer_id: booking.customer_id,
           payment_method_id: input.paymentMethodId,
           amount,
           currency: booking.currency ?? "EGP",

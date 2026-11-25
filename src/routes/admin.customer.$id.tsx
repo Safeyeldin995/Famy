@@ -10,6 +10,13 @@ import {
   useAdminCustomerWallet,
   useSetCustomerSuspended,
 } from "@/lib/db/admin-queries";
+import {
+  useAdminCustomerLinkedStudents,
+  useAdminCustomerParentLink,
+  useAdminRevokeStudentLink,
+  useAdminStudentBookingBlocks,
+} from "@/lib/db/student-parent-link-queries";
+import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -20,11 +27,16 @@ export function AdminCustomer({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const q = useAdminCustomer(id);
   const walletQ = useAdminCustomerWallet(id);
+  const parentLinkQ = useAdminCustomerParentLink(id);
+  const linkedStudentsQ = useAdminCustomerLinkedStudents(id);
+  const blocksQ = useAdminStudentBookingBlocks(id);
+  const revokeLink = useAdminRevokeStudentLink();
   const adjustWallet = useAdminAdjustCustomerWallet();
   const setSuspended = useSetCustomerSuspended();
   const [showConfirm, setShowConfirm] = useState(false);
   const [walletAmount, setWalletAmount] = useState("");
   const [walletReason, setWalletReason] = useState("");
+  const [revokeLinkId, setRevokeLinkId] = useState<string | null>(null);
 
   if (q.isLoading)
     return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
@@ -101,6 +113,86 @@ export function AdminCustomer({ id }: { id: string }) {
         </button>
       </section>
 
+      {parentLinkQ.data ? (
+        <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {t("admin.customer.parentLinkTitle")}
+          </h3>
+          <p className="mt-2 text-sm font-semibold">
+            {parentLinkQ.data.parent_id ? (
+              <Link
+                to="/admin/customer/$id"
+                params={{ id: parentLinkQ.data.parent_id }}
+                className="hover:text-brand"
+              >
+                {parentLinkQ.data.parent_name || t("admin.studentLinks.parent")}
+              </Link>
+            ) : (
+              t("admin.studentLinks.parentPending")
+            )}
+          </p>
+          <p dir="ltr" className="text-xs text-muted-foreground">
+            {parentLinkQ.data.parent_phone_masked}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t(`admin.studentLinks.status.${parentLinkQ.data.status}`)}
+            {" · "}
+            {adminDate(parentLinkQ.data.requested_at, i18n.language)}
+          </p>
+          {parentLinkQ.data.status === "pending" || parentLinkQ.data.status === "approved" ? (
+            <button
+              type="button"
+              className="focus-ring mt-3 rounded-xl border border-coral px-3 py-1.5 text-xs font-bold text-coral"
+              onClick={() => setRevokeLinkId(parentLinkQ.data!.link_id)}
+            >
+              {t("admin.studentLinks.revoke")}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {(linkedStudentsQ.data ?? []).length > 0 ? (
+        <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {t("admin.customer.linkedStudentsTitle")}
+          </h3>
+          <ul className="mt-2 space-y-2">
+            {(linkedStudentsQ.data ?? []).map((row) => (
+              <li key={row.link_id} className="flex items-center justify-between text-xs">
+                <Link
+                  to="/admin/customer/$id"
+                  params={{ id: row.student_id }}
+                  className="font-semibold hover:text-brand"
+                >
+                  {row.student_name}
+                </Link>
+                <span className="text-muted-foreground">
+                  {t(`admin.studentLinks.status.${row.status}`)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {(blocksQ.data ?? []).length > 0 ? (
+        <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {t("admin.customer.bookingBlocksTitle")}
+          </h3>
+          <ul className="mt-2 space-y-1">
+            {(blocksQ.data ?? []).map((row) => (
+              <li
+                key={`${row.student_id}-${row.attempted_at}`}
+                className="text-xs text-muted-foreground"
+              >
+                {adminDate(row.attempted_at, i18n.language)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section>
         <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           {t("admin.customer.recentBookings", { count: bookings.length })}
@@ -143,7 +235,9 @@ export function AdminCustomer({ id }: { id: string }) {
               })}
             </p>
             {(walletQ.data?.entries ?? []).length === 0 ? (
-              <p className="px-1 text-xs text-muted-foreground">{t("admin.customer.walletEmpty")}</p>
+              <p className="px-1 text-xs text-muted-foreground">
+                {t("admin.customer.walletEmpty")}
+              </p>
             ) : (
               <ul className="space-y-2">
                 {(walletQ.data?.entries ?? []).map((entry) => (
@@ -156,7 +250,9 @@ export function AdminCustomer({ id }: { id: string }) {
                       {entry.amount} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"} ·{" "}
                       {entry.reason}
                     </p>
-                    <p className="text-muted-foreground">{adminDate(entry.created_at, i18n.language)}</p>
+                    <p className="text-muted-foreground">
+                      {adminDate(entry.created_at, i18n.language)}
+                    </p>
                     {entry.metadata?.admin_reason ? (
                       <p className="mt-1 text-muted-foreground">{entry.metadata.admin_reason}</p>
                     ) : null}
@@ -283,6 +379,28 @@ export function AdminCustomer({ id }: { id: string }) {
           </ul>
         )}
       </section>
+
+      {revokeLinkId ? (
+        <AdminReasonSheet
+          title={t("admin.studentLinks.revoke")}
+          description={t("admin.studentLinks.revokeHint")}
+          busy={revokeLink.isPending}
+          onClose={() => setRevokeLinkId(null)}
+          onConfirm={(reason) => {
+            revokeLink.mutate(
+              { linkId: revokeLinkId, reason },
+              {
+                onSuccess: () => {
+                  setRevokeLinkId(null);
+                  toast.success(t("admin.studentLinks.revokeSuccess"));
+                },
+                onError: (e: Error) =>
+                  toast.error(e.message || t("admin.studentLinks.revokeError")),
+              },
+            );
+          }}
+        />
+      ) : null}
 
       {showConfirm && (
         <div

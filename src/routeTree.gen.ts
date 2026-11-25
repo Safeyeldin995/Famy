@@ -62,6 +62,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminStudentLinksRouteImport } from './routes/admin.student-links'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -461,6 +462,11 @@ const AdminServicesRoute = AdminServicesRouteImport.update({
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStudentLinksRoute = AdminStudentLinksRouteImport.update({
+  id: '/student-links',
+  path: '/student-links',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
@@ -1198,6 +1204,7 @@ export interface FileRoutesByFullPath {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1380,6 +1387,7 @@ export interface FileRoutesByTo {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1562,6 +1570,7 @@ export interface FileRoutesById {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1752,6 +1761,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1934,6 +1944,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2115,6 +2126,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2679,6 +2691,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/student-links': {
+      id: '/admin/student-links'
+      path: '/student-links'
+      fullPath: '/admin/student-links'
+      preLoaderRoute: typeof AdminStudentLinksRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/zones': {
@@ -3653,6 +3672,7 @@ interface AdminRouteChildren {
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStudentLinksRoute: typeof AdminStudentLinksRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -3684,6 +3704,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminStudentLinksRoute: AdminStudentLinksRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
