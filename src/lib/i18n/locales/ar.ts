@@ -3615,6 +3615,7 @@ const ar: Translation = {
         student_free: "الطالب — مجاني (أكثر من ٤ ساعات)",
         student_late: "الطالب — متأخر (خصم ٥٠٪)",
         teacher: "المعلم (استرداد كامل للمحفظة)",
+        admin: "الأدمن",
         system: "النظام — انتهاء دون دفع",
       },
       qualityTitle: "الجودة",

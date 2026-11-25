@@ -287,20 +287,22 @@ function AdminOnlineLessonsReportPage() {
                 {t("admin.onlineReports.cancellationsTitle")}
               </h2>
               <ul className="space-y-2 text-sm">
-                {(["student_free", "student_late", "teacher", "system"] as const).map((kind) => {
-                  const row = q.data!.cancellations[kind];
-                  return (
-                    <li
-                      key={kind}
-                      className="flex justify-between gap-2 border-b border-border/60 pb-2"
-                    >
-                      <span>{t(`admin.onlineReports.cancellations.${kind}`)}</span>
-                      <span className="tabular-nums font-bold">
-                        {formatCount(row?.count)} · {formatEGP(Number(row?.amount ?? 0))}
-                      </span>
-                    </li>
-                  );
-                })}
+                {(["student_free", "student_late", "teacher", "admin", "system"] as const).map(
+                  (kind) => {
+                    const row = q.data!.cancellations[kind];
+                    return (
+                      <li
+                        key={kind}
+                        className="flex justify-between gap-2 border-b border-border/60 pb-2"
+                      >
+                        <span>{t(`admin.onlineReports.cancellations.${kind}`)}</span>
+                        <span className="tabular-nums font-bold">
+                          {formatCount(row?.count)} · {formatEGP(Number(row?.amount ?? 0))}
+                        </span>
+                      </li>
+                    );
+                  },
+                )}
               </ul>
             </div>
             <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">

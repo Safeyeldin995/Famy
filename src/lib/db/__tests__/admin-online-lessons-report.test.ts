@@ -315,6 +315,89 @@ describe("admin_online_lessons_report", () => {
     expect(rows[0]?.report.kpis.totals.completed).toBe(2);
   });
 
+  it("avg_attended_minutes sums reconnect intervals per participant before averaging", async () => {
+    const from = "2028-08-01T00:00:00.000Z";
+    const to = "2028-09-01T00:00:00.000Z";
+    const lessonStart = "2028-08-10T10:00:00.000Z";
+    const slotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), 35);
+    const startAt = `${slotDate}T${LIFECYCLE_RESCHEDULE_START}:00+02:00`;
+    const endAt = `${slotDate}T${LIFECYCLE_RESCHEDULE_END}:00+02:00`;
+
+    const bookingId = await createOnlineTutoringBooking(db, startAt, endAt);
+
+    await asServiceRole(db, async () => {
+      await db.query(
+        `UPDATE public.bookings
+         SET start_at = $1::timestamptz,
+             end_at = $1::timestamptz + interval '2 hours',
+             status = 'completed',
+             completed_at = $1::timestamptz + interval '90 minutes'
+         WHERE id = $2`,
+        [lessonStart, bookingId],
+      );
+      const segments = [
+        ["customer", "0 minutes", "30 minutes"],
+        ["customer", "32 minutes", "62 minutes"],
+        ["provider", "0 minutes", "30 minutes"],
+        ["provider", "32 minutes", "62 minutes"],
+      ] as const;
+      for (const [participant, joinOffset, leaveOffset] of segments) {
+        await db.query(
+          `INSERT INTO public.session_events (booking_id, participant, joined_at, left_at)
+           VALUES ($1, $2, $3::timestamptz + $4::interval, $3::timestamptz + $5::interval)`,
+          [bookingId, participant, lessonStart, joinOffset, leaveOffset],
+        );
+      }
+    });
+
+    const rows = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ report: { quality: { avg_attended_minutes: number } } }>(
+        db,
+        `SELECT public.admin_online_lessons_report($1::timestamptz, $2::timestamptz) AS report`,
+        [from, to],
+      ),
+    );
+    expect(Number(rows[0]?.report.quality.avg_attended_minutes)).toBe(60);
+  });
+
+  it("counts admin cancellations in their own bucket", async () => {
+    const slotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), 36);
+    const startAt = `${slotDate}T10:00:00+02:00`;
+    const endAt = `${slotDate}T12:00:00+02:00`;
+
+    const bookingId = await createOnlineTutoringBooking(db, startAt, endAt);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.bookings SET status = 'confirmed' WHERE id = $1`, [bookingId]),
+    );
+
+    const reasonRows = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.cancellation_reasons WHERE code = 'admin_other' LIMIT 1`,
+    );
+    const reasonId = reasonRows[0]?.id;
+    if (!reasonId) throw new Error("admin_other reason missing");
+
+    const cancelled = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.cancel_booking($1::uuid, $2::uuid, 'admin online report test')`,
+      [bookingId, reasonId],
+    );
+    expect(cancelled.error).toBeUndefined();
+
+    const from = "2020-01-01T00:00:00.000Z";
+    const to = "2030-01-01T00:00:00.000Z";
+
+    const rows = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ report: { cancellations: { admin: { count: number } } } }>(
+        db,
+        `SELECT public.admin_online_lessons_report($1::timestamptz, $2::timestamptz) AS report`,
+        [from, to],
+      ),
+    );
+    expect(rows[0]?.report.cancellations.admin?.count).toBeGreaterThanOrEqual(1);
+  });
+
   it("wallet_credit_used nets checkout releases against spends (100 spend, release, recapture)", async () => {
     const slotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), 14);
     const startAt = `${slotDate}T${LIFECYCLE_SLOT_START}:00+02:00`;

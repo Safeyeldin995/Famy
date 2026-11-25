@@ -3649,6 +3649,7 @@ const en = {
         student_free: "Student — free (>4h)",
         student_late: "Student — late (50% fee)",
         teacher: "Teacher (full wallet refund)",
+        admin: "Admin",
         system: "System — expired unpaid",
       },
       qualityTitle: "Quality",
