@@ -238,7 +238,8 @@ BEGIN
     'reviewed_at', p.reviewed_at,
     'rejection_reason', p.rejection_reason,
     'payment_method_name_en', p.payment_method_name_en,
-    'payment_method_name_ar', p.payment_method_name_ar
+    'payment_method_name_ar', p.payment_method_name_ar,
+    'has_proof', (p.proof_path IS NOT NULL)
   )
   INTO v_result
   FROM public.payments p
@@ -815,7 +816,22 @@ GRANT EXECUTE ON FUNCTION public.paymob_apply_refund_webhook(bigint, bigint, big
 
 -- ---------------------------------------------------------------------------
 -- #453 Account deletion: funds owed to the user + wipe payout methods
+-- Wallet forfeit on self-service deletion (PO): explicit confirm debits balance.
 -- ---------------------------------------------------------------------------
+
+ALTER TABLE public.customer_wallet_entries
+  DROP CONSTRAINT IF EXISTS customer_wallet_entries_reason_check;
+ALTER TABLE public.customer_wallet_entries
+  ADD CONSTRAINT customer_wallet_entries_reason_check CHECK (reason IN (
+    'provider_cancelled',
+    'customer_cancelled_refund',
+    'admin_credit',
+    'admin_debit',
+    'checkout_spend',
+    'checkout_release',
+    'paymob_superseded_capture',
+    'forfeited_on_deletion'
+  ));
 
 CREATE OR REPLACE FUNCTION public.account_deletion_has_funds_owed_to_user(p_user_id uuid)
 RETURNS boolean
@@ -824,19 +840,14 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT COALESCE((
-      SELECT SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END)
-      FROM public.customer_wallet_entries e
-      WHERE e.customer_id = p_user_id
-    ), 0) > 0.005
-    OR EXISTS (
-      SELECT 1
-      FROM public.providers pv
-      JOIN public.provider_ledger_entries e ON e.provider_id = pv.id
-      WHERE pv.profile_id = p_user_id
-      GROUP BY pv.id
-      HAVING SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END) > 0.005
-    );
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.providers pv
+    JOIN public.provider_ledger_entries e ON e.provider_id = pv.id
+    WHERE pv.profile_id = p_user_id
+    GROUP BY pv.id
+    HAVING SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END) > 0.005
+  );
 $$;
 REVOKE ALL ON FUNCTION public.account_deletion_has_funds_owed_to_user(uuid)
   FROM PUBLIC, anon, authenticated;
@@ -860,8 +871,7 @@ AS $$
       )
       AND (b.customer_id = p_user_id OR pv.profile_id = p_user_id)
   )
-  OR public.account_deletion_has_unpaid_balance(p_user_id)
-  OR public.account_deletion_has_funds_owed_to_user(p_user_id);
+  OR public.account_deletion_has_unpaid_balance(p_user_id);
 $$;
 REVOKE ALL ON FUNCTION public.account_deletion_has_active_bookings(uuid)
   FROM PUBLIC, anon, authenticated;
@@ -875,6 +885,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_uid uuid := auth.uid();
+  v_wallet numeric;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_authenticated');
@@ -898,13 +909,28 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'active_bookings');
   END IF;
 
+  SELECT b.available_amount INTO v_wallet
+  FROM public.customer_wallet_balances(v_uid) b;
+
+  IF COALESCE(v_wallet, 0) > 0.005 THEN
+    RETURN jsonb_build_object(
+      'ok', true,
+      'wallet_forfeit_amount', round(v_wallet, 2)
+    );
+  END IF;
+
   RETURN jsonb_build_object('ok', true);
 END;
 $$;
 REVOKE ALL ON FUNCTION public.account_deletion_check() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.account_deletion_check() TO authenticated;
 
-CREATE OR REPLACE FUNCTION public.anonymize_account(p_user_id uuid)
+DROP FUNCTION IF EXISTS public.anonymize_account(uuid);
+
+CREATE OR REPLACE FUNCTION public.anonymize_account(
+  p_user_id uuid,
+  p_confirm_wallet_forfeit boolean DEFAULT false
+)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -917,6 +943,8 @@ DECLARE
   v_avatar_path text;
   v_doc record;
   v_deleted_label text;
+  v_wallet_available numeric;
+  v_wallet_forfeited numeric := 0;
 BEGIN
   IF p_user_id IS NULL THEN
     RAISE EXCEPTION 'invalid_user' USING ERRCODE = '22023';
@@ -930,6 +958,31 @@ BEGIN
 
   IF public.account_deletion_has_active_bookings(p_user_id) THEN
     RAISE EXCEPTION 'account_deletion_blocked' USING ERRCODE = '42501';
+  END IF;
+
+  PERFORM public.lock_customer_wallet(p_user_id);
+  SELECT b.available_amount INTO v_wallet_available
+  FROM public.customer_wallet_balances(p_user_id) b;
+
+  IF COALESCE(v_wallet_available, 0) > 0.005 THEN
+    IF NOT COALESCE(p_confirm_wallet_forfeit, false) THEN
+      RAISE EXCEPTION 'wallet_forfeit_confirm_required' USING ERRCODE = '23514';
+    END IF;
+    v_wallet_forfeited := v_wallet_available;
+    PERFORM public.customer_wallet_insert_entry(
+      p_user_id,
+      'debit',
+      v_wallet_available,
+      'forfeited_on_deletion',
+      NULL,
+      NULL,
+      NULL,
+      'wallet_forfeit:' || p_user_id::text,
+      jsonb_build_object(
+        'forfeited_on_account_deletion', true,
+        'amount', v_wallet_available
+      )
+    );
   END IF;
 
   SELECT * INTO v_profile FROM public.profiles WHERE id = p_user_id FOR UPDATE;
@@ -1052,16 +1105,21 @@ BEGIN
     'profiles',
     p_user_id,
     'self_service_account_deletion',
-    jsonb_build_object('deleted', true),
-    jsonb_build_object('deleted', true)
+    jsonb_build_object(
+      'wallet_balance_forfeited', v_wallet_forfeited
+    ),
+    jsonb_build_object(
+      'deleted', true,
+      'wallet_balance_forfeited', v_wallet_forfeited
+    )
   );
 
   RETURN jsonb_build_object('storage_paths', v_paths);
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.anonymize_account(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.anonymize_account(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.anonymize_account(uuid, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.anonymize_account(uuid, boolean) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- Admin queue: paymobNeedsAction

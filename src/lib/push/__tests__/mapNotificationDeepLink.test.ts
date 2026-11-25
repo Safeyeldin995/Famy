@@ -48,6 +48,22 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/pro/onboarding", "customer")).toEqual({ pathname: "/home" });
   });
 
+  it("maps wallet and provider setup sections", () => {
+    expect(mapNotificationDeepLink("/wallet", "customer")).toEqual({ pathname: "/wallet" });
+    expect(mapNotificationDeepLink("/wallet", "provider")).toEqual({ pathname: "/dashboard" });
+    expect(mapNotificationDeepLink("/pro/documents", "provider")).toEqual({
+      pathname: "/pro-documents",
+    });
+    expect(mapNotificationDeepLink("/pro/setup/personal", "provider")).toEqual({
+      pathname: "/pro-setup/[item]",
+      params: { item: "personal" },
+    });
+    expect(mapNotificationDeepLink("/pro/setup/references", "provider")).toEqual({
+      pathname: "/pro-setup/[item]",
+      params: { item: "reference" },
+    });
+  });
+
   it("maps list and hub routes", () => {
     expect(mapNotificationDeepLink("/notifications", "customer")).toEqual({ pathname: "/notifications" });
     expect(mapNotificationDeepLink("/notifications", "provider")).toEqual({ pathname: "/pro-notifications" });

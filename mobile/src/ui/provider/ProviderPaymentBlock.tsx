@@ -1,13 +1,25 @@
 import { useState } from "react";
 import { View, Pressable, TextInput, Modal } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
-import { useBookingPayment, useCapturePayment, useRejectPayment } from "@/lib/provider/payments";
+import { Eye } from "lucide-react-native";
+import {
+  getSignedProofUrl,
+  useBookingPayment,
+  useCapturePayment,
+  useRejectPayment,
+} from "@/lib/provider/payments";
 import { money } from "@/lib/presentation";
+import { providerPaymentErrorKey } from "@/lib/serverErrorMessages";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
 import { proCard } from "./cards";
 import { bodyTextInputProps } from "../a11y";
+
+function paymentErrorMessage(error: unknown, t: (key: string) => string) {
+  return t(providerPaymentErrorKey(error));
+}
 
 export function ProviderPaymentBlock({
   bookingId,
@@ -22,6 +34,7 @@ export function ProviderPaymentBlock({
   const reject = useRejectPayment();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [proofError, setProofError] = useState<string | null>(null);
   const p = q.data as Record<string, unknown> | null | undefined;
   if (!p) return null;
 
@@ -30,11 +43,24 @@ export function ProviderPaymentBlock({
     (p.method === "cash" ? "cash" : p.method === "instapay" ? "manual_transfer" : null);
   const isOnline = methodType === "online";
   const isManual = methodType === "manual_transfer";
+  const isCash = methodType === "cash";
   const captureAllowed = bookingStatus === "completed";
   const canAct = !isOnline && (p.status === "pending" || p.status === "pending_review");
   const name = i18n.language.startsWith("ar")
     ? (p.payment_method_name_ar as string) || (p.payment_method_name_en as string)
     : (p.payment_method_name_en as string) || (p.payment_method_name_ar as string);
+
+  const openProof = async () => {
+    const path = p.proof_path as string | null;
+    if (!path) return;
+    setProofError(null);
+    try {
+      const url = await getSignedProofUrl(path);
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      setProofError(t("common.somethingWentWrong"));
+    }
+  };
 
   return (
     <View style={proCard.card}>
@@ -47,7 +73,30 @@ export function ProviderPaymentBlock({
       <Text tone="muted" size="sm">
         {t(`payment.status.${String(p.status)}`, String(p.status))}
       </Text>
-      {canAct ? (
+      {p.proof_path && p.status === "pending_review" ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("payment.viewReceipt")}
+          onPress={() => void openProof()}
+          style={[proCard.row, { justifyContent: "center", minHeight: 44 }]}
+        >
+          <Eye size={18} color={colors.brand} />
+          <Text weight="bold" tone="brand">
+            {t("payment.viewReceipt")}
+          </Text>
+        </Pressable>
+      ) : null}
+      {proofError ? (
+        <Text tone="danger" size="sm">
+          {proofError}
+        </Text>
+      ) : null}
+      {isManual && (p.status === "pending" || p.status === "pending_review") ? (
+        <Text tone="muted" size="sm">
+          {t("payment.famyReviewingTransfer")}
+        </Text>
+      ) : null}
+      {canAct && isCash ? (
         <View style={{ gap: space.sm }}>
           {captureAllowed ? (
             <Button
@@ -60,7 +109,7 @@ export function ProviderPaymentBlock({
               {t("payment.waitingForCompletion")}
             </Text>
           )}
-          {isManual ? (
+          {captureAllowed ? (
             <Button
               variant="secondary"
               label={t("payment.reject")}
@@ -68,6 +117,11 @@ export function ProviderPaymentBlock({
             />
           ) : null}
         </View>
+      ) : null}
+      {capture.isError ? (
+        <Text tone="danger" size="sm" accessibilityLiveRegion="polite">
+          {paymentErrorMessage(capture.error, t)}
+        </Text>
       ) : null}
       {p.status === "captured" ? (
         <Text tone="brand" weight="bold">
@@ -105,6 +159,11 @@ export function ProviderPaymentBlock({
                 color: colors.foreground,
               }}
             />
+            {reject.isError ? (
+              <Text tone="danger" size="sm">
+                {paymentErrorMessage(reject.error, t)}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: space.sm }}>
               <Button
                 variant="secondary"

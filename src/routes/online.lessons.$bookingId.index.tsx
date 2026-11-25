@@ -34,12 +34,6 @@ function OnlineLessonDetail() {
   const { paymob_return } = Route.useSearch();
   const { t } = useTranslation();
   const bookingQ = useBooking(bookingId);
-  const paymentQ = useBookingPayment(bookingId);
-  const cancel = useCancelBooking();
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const lang = currentLang();
-  const locale = formatLocale(lang);
-
   const userQ = useQuery({
     queryKey: ["online-lesson-user"],
     queryFn: async () => {
@@ -47,6 +41,16 @@ function OnlineLessonDetail() {
       return data.user?.id ?? null;
     },
   });
+  const userId = userQ.data;
+  const providerProfileId = bookingQ.data
+    ? String((bookingQ.data as { provider_profile_id?: string | null }).provider_profile_id ?? "")
+    : "";
+  const isProviderViewer = !!userId && userId === providerProfileId;
+  const paymentQ = useBookingPayment(bookingId, { providerSafe: isProviderViewer });
+  const cancel = useCancelBooking();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const lang = currentLang();
+  const locale = formatLocale(lang);
 
   usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
   // Join eligibility is computed from the clock at render; tick so the Join button appears when the window opens.
@@ -92,10 +96,8 @@ function OnlineLessonDetail() {
     return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
   }
 
-  const userId = userQ.data;
   const isCustomer = userId === String(booking.customer_id);
-  const isProvider =
-    userId === String((booking as { provider_profile_id?: string | null }).provider_profile_id ?? "");
+  const isProvider = isProviderViewer;
   if (userId && !isCustomer && !isProvider) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
   }
@@ -108,7 +110,13 @@ function OnlineLessonDetail() {
   const paid = moneyHeld({
     paymentStatus: paymentQ.data?.status,
     methodType: paymentQ.data?.payment_method_type,
-    proofPath: paymentQ.data?.proof_path,
+    proofPath: isProvider
+      ? paymentQ.data && "has_proof" in paymentQ.data && paymentQ.data.has_proof
+        ? "1"
+        : null
+      : paymentQ.data && "proof_path" in paymentQ.data
+        ? paymentQ.data.proof_path
+        : null,
   });
 
   // Joining needs a captured payment (server rule); a receipt in review only holds money.

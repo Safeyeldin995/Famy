@@ -77,6 +77,7 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(payload).toHaveProperty("status");
     expect(payload).toHaveProperty("amount");
     expect(payload).toHaveProperty("payment_method_type");
+    expect(payload?.has_proof).toBe(true);
   });
 
   it("late capture shortfall records captured + metadata when wallet reclaim is unavailable", async () => {
@@ -403,7 +404,7 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(Number(before[0]?.n)).toBeGreaterThan(0);
 
     await asServiceRole(db, () =>
-      db.query(`SELECT public.anonymize_account($1::uuid)`, [IDS.providerUser]),
+      db.query(`SELECT public.anonymize_account($1::uuid, false)`, [IDS.providerUser]),
     );
 
     const after = await queryRows<{ n: string }>(
