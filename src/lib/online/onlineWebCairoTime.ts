@@ -65,3 +65,13 @@ export function cairoDayStrip(count = 14): Date[] {
 export function sameCairoCalendarDay(a: Date, b: Date): boolean {
   return cairoYmd(a) === cairoYmd(b);
 }
+
+/** Local midnight on the Cairo Y-M-D calendar day (for slot queries with `cairoTime: true`). */
+export function localMidnightFromCairoYmd(ymd: string): Date {
+  const { y, m, d } = parseYmd(ymd);
+  return new Date(y, m - 1, d);
+}
+
+export function localMidnightForCairoInstant(instant: Date): Date {
+  return localMidnightFromCairoYmd(cairoYmd(instant));
+}

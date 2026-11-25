@@ -36,7 +36,6 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
     },
   });
   const walletBalance = balanceQ.isSuccess ? balanceQ.data ?? 0 : 0;
-  const walletReady = balanceQ.isSuccess;
 
   const onlineMethod = useMemo(
     () =>
@@ -120,10 +119,25 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
               amount: formatEGP(cardDue, undefined, i18n.language),
             })}
       </p>
-      {!walletReady ? (
-        <p className="text-pro-13 text-muted-foreground">{t("onlineWeb.wallet.balanceError")}</p>
+      {balanceQ.isLoading ? (
+        <p className="text-pro-13 text-muted-foreground">{t("common.loading")}</p>
+      ) : balanceQ.isError ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-pro-13 text-muted-foreground">{t("onlineWeb.wallet.balanceError")}</p>
+          <button
+            type="button"
+            className="text-pro-13 font-bold text-brand underline"
+            onClick={() => void balanceQ.refetch()}
+          >
+            {t("common.tryAgain")}
+          </button>
+        </div>
       ) : null}
-      <PrimaryButton className="h-12 w-full" disabled={busy || !walletReady} onClick={() => void payOnce()}>
+      <PrimaryButton
+        className="h-12 w-full"
+        disabled={busy || balanceQ.isLoading || balanceQ.isError}
+        onClick={() => void payOnce()}
+      >
         {walletOnly ? t("onlineLesson.confirmWalletPay") : t("onlineWeb.walkthrough.payNow")}
       </PrimaryButton>
     </div>

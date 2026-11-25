@@ -85,4 +85,32 @@ describe("OnlineWebSessionRoom", () => {
     await waitFor(() => expect(fetchToken).toHaveBeenCalledWith({ bookingId: "b1", displayName: undefined }));
     await waitFor(() => expect(roomConnect).toHaveBeenCalled());
   });
+
+  it("connects in audio-only mode without a local video element", async () => {
+    const user = userEvent.setup();
+    const start = new Date("2030-06-01T12:00:00Z");
+    const end = new Date("2030-06-01T13:00:00Z");
+    const getUserMedia = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("no cam"))
+      .mockResolvedValueOnce({
+        getTracks: () => [{ stop: vi.fn() }],
+      });
+    Object.defineProperty(global.navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia },
+    });
+
+    render(
+      <OnlineWebSessionRoom bookingId="b-audio" startAt={start} endAt={end} onLeave={() => {}} />,
+    );
+
+    await waitFor(() => screen.getByRole("button", { name: "onlineSession.preJoinContinue" }));
+    await user.click(screen.getByRole("button", { name: "onlineSession.preJoinContinue" }));
+
+    await waitFor(() =>
+      expect(fetchToken).toHaveBeenCalledWith({ bookingId: "b-audio", displayName: undefined }),
+    );
+    await waitFor(() => expect(roomConnect).toHaveBeenCalled());
+  });
 });

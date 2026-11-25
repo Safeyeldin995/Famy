@@ -21,6 +21,7 @@ import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import {
   cairoDayStrip,
   cairoTodayStart,
+  localMidnightForCairoInstant,
   sameCairoCalendarDay,
   ONLINE_WEB_TIME_ZONE,
 } from "@/lib/online/onlineWebCairoTime";
@@ -94,8 +95,9 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const selectedCapability: TeachingCapabilityOption | null =
     capabilities.find((row) => row.id === capabilityId) ?? null;
   const slotMinutes = selectedCapability?.durationMin ?? 0;
+  const slotsDay = useMemo(() => localMidnightForCairoInstant(day), [day]);
 
-  const slotsQ = useAvailableSlots(providerId, day, slotMinutes || 60, {
+  const slotsQ = useAvailableSlots(providerId, slotsDay, slotMinutes || 60, {
     serviceId: resolvedServiceId,
     addressId: null,
     serviceMode: "online",

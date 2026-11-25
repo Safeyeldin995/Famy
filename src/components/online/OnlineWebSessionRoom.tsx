@@ -139,9 +139,11 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
       const localVideo = localVideoRef.current;
       const remoteVideoHost = remoteVideoRef.current;
       const audioHost = remoteAudioRef.current;
-      if (!localVideo || !remoteVideoHost || !audioHost) return;
+      if (!remoteVideoHost || !audioHost) return;
 
+      teardownRoom();
       setErrorMessage(null);
+      setMediaRetry(false);
       setAudioOnly(choice.audioOnly);
 
       const token = await fetchOnlineSessionToken({ bookingId, displayName });
@@ -267,7 +269,11 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
           <button
             type="button"
             className="underline"
-            onClick={() => prejoin && void connectLive(prejoin)}
+            onClick={() => {
+              if (!prejoin) return;
+              connectStartedRef.current = false;
+              setPhase("connecting");
+            }}
           >
             {t("onlineWeb.session.rejoin")}
           </button>
@@ -300,19 +306,38 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
             <p className="text-pro-14 text-coral">{errorMessage}</p>
             {mediaRetry ? (
               <div className="flex flex-wrap justify-center gap-2">
-                <PrimaryButton className="h-10" onClick={() => void connectLive({ audioOnly: true })}>
+                <PrimaryButton
+                  className="h-10"
+                  onClick={() => {
+                    setPrejoin({ audioOnly: true });
+                    connectStartedRef.current = false;
+                    setPhase("connecting");
+                  }}
+                >
                   {t("onlineWeb.session.continueAudioOnly")}
                 </PrimaryButton>
                 <button
                   type="button"
                   className="text-pro-13 font-bold underline"
-                  onClick={() => prejoin && void connectLive(prejoin)}
+                  onClick={() => {
+                    if (!prejoin) return;
+                    connectStartedRef.current = false;
+                    setPhase("connecting");
+                  }}
                 >
                   {t("onlineSession.retry")}
                 </button>
               </div>
             ) : (
-              <button type="button" className="text-pro-13 font-bold underline" onClick={() => prejoin && void connectLive(prejoin)}>
+              <button
+                type="button"
+                className="text-pro-13 font-bold underline"
+                onClick={() => {
+                  if (!prejoin) return;
+                  connectStartedRef.current = false;
+                  setPhase("connecting");
+                }}
+              >
                 {t("onlineSession.retry")}
               </button>
             )}

@@ -58,7 +58,12 @@ export function onlineLessonDetailGuidance(input: {
     hour12: true,
   }).format(join.opensAt);
 
-  if (journey >= 2 && !join.open && input.paymentCaptured) {
+  if (
+    (journey === 2 || journey === 3) &&
+    input.paymentCaptured &&
+    !join.open &&
+    now < join.opensAt.getTime()
+  ) {
     return {
       messageKey: "onlineWeb.lessonDetail.joinFrom",
       messageParams: { time: opensLabel },
