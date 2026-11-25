@@ -100,6 +100,9 @@ CREATE INDEX IF NOT EXISTS parent_guardian_email_sends_student_sent_idx
 CREATE INDEX IF NOT EXISTS parent_guardian_email_sends_email_sent_idx
   ON public.parent_guardian_email_sends (lower(parent_email), sent_at DESC);
 
+CREATE INDEX IF NOT EXISTS parent_guardian_email_sends_link_id_idx
+  ON public.parent_guardian_email_sends (link_id);
+
 REVOKE ALL ON public.parent_guardian_email_sends FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.parent_guardian_email_sends TO service_role;
 
