@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { revokeActivePushToken } from "@/lib/push";
 import { requestMobileAccountDeletion } from "@/lib/accountDeletion";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { bodyTextInputProps } from "@/ui/a11y";
 
 type DeletionCheck = { ok: boolean; reason?: string };
 
@@ -99,6 +100,7 @@ export default function DeleteAccountScreen() {
         <>
           <Text>{t("accountDeletion.typeConfirm", { word: confirmWord })}</Text>
           <TextInput
+            {...bodyTextInputProps()}
             accessibilityLabel={t("accountDeletion.typeConfirm", { word: confirmWord })}
             style={styles.input}
             value={confirmText}

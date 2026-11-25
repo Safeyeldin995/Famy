@@ -20,6 +20,7 @@ import {
 import { initI18n } from "@/lib/i18n";
 import { PushBridge } from "@/lib/push";
 import { SessionProvider } from "@/lib/session";
+import { AppReleaseGate } from "@/ui/AppReleaseGate";
 import { LaunchGate } from "@/ui/LaunchGate";
 import { ToastProvider } from "@/ui/Toast";
 import { colors } from "@/ui/theme";
@@ -54,16 +55,19 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
             <LaunchGate bootstrapReady={bootstrapReady}>
-              <ToastProvider>
-                <PushBridge />
-                <StatusBar style="dark" />
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: colors.background },
-                  }}
-                />
-              </ToastProvider>
+              {/* Maintenance / forced update run before the app's own routing. */}
+              <AppReleaseGate>
+                <ToastProvider>
+                  <PushBridge />
+                  <StatusBar style="dark" />
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: colors.background },
+                    }}
+                  />
+                </ToastProvider>
+              </AppReleaseGate>
             </LaunchGate>
           </SessionProvider>
         </QueryClientProvider>

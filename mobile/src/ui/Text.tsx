@@ -1,7 +1,7 @@
 import { Text as RNText, type TextProps, type TextStyle } from "react-native";
 import { useTranslation } from "react-i18next";
 import { maxFontSizeMultiplierForText } from "./a11y";
-import { colors, fonts, fontSize } from "./theme";
+import { colors, fonts, fontSize, lineHeightFor, scaledFontSize } from "./theme";
 
 type Weight = "regular" | "bold" | "heavy";
 type Tone = "default" | "muted" | "brand" | "inverse" | "danger" | "success";
@@ -25,10 +25,11 @@ export function Text({
 }: TextProps & { size?: keyof typeof fontSize; weight?: Weight; tone?: Tone }) {
   const { i18n } = useTranslation();
   const family = (i18n.language === "en" ? fonts.en : fonts.ar)[weight];
+  const px = scaledFontSize(fontSize[size], i18n.language);
   const base: TextStyle = {
     fontFamily: family,
-    fontSize: fontSize[size],
-    lineHeight: Math.round(fontSize[size] * 1.45),
+    fontSize: px,
+    lineHeight: lineHeightFor(px),
     color: toneColor[tone],
     textAlign: "auto",
   };
