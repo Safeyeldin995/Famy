@@ -113,6 +113,39 @@ export function useCancelProviderServiceRequest() {
   });
 }
 
+export function useSetProviderServiceActive(providerId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ serviceId, active }: { serviceId: string; active: boolean }) => {
+      const { data, error } = await supabase.rpc("provider_set_service_active", {
+        p_service_id: serviceId,
+        p_active: active,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", providerId] });
+    },
+  });
+}
+
+export function useRemoveProviderService(providerId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { data, error } = await supabase.rpc("provider_remove_service", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+      return data as { upcoming_bookings?: number };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", providerId] });
+    },
+  });
+}
+
 export function useToggleProviderService() {
   const qc = useQueryClient();
   return useMutation({

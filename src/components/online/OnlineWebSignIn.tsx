@@ -12,20 +12,26 @@ import { interpretSignupSendForLoginPhoneContinue } from "@/lib/auth/loginPhoneC
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
 import { safeOnlineWebReturnTo } from "@/lib/web/onlineWebSession";
+import { useAuth } from "@/lib/auth/useAuth";
 
 type Step = "phone" | "password";
 
 export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
+  const nav = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   useEffect(() => {
     stashOnlineWebReturnTo(returnTo);
   }, [returnTo]);
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    nav({ href: safeOnlineWebReturnTo(returnTo, ONLINE_WEB_ROUTE_IDS.home), replace: true });
+  }, [authLoading, isAuthenticated, returnTo, nav]);
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const nav = useNavigate();
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
 

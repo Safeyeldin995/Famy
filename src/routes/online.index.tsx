@@ -11,6 +11,7 @@ import {
 import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
+import { useAuth } from "@/lib/auth/useAuth";
 
 export const Route = createFileRoute("/online/")({
   component: OnlineHome,
@@ -33,6 +34,7 @@ const SUBJECTS = ["subjectSchool", "subjectHomework", "subjectQuran", "subjectMu
 
 function OnlineHome() {
   const { t } = useTranslation();
+  const { isAuthenticated, loading } = useAuth();
   const walletTerms =
     currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms");
 
@@ -41,11 +43,20 @@ function OnlineHome() {
       <Link to={ONLINE_WEB_ROUTE_IDS.tutors}>
         <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutors")}</PrimaryButton>
       </Link>
-      <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
-        <PrimaryButton variant="outline" className="h-12 px-7">
-          {t("onlineWeb.home.signIn")}
-        </PrimaryButton>
-      </Link>
+      {!loading && !isAuthenticated ? (
+        <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
+          <PrimaryButton variant="outline" className="h-12 px-7">
+            {t("onlineWeb.home.signIn")}
+          </PrimaryButton>
+        </Link>
+      ) : null}
+      {!loading && isAuthenticated ? (
+        <Link to={ONLINE_WEB_ROUTE_IDS.lessons}>
+          <PrimaryButton variant="outline" className="h-12 px-7">
+            {t("onlineWeb.nav.lessons")}
+          </PrimaryButton>
+        </Link>
+      ) : null}
     </div>
   );
 

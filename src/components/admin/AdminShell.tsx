@@ -104,6 +104,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     items: [
       { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
       { to: "/admin/reports", labelKey: "admin.layout.nav.reports", icon: FileText },
+      { to: "/admin/reports/online", labelKey: "admin.layout.nav.onlineReports", icon: Video },
       { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
@@ -143,7 +144,9 @@ export function AdminShell({
   const role = useMyRole();
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   if (/\/statement\/print\/?$/.test(rawPathname)) {
-    return <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>;
+    return (
+      <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>
+    );
   }
   const pathname = normalizeAdminPathname(rawPathname)
     .replace(/^\/admin\/provider\//, "/admin/providers/")
@@ -255,7 +258,9 @@ export function AdminShell({
                 aria-expanded={mobileNavOpen}
                 aria-controls="admin-mobile-nav"
                 aria-label={
-                  mobileNavOpen ? t("admin.layout.closeMenu", "Close menu") : t("admin.layout.openMenu", "Open menu")
+                  mobileNavOpen
+                    ? t("admin.layout.closeMenu", "Close menu")
+                    : t("admin.layout.openMenu", "Open menu")
                 }
               >
                 {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
