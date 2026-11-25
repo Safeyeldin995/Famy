@@ -54,4 +54,6 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 
 ## Permissions alignment
 
-See [permissions.md](./permissions.md). No background location, camera, or microphone.
+See [permissions.md](./permissions.md). No background location.
+
+Camera and microphone are used only during live online lessons (LiveKit). Audio and video are streamed live between the student and the teacher and are **not recorded or stored** by Famy. In the Play form, declare **Audio → Voice or sound recordings** and **Photos and videos → Videos** as *processed ephemerally* (not collected), required for the online lessons feature.
