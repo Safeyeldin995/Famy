@@ -1132,6 +1132,8 @@ const ar: Translation = {
     sendRequest: "احفظ بيانات ولي الأمر",
     requestSent: "اتحفظت بيانات ولي الأمر",
     contactRequired: "رقم وإيميل ولي الأمر مطلوبين",
+    contactRetryHint:
+      "طلب الحصة اتبعت، تقدر تضيف بيانات ولي الأمر بعدين من إعدادات الحساب",
     notOnFamy: "بعتناله إيميل وهينزل فامي لو حابب",
     linkedState: "ولي الأمر مربوط على فامي",
     notifiedState: "ولي الأمر اتبلغ بالإيميل",

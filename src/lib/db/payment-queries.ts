@@ -78,17 +78,7 @@ export function useCreatePayment() {
         .eq('id', input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
-      const isBookingCustomer = booking.customer_id === user.id;
-      let parentMayPay = false;
-      if (!isBookingCustomer) {
-        const { data: mayPay, error: parentErr } = await (supabase.rpc as any)(
-          "parent_may_pay_student_booking",
-          { p_parent_id: user.id, p_booking_id: input.bookingId },
-        );
-        if (parentErr) throw parentErr;
-        parentMayPay = !!mayPay;
-      }
-      if (!isBookingCustomer && !parentMayPay) {
+      if (booking.customer_id !== user.id) {
         throw new Error('You cannot record payment for this booking.');
       }
       // Includes earlier unpaid cancellation fees added to this booking.

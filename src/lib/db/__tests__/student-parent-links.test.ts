@@ -117,46 +117,20 @@ describe("student_parent_links", () => {
     expect(booking.error ?? "").not.toMatch(/STUDENT_PARENT_LINK/);
   });
 
-  it("parent_may_pay_student_booking after linked parent", async () => {
-    const payStudent = "00000000-0000-0000-0000-00000000c105";
-    await db.exec(`
-      INSERT INTO auth.users (id) VALUES ('${payStudent}') ON CONFLICT DO NOTHING;
-      INSERT INTO public.user_roles (user_id, role) VALUES ('${payStudent}', 'customer') ON CONFLICT DO NOTHING;
-      UPDATE public.profiles SET
-        date_of_birth = (CURRENT_DATE - interval '15 years')::date
-      WHERE id = '${payStudent}';
-    `);
-    const reg = await tryAsUser(
+  it("revoke_parent_link rejects unrelated user", async () => {
+    const linkRows = await queryRows<{ id: string }>(
       db,
-      payStudent,
-      `SELECT public.register_parent_guardian_contact($1, $2)`,
-      ["01022222222", "linked.parent@example.com"],
+      `SELECT id FROM public.student_parent_links WHERE status = 'notified' LIMIT 1`,
     );
-    expect(reg.error).toBeUndefined();
-
-    const { bookingId } = await seedLifecycleBooking(db, {
-      customerId: payStudent,
-      status: "confirmed",
-    });
-    const onlineBookingId = randomUUID();
-    await db.exec(`
-      SET LOCAL session_replication_role = replica;
-      INSERT INTO public.bookings (
-        id, customer_id, provider_id, service_id, start_at, end_at, status, service_mode,
-        price_subtotal, price_total, currency, idempotency_key
-      )
-      SELECT '${onlineBookingId}', customer_id, provider_id, service_id, start_at + interval '7 days',
-        end_at + interval '7 days', 'confirmed', 'online', price_subtotal, price_total, currency,
-        gen_random_uuid()
-      FROM public.bookings WHERE id = '${bookingId}';
-      SET LOCAL session_replication_role = DEFAULT;
-    `);
-    const ok = await queryRows<{ ok: boolean }>(
+    const linkId = linkRows[0]?.id;
+    expect(linkId).toBeTruthy();
+    const revoked = await tryAsUser(
       db,
-      `SELECT public.parent_may_pay_student_booking($1::uuid, $2::uuid) AS ok`,
-      [PARENT_ID, onlineBookingId],
+      STRANGER_ID,
+      `SELECT public.revoke_parent_link($1::uuid)`,
+      [linkId],
     );
-    expect(ok[0]?.ok).toBe(true);
+    expect(revoked.error).toMatch(/authorized|Not authorized/i);
   });
 
   it("RLS hides links from unrelated users", async () => {

@@ -128,32 +128,33 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     return availableSlots.find((s) => s.start.getTime() === slotStart.getTime()) ?? null;
   }, [availableSlots, slotStart]);
 
-  const submit = async () => {
-    if (!resolvedServiceId || !selectedSlot || !selectedCapability || create.isPending) return;
-  if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
-      if (!parentPhone.trim() || !parentEmail.trim()) {
-        toast.error(t("studentParentLink.contactRequired"));
-        return;
-      }
+  const tryRegisterGuardianContact = async () => {
+    if (!guardian.isMinorStudent) return;
+  const phone = parentPhone.trim();
+    const email = parentEmail.trim();
+    if (!phone || !email) {
+      toast.info(t("studentParentLink.contactRetryHint"));
+      return;
     }
     try {
-      if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim())) {
-        const registered = await registerGuardian.mutateAsync({
-          parentPhone: parentPhone.trim(),
-          parentEmail: parentEmail.trim(),
-        });
-        try {
-          await sendParentGuardianEmailFn({
-            data: {
-              parentEmail: registered.parent_email,
-              studentName: registered.student_name,
-              flagToken: registered.flag_token,
-            },
-          });
-        } catch {
-          /* booking must not be blocked if email provider is unavailable */
-        }
+      const registered = await registerGuardian.mutateAsync({
+        parentPhone: phone,
+        parentEmail: email,
+      });
+      const emailResult = await sendParentGuardianEmailFn({
+        data: { linkId: String((registered as { link_id?: string }).link_id ?? "") || undefined },
+      });
+      if (emailResult?.ok === false) {
+        toast.info(t("studentParentLink.contactRetryHint"));
       }
+    } catch {
+      toast.info(t("studentParentLink.contactRetryHint"));
+    }
+  };
+
+  const submit = async () => {
+    if (!resolvedServiceId || !selectedSlot || !selectedCapability || create.isPending) return;
+    try {
       const payload = buildBookingRequest({
         providerId,
         serviceId: resolvedServiceId,
@@ -181,6 +182,9 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
         idempotency_key: crypto.randomUUID(),
       });
       toast.success(t("onlineWeb.request.success"));
+      if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
+        void tryRegisterGuardianContact();
+      }
       nav({ to: onlineWebLessonPath(result.id), replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong"));

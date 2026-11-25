@@ -1137,6 +1137,8 @@ const en = {
     sendRequest: "Save guardian contact",
     requestSent: "Guardian contact saved",
     contactRequired: "Parent phone and email are required",
+    contactRetryHint:
+      "Your lesson request was sent. You can add guardian contact later from your account settings",
     notOnFamy: "We notified the email and they can download Famy when ready",
     linkedState: "Guardian linked on Famy",
     notifiedState: "Guardian notified by email",
