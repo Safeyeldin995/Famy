@@ -147,6 +147,17 @@ describe("admin account database guards", () => {
     });
   });
 
+  it("booking customer guard takes the identity lock before the admin check", async () => {
+    const { rows } = await db.query<{ def: string }>(
+      "SELECT pg_get_functiondef('public.tg_reject_admin_booking_customer()'::regprocedure) AS def",
+    );
+    const def = rows[0]?.def ?? "";
+    const lockAt = def.indexOf("lock_user_identity(NEW.customer_id)");
+    const checkAt = def.indexOf("is_admin_account(NEW.customer_id)");
+    expect(lockAt).toBeGreaterThan(-1);
+    expect(checkAt).toBeGreaterThan(lockAt);
+  });
+
   it("admin_identity_conflicts ignores compliant admin-only accounts", async () => {
     const { rows } = await db.query<{ user_id: string }>(
       "SELECT user_id FROM public.admin_identity_conflicts WHERE user_id = $1",

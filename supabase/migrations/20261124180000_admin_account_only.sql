@@ -109,12 +109,14 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF TG_OP = 'INSERT' AND public.is_admin_account(NEW.customer_id) THEN
-    RAISE EXCEPTION 'admin_account_restricted' USING ERRCODE = 'P0001';
-  END IF;
-  IF TG_OP = 'UPDATE' AND NEW.customer_id IS DISTINCT FROM OLD.customer_id
-     AND public.is_admin_account(NEW.customer_id) THEN
-    RAISE EXCEPTION 'admin_account_restricted' USING ERRCODE = 'P0001';
+  IF TG_OP = 'INSERT'
+     OR (TG_OP = 'UPDATE' AND NEW.customer_id IS DISTINCT FROM OLD.customer_id) THEN
+    -- Serialize with admin grants on the same user (enforce_role_exclusivity takes
+    -- the same lock) so a concurrent grant and booking cannot both commit.
+    PERFORM public.lock_user_identity(NEW.customer_id);
+    IF public.is_admin_account(NEW.customer_id) THEN
+      RAISE EXCEPTION 'admin_account_restricted' USING ERRCODE = 'P0001';
+    END IF;
   END IF;
   RETURN NEW;
 END;
