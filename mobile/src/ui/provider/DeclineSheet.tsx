@@ -5,6 +5,7 @@ import { useCancelBooking, useCancellationReasons } from "@/lib/provider/cancell
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
+import { bodyTextInputProps } from "../a11y";
 
 export function DeclineSheet({
   bookingId,
@@ -66,6 +67,7 @@ export function DeclineSheet({
         </ScrollView>
         {needsNote ? (
           <TextInput
+            {...bodyTextInputProps()}
             value={note}
             onChangeText={setNote}
             placeholder={t("pro.booking.reasonPlaceholder")}

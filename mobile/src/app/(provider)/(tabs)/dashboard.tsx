@@ -51,7 +51,7 @@ export default function ProviderDashboard() {
   const header = (
     <View
       style={{
-        minHeight: 72,
+        minHeight: 56,
         paddingHorizontal: space.xl,
         flexDirection: "row",
         alignItems: "center",

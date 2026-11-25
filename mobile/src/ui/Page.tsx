@@ -314,9 +314,9 @@ export function Confirm({
 }
 export const ui = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.xl, paddingBottom: space.xxxl, gap: space.xl, flexGrow: 1 },
+  content: { padding: space.lg, paddingBottom: space.xxxl, gap: space.md, flexGrow: 1 },
   footer: {
-    paddingHorizontal: space.xl,
+    paddingHorizontal: space.lg,
     paddingVertical: space.md,
     gap: space.sm,
     backgroundColor: colors.surface,
