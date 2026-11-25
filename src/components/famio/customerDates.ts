@@ -11,6 +11,24 @@ export function customerDayKey(date = new Date()): string {
   return cairoCalendar.format(date);
 }
 
+const CAIRO_WEEKDAY: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+export function cairoWeekday(date: Date): number {
+  const short = new Intl.DateTimeFormat("en-US", {
+    timeZone: CUSTOMER_TIME_ZONE,
+    weekday: "short",
+  }).format(date);
+  return CAIRO_WEEKDAY[short] ?? date.getDay();
+}
+
 export function customerYesterdayKey(now = new Date()): string {
   const [year, month, day] = customerDayKey(now).split("-").map(Number);
   // Calendar subtraction at noon avoids midnight/DST and device-timezone boundaries.

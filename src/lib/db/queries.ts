@@ -1,4 +1,5 @@
 import { cairoWallTime, packageRuleStart } from "@/lib/pricing/servicePackages";
+import { cairoWeekday, customerDayKey } from "@/components/famio/customerDates";
 /**
  * Famy data-access layer.
  *
@@ -523,12 +524,10 @@ export function useAvailableSlots(
     queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.serviceMode ?? 'in_person', opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
-      const weekday = d.getDay();
+      const weekday = cairoWeekday(d);
       const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = opts?.cairoTime
-        ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-        : dayStart.toISOString().slice(0, 10);
+      const dateStr = customerDayKey(d);
       const atTime = (hour: number, minute: number) => {
         if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
         const value = new Date(d); value.setHours(hour, minute, 0, 0); return value;
@@ -548,8 +547,11 @@ export function useAvailableSlots(
         supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
         supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
           .lte('date', dateStr),
-        supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
-          .gte('start_at', queryStart.toISOString()).lte('start_at', queryEnd.toISOString()),
+        supabase.rpc('provider_busy_ranges', {
+          p_provider_id: providerId!,
+          p_from: queryStart.toISOString(),
+          p_to: queryEnd.toISOString(),
+        }),
         supabase.from('settings').select('value').eq('key', 'booking_expiry').maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
