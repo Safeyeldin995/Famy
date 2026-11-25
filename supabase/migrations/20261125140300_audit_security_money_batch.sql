@@ -244,7 +244,13 @@ BEGIN
   INTO v_result
   FROM public.payments p
   WHERE p.booking_id = p_booking_id
-  ORDER BY p.created_at DESC, p.id DESC
+  ORDER BY
+    (
+      p.status IN ('captured', 'partially_refunded')
+      AND COALESCE((p.metadata->>'excluded_from_booking_funding')::boolean, false) = false
+    ) DESC,
+    p.created_at DESC,
+    p.id DESC
   LIMIT 1;
 
   RETURN v_result;
@@ -1654,8 +1660,7 @@ ON CONFLICT (payment_id) DO UPDATE SET
 
 UPDATE public.payments p
 SET metadata = metadata - 'paymob_client_secret' - 'paymob_checkout_url'
-WHERE p.status = 'pending'::public.payment_status
-  AND p.payment_method_code = 'paymob'
+WHERE p.payment_method_code = 'paymob'
   AND (
     p.metadata ? 'paymob_client_secret'
     OR p.metadata ? 'paymob_checkout_url'

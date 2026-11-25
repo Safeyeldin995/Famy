@@ -378,6 +378,59 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(reconciled[0]?.needs_review).toBe(false);
   });
 
+  it("provider_booking_payment prefers captured funding attempt over newer pending retry", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const dueRows = await queryRows<{ due: string }>(
+      db,
+      `SELECT (price_total + COALESCE(carried_fees_amount, 0))::text AS due FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    const amount = dueRows[0]?.due ?? "200";
+    const paymobMethod = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.payment_methods WHERE code = 'paymob' LIMIT 1`,
+    );
+    const olderId = randomUUID();
+    const newerId = randomUUID();
+    await asServiceRole(db, async () => {
+      await db.query(
+        `INSERT INTO public.payments (
+           id, booking_id, customer_id, amount, status,
+           payment_method_id, payment_method_type, payment_method_code, method,
+           created_at, metadata
+         ) VALUES
+         (
+           $1, $2, $3, $4::numeric, 'pending', $5, 'online', 'paymob', 'paymob',
+           now() - interval '2 hours', '{}'::jsonb
+         ),
+         (
+           $6, $2, $3, $4::numeric, 'pending', $5, 'online', 'paymob', 'paymob',
+           now(), '{}'::jsonb
+         )`,
+        [olderId, bookingId, IDS.customer, amount, paymobMethod[0]!.id, newerId],
+      );
+      await db.query(`SELECT set_config('app.ledger_internal_capture', 'on', true)`);
+      await db.query(
+        `UPDATE public.payments
+         SET status = 'captured', captured_at = now() - interval '2 hours'
+         WHERE id = $1`,
+        [olderId],
+      );
+      await db.query(`SELECT set_config('app.ledger_internal_capture', 'off', true)`);
+    });
+
+    const rpc = await tryAsUser(
+      db,
+      IDS.providerUser,
+      "SELECT public.provider_booking_payment($1::uuid) AS payload",
+      [bookingId],
+    );
+    expect(rpc.error).toBeUndefined();
+    const payload = rpc.rows?.[0]?.payload as { id?: string; status?: string } | null;
+    expect(payload?.id).toBe(olderId);
+    expect(payload?.status).toBe("captured");
+  });
+
   it("provider sees captured Paymob payment via provider_booking_payment (online lesson join gate)", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
@@ -614,6 +667,61 @@ describe("audit security money batch", { concurrent: false }, () => {
       [payId],
     );
     expect(meta[0]?.has_secret).toBe(false);
+  });
+
+  it("backfill strips checkout secrets from all paymob payments, not only pending", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const dueRows = await queryRows<{ due: string }>(
+      db,
+      `SELECT (price_total + COALESCE(carried_fees_amount, 0))::text AS due FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    const amount = dueRows[0]?.due ?? "200";
+    const payId = randomUUID();
+    await asServiceRole(db, async () => {
+      await db.query(
+        `INSERT INTO public.payments (
+           id, booking_id, customer_id, amount, status,
+           payment_method_id, payment_method_type, payment_method_code, method, metadata
+         )
+         SELECT $1, $2, $3, $4::numeric, 'pending', pm.id, 'online', 'paymob', 'paymob',
+           jsonb_build_object(
+             'paymob_client_secret', 'captured-secret',
+             'paymob_checkout_url', 'https://paymob.test/old'
+           )
+         FROM public.payment_methods pm WHERE pm.code = 'paymob' LIMIT 1`,
+        [payId, bookingId, IDS.customer, amount],
+      );
+      await db.query(`SELECT set_config('app.ledger_internal_capture', 'on', true)`);
+      await db.query(
+        `UPDATE public.payments SET status = 'captured', captured_at = now() WHERE id = $1`,
+        [payId],
+      );
+      await db.query(`SELECT set_config('app.ledger_internal_capture', 'off', true)`);
+    });
+
+    await asServiceRole(db, () =>
+      db.query(`
+        UPDATE public.payments p
+        SET metadata = metadata - 'paymob_client_secret' - 'paymob_checkout_url'
+        WHERE p.payment_method_code = 'paymob'
+          AND (
+            p.metadata ? 'paymob_client_secret'
+            OR p.metadata ? 'paymob_checkout_url'
+          )
+      `),
+    );
+
+    const meta = await queryRows<{ has_secret: boolean; has_url: boolean }>(
+      db,
+      `SELECT
+         (metadata ? 'paymob_client_secret') AS has_secret,
+         (metadata ? 'paymob_checkout_url') AS has_url
+       FROM public.payments WHERE id = $1`,
+      [payId],
+    );
+    expect(meta[0]?.has_secret).toBe(false);
+    expect(meta[0]?.has_url).toBe(false);
   });
 
   it("anonymize_account deletes provider payout methods", async () => {
