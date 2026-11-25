@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useBookingPayment } from "@/lib/db/payment-queries";
 import { moneyHeld } from "@/lib/payments/refundOwed";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePaymobReturnPaymentPoll } from "@/hooks/usePaymobReturnPaymentPoll";
 import { useNowTick } from "@/hooks/useNowTick";
@@ -49,6 +49,14 @@ function OnlineLessonDetail() {
   usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
   // Join eligibility is computed from the clock at render; tick so the Join button appears when the window opens.
   useNowTick(30_000);
+  // While the tutor hasn't confirmed yet, refresh so checkout unlocks without a reload.
+  const bookingStatus = bookingQ.data ? String(bookingQ.data.status) : null;
+  const refetchBooking = bookingQ.refetch;
+  useEffect(() => {
+    if (bookingStatus !== "pending") return;
+    const id = setInterval(() => void refetchBooking(), 15_000);
+    return () => clearInterval(id);
+  }, [bookingStatus, refetchBooking]);
 
   if (bookingQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
