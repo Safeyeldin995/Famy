@@ -15,7 +15,15 @@ import { buildBookingRequest } from "@/lib/booking/bookingRequest";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
-import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { isTutoringCategorySlug, tutoringSessionQuote } from "@/lib/tutoring/teachingCapabilities";
+import {
+  cairoDayStrip,
+  cairoTodayStart,
+  sameCairoCalendarDay,
+  ONLINE_WEB_TIME_ZONE,
+} from "@/lib/online/onlineWebCairoTime";
+import { formatEGP, formatDate, formatTime, formatLocale, formatNumber } from "@/lib/format";
+import { currentLang } from "@/lib/i18n";
 import type { CapabilityPickValue } from "@/lib/tutoring/providerCapabilityCascade";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
 
@@ -36,11 +44,9 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     levelId: "",
   });
   const [capabilityId, setCapabilityId] = useState<string | null>(null);
-  const [day, setDay] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const lang = currentLang();
+  const locale = formatLocale(lang);
+  const [day, setDay] = useState(() => cairoTodayStart());
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
 
@@ -101,17 +107,12 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     setSlotStart(null);
   }, [capabilityId, day]);
 
-  const dayOptions = useMemo(() => {
-    const out: Date[] = [];
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      out.push(d);
-    }
-    return out;
-  }, []);
+  const dayOptions = useMemo(() => cairoDayStrip(14), []);
+
+  const priceQuote = useMemo(() => {
+    if (!selectedCapability) return null;
+    return tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price);
+  }, [selectedCapability]);
 
   const selectedSlot = useMemo(() => {
     if (!slotStart) return null;
@@ -199,7 +200,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
           <p className="text-pro-13 font-bold text-muted-foreground">{t("onlineWeb.request.pickDay")}</p>
           <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
             {dayOptions.map((d) => {
-              const active = d.toDateString() === day.toDateString();
+              const active = sameCairoCalendarDay(d, day);
               return (
                 <button
                   key={d.toISOString()}
@@ -210,7 +211,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
                   }`}
                   onClick={() => setDay(d)}
                 >
-                  {d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+                  {formatDate(d, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}
                 </button>
               );
             })}
@@ -255,6 +256,23 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
             placeholder={t("onlineWeb.request.notesPlaceholder")}
           />
         </label>
+
+        {priceQuote ? (
+          <div className="rounded-2xl border border-border/60 bg-surface-2 p-4">
+            <p className="text-pro-14 font-extrabold">
+              {t("booking.total")}: {formatEGP(priceQuote.subtotal, undefined, lang)}
+            </p>
+            <p className="mt-1 text-pro-13 text-muted-foreground">
+              {t("bookFlow.sessionLine", { minutes: formatNumber(priceQuote.durationMin, lang) })}
+              {selectedSlot
+                ? ` · ${formatTime(selectedSlot.end, locale, ONLINE_WEB_TIME_ZONE)}`
+                : null}
+            </p>
+            <p className="mt-2 text-pro-12 text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
+          </div>
+        ) : null}
+
+        <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
 
         <PrimaryButton
           className="h-12 w-full"

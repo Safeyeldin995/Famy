@@ -675,7 +675,7 @@ function BookForm({
     }
   }
   const recipientUI = (
-    <View style={{ gap: 12 }}>
+    <View nativeID="booking-recipient" style={{ gap: 12 }}>
       <Choices
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
@@ -1003,6 +1003,10 @@ function BookForm({
       )}
       {isOnlineWhenStep(step, isOnlineBooking) && (
         <>
+          {isOnlineBooking && tutoring ? recipientUI : null}
+          {fieldHint?.focusId === "booking-recipient" ? (
+            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          ) : null}
           {isOnlineBooking && service ? (
             <Text weight="bold">
               {localized(service.service, lang)} · {provider.data?.profile.full_name?.split(" ")[0]}
