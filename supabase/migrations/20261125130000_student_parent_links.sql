@@ -33,7 +33,7 @@ GRANT ALL ON public.student_parent_links TO service_role;
 DROP POLICY IF EXISTS student_parent_links_self_read ON public.student_parent_links;
 CREATE POLICY student_parent_links_self_read ON public.student_parent_links
   FOR SELECT TO authenticated
-  USING (student_id = auth.uid() OR parent_id = auth.uid());
+  USING (student_id = (select auth.uid()) OR parent_id = (select auth.uid()));
 
 CREATE OR REPLACE FUNCTION public.famy_profile_phone_digits(p_phone text)
 RETURNS text

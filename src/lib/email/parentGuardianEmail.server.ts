@@ -29,9 +29,9 @@ export async function sendParentGuardianEmail(
   const subject = `${input.studentName} — online lessons on Famy`;
   const html = `
     <div dir="rtl" style="font-family: system-ui, sans-serif; max-width: 520px; margin: 0 auto;">
-      <p>مرحباً،</p>
-      <p><strong>${input.studentName}</strong> سجّل بياناتك كولي أمر على فامي وهيستخدم المنصة لحجز دروس أونلاين.</p>
-      <p>حمّل تطبيق فامي عشان تتابع دروسه ومدفوعاته:</p>
+      <p>مرحبا،</p>
+      <p><strong>${input.studentName}</strong> سجل بياناتك كولي امر على فامي وهيستخدم المنصة لحجز دروس اونلاين.</p>
+      <p>حمل تطبيق فامي عشان تتابع دروسه ومدفوعاته:</p>
       <p><a href="${download}">${download}</a></p>
       <p>لو مش ولي أمر الطالب، اضغط هنا:</p>
       <p><a href="${flagLink}">ده مش ابني</a></p>

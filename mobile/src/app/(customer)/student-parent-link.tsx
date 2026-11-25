@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { View, TextInput } from "react-native";
+import { View, TextInput, StyleSheet } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Page, ActionError } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import {
   useParentAcknowledgeStudentLink,
@@ -48,7 +48,7 @@ export default function StudentParentLinkScreen() {
         />
       }
     >
-      <View style={{ gap: space.md }}>
+      <View style={styles.stack}>
         <ActionError
           error={register.error || update.error || acknowledge.error || flag.error}
         />
@@ -96,13 +96,7 @@ export default function StudentParentLinkScreen() {
               onChangeText={setPhone}
               keyboardType="phone-pad"
               placeholder={t("studentParentLink.parentPhone")}
-              style={{
-                borderWidth: 1,
-                borderColor: "#ddd",
-                borderRadius: 12,
-                padding: 12,
-                fontSize: 16,
-              }}
+              style={styles.input}
             />
             <TextInput
               value={email}
@@ -110,13 +104,7 @@ export default function StudentParentLinkScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               placeholder={t("studentParentLink.parentEmail")}
-              style={{
-                borderWidth: 1,
-                borderColor: "#ddd",
-                borderRadius: 12,
-                padding: 12,
-                fontSize: 16,
-              }}
+              style={styles.input}
             />
             <Button
               label={t("studentParentLink.sendRequest")}
@@ -138,3 +126,16 @@ export default function StudentParentLinkScreen() {
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  stack: {
+    gap: space.md,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: space.md,
+    color: colors.foreground,
+  },
+});
