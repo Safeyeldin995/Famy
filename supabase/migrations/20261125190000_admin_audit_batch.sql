@@ -597,11 +597,13 @@ GRANT EXECUTE ON FUNCTION public.admin_finance_provider_rows() TO authenticated;
 -- ---------------------------------------------------------------------------
 -- 9) Work queue counts (+ finance queues)
 -- ---------------------------------------------------------------------------
+-- Merged from main (24140000) plus #431, #502, and finance queues in this batch.
 CREATE OR REPLACE FUNCTION public.admin_work_queue_counts()
 RETURNS TABLE(queue text, item_count bigint)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_cutoff timestamptz;
+  v_sla_hours integer;
 BEGIN
   IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'admin') IS NOT TRUE THEN
     RAISE EXCEPTION 'Admin authorization required.' USING ERRCODE = '42501';
@@ -609,6 +611,7 @@ BEGIN
 
   SELECT s.completion_auto_from INTO v_cutoff
   FROM public.booking_expiry_settings() s;
+  v_sla_hours := public.provider_review_sla_hours();
 
   RETURN QUERY
   SELECT 'new_applications'::text, count(*) FROM public.providers p
@@ -617,6 +620,11 @@ BEGIN
   UNION ALL
   SELECT 'resubmitted_applications'::text, count(*) FROM public.providers p
     WHERE p.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW') AND p.resubmitted_at IS NOT NULL
+      AND p.id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
+  UNION ALL
+  SELECT 'applications_over_sla'::text, count(*) FROM public.providers p
+    WHERE p.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW')
+      AND COALESCE(p.resubmitted_at, p.submitted_at, p.created_at) < now() - (v_sla_hours || ' hours')::interval
       AND p.id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
   UNION ALL
   SELECT 'new_service_requests'::text, count(*) FROM public.provider_services ps
@@ -647,6 +655,12 @@ BEGIN
     WHERE d.status = 'pending'
       AND d.provider_id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
   UNION ALL
+  SELECT 'documents_expiring_soon'::text, count(*) FROM public.provider_documents d
+    WHERE d.status = 'approved'
+      AND d.expires_at IS NOT NULL
+      AND d.expires_at <= now() + interval '30 days'
+      AND d.provider_id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
+  UNION ALL
   SELECT 'open_cases'::text,
     (SELECT count(*) FROM public.disputes d WHERE d.status IN ('open', 'info_requested'))
     + (SELECT count(*) FROM public.support_tickets s WHERE s.status IN ('open', 'pending'))
@@ -657,6 +671,9 @@ BEGIN
   UNION ALL
   SELECT 'online_lesson_issue_reports'::text,
     (SELECT count(*) FROM public.online_lesson_issue_reports r WHERE r.status = 'open')
+  UNION ALL
+  SELECT 'ugc_reports'::text,
+    (SELECT count(*) FROM public.ugc_reports u WHERE u.status = 'open')
   UNION ALL
   SELECT 'payments_pending_review'::text, count(*) FROM public.payments pay
     WHERE pay.status = 'pending_review'
