@@ -8,6 +8,7 @@ import {
   setBookingStatusAsSystem,
   tryAsUser,
 } from "./booking-lifecycle.harness";
+import { grantAdminOnlyRole } from "./migration-replay.harness";
 
 let db: PGlite;
 let bookingId: string;
@@ -82,6 +83,70 @@ describe("ugc_reports and chat blocks", () => {
     );
     expect(msg.ok).toBe(false);
     expect(msg.error).toMatch(/user_blocked/i);
+  });
+
+  it("does not expose admin_notes to reporters via direct table read", async () => {
+    await grantAdminOnlyRole(db, IDS.adminUser);
+    const open = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.ugc_reports WHERE status = 'open' LIMIT 1`,
+    );
+    const reportId = open[0]?.id;
+    if (!reportId) throw new Error("expected open ugc report");
+
+    const resolved = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_resolve_ugc_report($1, 'resolved', $2)`,
+      [reportId, "moderation handled"],
+    );
+    expect(resolved.ok).toBe(true);
+
+    const leaked = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT admin_notes, resolved_by FROM public.ugc_reports WHERE id = $1`,
+      [reportId],
+    );
+    expect(leaked.ok).toBe(true);
+    expect(leaked.rows ?? []).toHaveLength(0);
+  });
+
+  it("exposes reporter-safe fields via list_my_ugc_reports", async () => {
+    const rows = await tryAsUser(db, IDS.providerUser, `SELECT * FROM public.list_my_ugc_reports()`);
+    expect(rows.ok).toBe(true);
+    const keys = rows.rows?.[0] ? Object.keys(rows.rows[0]).sort() : [];
+    expect(keys).not.toContain("admin_notes");
+    expect(keys).not.toContain("resolved_by");
+  });
+
+  it("rejects provider writes to moderation_hidden_at", async () => {
+    await setBookingStatusAsSystem(db, bookingId, "completed");
+    const inserted = await tryAsUser(
+      db,
+      IDS.customer,
+      `INSERT INTO public.reviews (booking_id, customer_id, provider_id, rating, comment)
+       VALUES ($1, $2, $3, 4, 'test review')
+       RETURNING id`,
+      [bookingId, IDS.customer, IDS.provider],
+    );
+    if (!inserted.ok) throw new Error(inserted.error);
+    const review = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.reviews WHERE booking_id = $1`,
+      [bookingId],
+    );
+    const reviewId = review[0]?.id;
+    if (!reviewId) throw new Error("expected review");
+
+    const hide = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `UPDATE public.reviews SET moderation_hidden_at = now() WHERE id = $1`,
+      [reviewId],
+    );
+    expect(hide.ok).toBe(false);
+    expect(hide.error).toMatch(/moderation status/i);
   });
 
   it("prevents new bookings between a blocked pair", async () => {

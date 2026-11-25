@@ -4165,6 +4165,19 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: string
       }
+      list_my_ugc_reports: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          subject_type: string
+          reason: string
+          status: string
+          message_id: string | null
+          conversation_id: string | null
+          review_id: string | null
+          created_at: string
+        }[]
+      }
       report_ugc: {
         Args: {
           p_conversation_id?: string | null

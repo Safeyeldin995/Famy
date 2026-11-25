@@ -87,19 +87,22 @@ CREATE INDEX IF NOT EXISTS idx_ugc_reports_conversation ON public.ugc_reports (c
   WHERE conversation_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ugc_reports_review ON public.ugc_reports (review_id)
   WHERE review_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ugc_reports_reported_by ON public.ugc_reports (reported_by);
+CREATE INDEX IF NOT EXISTS idx_ugc_reports_resolved_by ON public.ugc_reports (resolved_by);
+CREATE INDEX IF NOT EXISTS idx_ugc_reports_message_id ON public.ugc_reports (message_id);
+CREATE INDEX IF NOT EXISTS idx_ugc_reports_booking_id ON public.ugc_reports (booking_id);
+CREATE INDEX IF NOT EXISTS idx_chat_user_blocks_blocked_by ON public.chat_user_blocks (blocked_by);
+CREATE INDEX IF NOT EXISTS idx_chat_user_blocks_conversation_id ON public.chat_user_blocks (conversation_id);
 
 ALTER TABLE public.ugc_reports ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ugc_reports FROM PUBLIC, anon;
 GRANT SELECT ON public.ugc_reports TO authenticated;
 GRANT ALL ON public.ugc_reports TO service_role;
 
-CREATE POLICY ugc_reports_reporter_read ON public.ugc_reports FOR SELECT TO authenticated
-  USING (
-    reported_by = (SELECT auth.uid())
-    OR public.has_role((SELECT auth.uid()), 'admin')
-  );
+CREATE POLICY ugc_reports_admin_select ON public.ugc_reports FOR SELECT TO authenticated
+  USING (public.has_role((SELECT auth.uid()), 'admin'));
 
-CREATE POLICY ugc_reports_admin_write ON public.ugc_reports FOR ALL TO authenticated
+CREATE POLICY ugc_reports_admin_write ON public.ugc_reports FOR UPDATE TO authenticated
   USING (public.has_role((SELECT auth.uid()), 'admin'))
   WITH CHECK (public.has_role((SELECT auth.uid()), 'admin'));
 
@@ -133,7 +136,53 @@ END; $$;
 
 DROP POLICY IF EXISTS "reviews_public_read" ON public.reviews;
 CREATE POLICY "reviews_public_read" ON public.reviews FOR SELECT TO anon, authenticated
-  USING (moderation_hidden_at IS NULL OR public.has_role(auth.uid(), 'admin'));
+  USING (
+    moderation_hidden_at IS NULL
+    OR public.has_role((SELECT auth.uid()), 'admin')
+  );
+
+CREATE OR REPLACE FUNCTION public.tg_guard_review_writes()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'admin') THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.moderation_hidden_at IS DISTINCT FROM OLD.moderation_hidden_at THEN
+    RAISE EXCEPTION 'Review moderation status can only be changed by an admin.' USING ERRCODE = '42501';
+  END IF;
+
+  IF NEW.booking_id IS DISTINCT FROM OLD.booking_id
+     OR NEW.customer_id IS DISTINCT FROM OLD.customer_id
+     OR NEW.provider_id IS DISTINCT FROM OLD.provider_id THEN
+    RAISE EXCEPTION 'Review booking, customer, and provider cannot be changed.' USING ERRCODE = '42501';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.providers p
+    WHERE p.id = OLD.provider_id AND p.profile_id = auth.uid()
+  ) THEN
+    IF NEW.rating IS DISTINCT FROM OLD.rating
+       OR NEW.comment IS DISTINCT FROM OLD.comment
+       OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+      RAISE EXCEPTION 'Providers may only update the provider reply on a review.' USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF OLD.customer_id = auth.uid() THEN
+    IF NEW.provider_reply IS DISTINCT FROM OLD.provider_reply
+       OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+      RAISE EXCEPTION 'Customers may only update rating and comment on their review.' USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION 'Not allowed to update this review.' USING ERRCODE = '42501';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.tg_guard_review_writes() FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3) RLS: hide blocked conversations from participants
@@ -141,10 +190,13 @@ CREATE POLICY "reviews_public_read" ON public.reviews FOR SELECT TO anon, authen
 DROP POLICY IF EXISTS conv_select ON public.conversations;
 CREATE POLICY conv_select ON public.conversations FOR SELECT TO authenticated
 USING (
-  public.has_role(auth.uid(), 'admin')
+  public.has_role((SELECT auth.uid()), 'admin')
   OR (
-  hidden_at IS NULL
-    AND (auth.uid() = customer_id OR auth.uid() = provider_user_id)
+    hidden_at IS NULL
+    AND (
+      (SELECT auth.uid()) = customer_id
+      OR (SELECT auth.uid()) = provider_user_id
+    )
     AND EXISTS (
       SELECT 1 FROM public.bookings b
       WHERE b.id = booking_id AND b.status <> 'pending'
@@ -522,6 +574,39 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_hide_ugc_review(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_hide_ugc_review(uuid, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.list_my_ugc_reports()
+RETURNS TABLE (
+  id uuid,
+  subject_type text,
+  reason text,
+  status text,
+  message_id uuid,
+  conversation_id uuid,
+  review_id uuid,
+  created_at timestamptz
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    r.id,
+    r.subject_type,
+    r.reason,
+    r.status,
+    r.message_id,
+    r.conversation_id,
+    r.review_id,
+    r.created_at
+  FROM public.ugc_reports r
+  WHERE r.reported_by = auth.uid()
+  ORDER BY r.created_at DESC
+  LIMIT 50;
+$$;
+REVOKE ALL ON FUNCTION public.list_my_ugc_reports() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_my_ugc_reports() TO authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 6) Admin work queue badge

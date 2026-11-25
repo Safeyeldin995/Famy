@@ -482,6 +482,7 @@ export default function ProviderProfile() {
                       {session?.user ? (
                         <Pressable
                           accessibilityRole="button"
+                          accessibilityLabel={t("ugc.reportReview")}
                           onPress={() => setReportReviewId(r.id)}
                           style={{ alignSelf: "flex-start", paddingVertical: space.xs }}
                         >

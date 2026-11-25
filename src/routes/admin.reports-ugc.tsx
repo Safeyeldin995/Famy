@@ -1,4 +1,5 @@
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { operationDate } from "@/components/admin/operations";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,8 +22,63 @@ type UgcRow = {
   reporter_role: string;
   reported_by: string;
   created_at: string;
-  messages?: { body: string } | null;
 };
+
+type UgcEnriched = UgcRow & {
+  messageBody: string | null;
+  review: { comment: string | null; rating: number; provider_id: string } | null;
+  threadMessages: { body: string }[];
+};
+
+async function fetchOpenUgcReports(): Promise<UgcEnriched[]> {
+  const { data, error } = await supabase
+    .from("ugc_reports" as never)
+    .select(
+      "id, subject_type, reason, detail, message_id, conversation_id, review_id, booking_id, reporter_role, reported_by, created_at",
+    )
+    .eq("status", "open")
+    .order("created_at", { ascending: true })
+    .limit(100);
+  if (error) throw error;
+  const rows = (data ?? []) as UgcRow[];
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const enriched: UgcEnriched = {
+        ...row,
+        messageBody: null,
+        review: null,
+        threadMessages: [],
+      };
+      if (row.message_id) {
+        const { data: msg } = await supabase
+          .from("messages")
+          .select("body")
+          .eq("id", row.message_id)
+          .maybeSingle();
+        enriched.messageBody = (msg as { body?: string } | null)?.body ?? null;
+      }
+      if (row.review_id) {
+        const { data: review } = await supabase
+          .from("reviews")
+          .select("comment, rating, provider_id")
+          .eq("id", row.review_id)
+          .maybeSingle();
+        enriched.review = review as UgcEnriched["review"];
+      }
+      if (row.conversation_id) {
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("body")
+          .eq("conversation_id", row.conversation_id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        enriched.threadMessages = (msgs ?? []) as { body: string }[];
+      }
+      return enriched;
+    }),
+  );
+}
 
 export function AdminReportsUgc() {
   const { t, i18n } = useTranslation();
@@ -35,18 +91,7 @@ export function AdminReportsUgc() {
 
   const q = useQuery({
     queryKey: ["admin-ugc-reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ugc_reports" as never)
-        .select(
-          "id, subject_type, reason, detail, message_id, conversation_id, review_id, booking_id, reporter_role, reported_by, created_at, messages:messages(body)",
-        )
-        .eq("status", "open")
-        .order("created_at", { ascending: true })
-        .limit(100);
-      if (error) throw error;
-      return (data ?? []) as UgcRow[];
-    },
+    queryFn: fetchOpenUgcReports,
   });
 
   const resolve = useMutation({
@@ -85,6 +130,8 @@ export function AdminReportsUgc() {
     },
     onSuccess: () => {
       toast.success(t("adminOps.actionSuccess"));
+      void qc.invalidateQueries({ queryKey: ["admin-ugc-reports"] });
+      void qc.invalidateQueries({ queryKey: ["admin-work-queue"] });
       setSheet(null);
     },
     onError: () => toast.error(t("adminOps.actionError")),
@@ -114,17 +161,57 @@ export function AdminReportsUgc() {
               </span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {t("admin.reportsUgc.reporter")}: {t(`admin.reportsUgc.roles.${row.reporter_role}`, { defaultValue: row.reporter_role })}
-              {row.booking_id ? ` · ${t("admin.reportsUgc.booking")} ${row.booking_id.slice(0, 8)}` : ""}
+              {t("admin.reportsUgc.reporter")}:{" "}
+              {t(`admin.reportsUgc.roles.${row.reporter_role}`, { defaultValue: row.reporter_role })}
             </p>
-            {row.detail ? <p className="mt-2 text-sm">{row.detail}</p> : null}
-            {row.messages?.body ? (
+            <div className="mt-2 flex flex-wrap gap-3 text-xs">
+              {row.booking_id ? (
+                <Link
+                  to="/admin/bookings"
+                  search={{ booking: row.booking_id }}
+                  className="font-semibold text-brand hover:underline"
+                >
+                  {t("admin.reportsUgc.viewBooking")}
+                </Link>
+              ) : null}
+              {row.review?.provider_id ? (
+                <Link
+                  to="/admin/provider/$id"
+                  params={{ id: row.review.provider_id }}
+                  className="font-semibold text-brand hover:underline"
+                >
+                  {t("admin.reportsUgc.viewProvider")}
+                </Link>
+              ) : null}
+            </div>
+            {row.detail ? (
+              <p className="mt-2 text-sm">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {t("admin.reportsUgc.detail")}:{" "}
+                </span>
+                {row.detail}
+              </p>
+            ) : null}
+            {row.messageBody ? (
+              <p className="mt-2 rounded-lg bg-muted/40 p-2 text-sm">{row.messageBody}</p>
+            ) : null}
+            {row.review ? (
               <p className="mt-2 rounded-lg bg-muted/40 p-2 text-sm">
                 <span className="text-xs font-semibold text-muted-foreground">
-                  {t("admin.reportsUgc.messagePreview")}:{" "}
+                  {t("admin.reportsUgc.reviewExcerpt")} ({row.review.rating}/5):{" "}
                 </span>
-                {row.messages.body}
+                {row.review.comment || t("admin.reportsUgc.emptyReviewComment")}
               </p>
+            ) : null}
+            {row.threadMessages.length ? (
+              <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-sm">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t("admin.reportsUgc.threadExcerpt")}
+                </p>
+                {row.threadMessages.map((msg, i) => (
+                  <p key={`${row.id}-msg-${i}`}>{msg.body}</p>
+                ))}
+              </div>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
