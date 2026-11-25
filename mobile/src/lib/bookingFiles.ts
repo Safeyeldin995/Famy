@@ -62,3 +62,24 @@ export function calendarText(b: BookingFileInfo) {
     "END:VCALENDAR",
   ].join("\r\n");
 }
+
+/**
+ * Short text for the system share sheet ("Share booking"). Leaves out the
+ * address and price on purpose: the customer picks who receives it.
+ */
+export function bookingShareMessage(b: BookingFileInfo) {
+  if (b.language === "ar") {
+    return [
+      `حجز على فامي: ${b.service}`,
+      `مع ${b.provider}`,
+      `يوم ${b.date} الساعة ${b.time} (${b.duration})`,
+      `رقم الحجز #${b.id}`,
+    ].join("\n");
+  }
+  return [
+    `Famy booking: ${b.service}`,
+    `With ${b.provider}`,
+    `${b.date} at ${b.time} (${b.duration})`,
+    `Booking #${b.id}`,
+  ].join("\n");
+}

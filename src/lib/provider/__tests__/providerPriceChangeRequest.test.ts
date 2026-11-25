@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   providerPriceChangeDirty,
   providerPriceNeedsAdminReview,
+  providerServicePriceEditingBlocked,
 } from "@/lib/provider/providerPriceChangeRequest";
 
 describe("providerPriceNeedsAdminReview", () => {
@@ -9,6 +10,12 @@ describe("providerPriceNeedsAdminReview", () => {
     expect(providerPriceNeedsAdminReview("APPROVED", "approved")).toBe(true);
     expect(providerPriceNeedsAdminReview("APPROVED", "pending")).toBe(false);
     expect(providerPriceNeedsAdminReview("DRAFT", "approved")).toBe(false);
+  });
+
+  it("does not offer review RPC flow while paused", () => {
+    expect(providerPriceNeedsAdminReview("APPROVED", "paused")).toBe(false);
+    expect(providerServicePriceEditingBlocked("paused")).toBe(true);
+    expect(providerServicePriceEditingBlocked("approved")).toBe(false);
   });
 });
 

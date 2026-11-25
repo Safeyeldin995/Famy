@@ -12,6 +12,7 @@ ALTER TABLE public.customer_wallet_entries
     'admin_debit',
     'checkout_spend',
     'checkout_release',
+    'paymob_superseded_capture',
     'forfeited_on_deletion'
   ));
 

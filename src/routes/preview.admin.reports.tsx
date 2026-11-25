@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Route as AdminRoute } from "./admin.reports";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-const Page = AdminRoute.options.component;
-
-export const Route = createFileRoute("/preview/admin/reports")({ component: Page });
+export const Route = createFileRoute("/preview/admin/reports")({
+  component: () => <Outlet />,
+});

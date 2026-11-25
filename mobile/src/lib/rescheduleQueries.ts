@@ -20,7 +20,8 @@ export function useRescheduleRequests(bookingId: string) {
 }
 type Action =
   | { type: "request"; start: string; end: string; reason: string }
-  | { type: "accept" | "reject" | "withdraw"; requestId: string; reason?: string };
+  | { type: "accept" | "reject" | "withdraw"; requestId: string; reason?: string }
+  | { type: "counter"; requestId: string; start: string; end: string; reason?: string };
 export function useRescheduleAction(bookingId: string) {
   const cache = useQueryClient();
   return useMutation({
@@ -37,8 +38,10 @@ export function useRescheduleAction(bookingId: string) {
             ? await supabase.rpc("cancel_reschedule_request", { p_request_id: action.requestId })
             : await supabase.rpc("respond_reschedule", {
                 p_request_id: action.requestId,
-                p_action: action.type,
+                p_action: action.type === "counter" ? "counter" : action.type,
                 p_reason: action.reason,
+                p_counter_start: action.type === "counter" ? action.start : undefined,
+                p_counter_end: action.type === "counter" ? action.end : undefined,
               });
       if (result.error) throw result.error;
     },

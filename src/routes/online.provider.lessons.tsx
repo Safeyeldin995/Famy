@@ -11,6 +11,7 @@ import { filterWebOnlineBookingRows, redactInPersonFieldsForWeb } from "@/lib/we
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { bookingStatusTone } from "@/lib/utils";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
+import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
@@ -122,9 +123,9 @@ function OnlineProviderLessons() {
                       <p className="mt-1 text-pro-16 font-bold">{name || t("pro.common.customer")}</p>
                       <p className="mt-1 flex items-center gap-1.5 text-pro-13 text-muted-foreground">
                         <Calendar className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden />
-                        {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale)}
+                        {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}
                         <span aria-hidden>·</span>
-                        {formatTime(startAt, locale)}
+                        {formatTime(startAt, locale, ONLINE_WEB_TIME_ZONE)}
                       </p>
                     </div>
                     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground ltr:rotate-0 rtl:rotate-180" />

@@ -460,6 +460,8 @@ DECLARE
   v_available numeric;
   v_key text;
   v_entry_id uuid;
+  v_funding_payment_id uuid;
+  v_excess numeric;
 BEGIN
   IF p_paymob_transaction_id IS NULL OR p_paymob_transaction_id <= 0
      OR p_order_id IS NULL OR p_order_id <= 0 OR p_success IS NULL OR p_pending IS NULL THEN
@@ -503,6 +505,9 @@ BEGIN
   IF v_payment.status = 'captured' THEN
     RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_captured');
   END IF;
+  IF v_payment.status IN ('refunded', 'partially_refunded') THEN
+    RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_refunded');
+  END IF;
   IF p_pending AND v_payment.status <> 'pending' THEN
     RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_final');
   END IF;
@@ -514,56 +519,102 @@ BEGIN
   v_meta := COALESCE(p_metadata, '{}'::jsonb);
 
   IF v_status = 'captured' AND v_payment.booking_id IS NOT NULL THEN
-    SELECT * INTO v_booking FROM public.bookings WHERE id = v_payment.booking_id FOR SHARE;
-    IF FOUND AND v_booking.status::text = 'cancelled' THEN
-      v_meta := v_meta || jsonb_build_object(
-        'late_capture_on_cancelled_booking', true,
-        'late_capture_recorded_at', now()
-      );
-    ELSIF FOUND AND v_booking.status::text IN ('pending', 'confirmed') THEN
-      v_released := COALESCE((v_payment.metadata->>'wallet_checkout_released')::numeric, 0);
-      IF v_released > 0 THEN
-        v_checkout_total := COALESCE(
-          NULLIF((v_payment.metadata->>'checkout_total')::numeric, 0),
-          v_payment.amount + COALESCE((v_payment.metadata->>'wallet_applied')::numeric, 0)
+    SELECT p.id INTO v_funding_payment_id
+    FROM public.payments p
+    WHERE p.booking_id = v_payment.booking_id
+      AND p.id <> v_payment.id
+      AND p.status = 'captured'
+    ORDER BY p.captured_at NULLS LAST, p.created_at
+    LIMIT 1;
+
+    IF v_funding_payment_id IS NOT NULL THEN
+      v_excess := public.payment_checkout_funded_total(v_payment);
+      IF v_excess > 0.01 THEN
+        PERFORM public.lock_customer_wallet(v_payment.customer_id);
+        v_key := 'paymob_superseded_excess:' || v_payment.id::text;
+        v_entry_id := public.customer_wallet_insert_entry(
+          v_payment.customer_id,
+          'credit',
+          v_excess,
+          'paymob_superseded_capture',
+          v_payment.booking_id,
+          v_payment.id,
+          NULL,
+          v_key,
+          jsonb_build_object('funding_payment_id', v_funding_payment_id)
         );
-        v_shortfall := GREATEST(v_checkout_total - v_payment.amount, 0);
-        v_reclaim := LEAST(v_released, v_shortfall);
-        IF v_reclaim > 0.01 THEN
-          PERFORM public.lock_customer_wallet(v_payment.customer_id);
-          SELECT b.available_amount INTO v_available
-          FROM public.customer_wallet_balances(v_payment.customer_id) b;
-          IF v_reclaim > COALESCE(v_available, 0) + 0.0001 THEN
-            v_meta := v_meta || jsonb_build_object(
-              'capture_shortfall', v_reclaim,
-              'capture_shortfall_recorded_at', now(),
-              'needs_admin_review', true
-            );
-          ELSE
-            v_key := 'checkout_spend_recapture:' || v_payment.id::text;
-            v_entry_id := public.customer_wallet_insert_entry(
-              v_payment.customer_id,
-              'debit',
-              v_reclaim,
-              'checkout_spend',
-              v_payment.booking_id,
-              v_payment.id,
-              NULL,
-              v_key,
-              jsonb_build_object('recapture_after_release', true, 'checkout_total', v_checkout_total)
-            );
-            IF v_entry_id IS NULL THEN
+      END IF;
+      -- The booking is already funded by another payment: this capture is
+      -- settled to the customer's wallet and the row is closed as refunded, so
+      -- readers of "the booking's captured payment" (wallet refunds on cancel,
+      -- admin card refunds, payment cards) never pick it.
+      v_status := 'refunded'::public.payment_status;
+      v_meta := v_meta || jsonb_build_object(
+        'superseded_capture', true,
+        'superseded_by_payment_id', v_funding_payment_id,
+        'excluded_from_booking_funding', true,
+        'superseded_excess_credited', GREATEST(v_excess, 0),
+        'refund_settled_via_wallet', true,
+        'wallet_refund_settled', true,
+        'refund', jsonb_build_object(
+          'channel', 'customer_wallet',
+          'amount_refunded', GREATEST(v_excess, 0),
+          'wallet_entry_id', v_entry_id,
+          'recorded_at', now()
+        )
+      );
+    ELSE
+      SELECT * INTO v_booking FROM public.bookings WHERE id = v_payment.booking_id FOR SHARE;
+      IF FOUND AND v_booking.status::text = 'cancelled' THEN
+        v_meta := v_meta || jsonb_build_object(
+          'late_capture_on_cancelled_booking', true,
+          'late_capture_recorded_at', now()
+        );
+      ELSIF FOUND AND v_booking.status::text IN ('pending', 'confirmed') THEN
+        v_released := COALESCE((v_payment.metadata->>'wallet_checkout_released')::numeric, 0);
+        IF v_released > 0 THEN
+          v_checkout_total := COALESCE(
+            NULLIF((v_payment.metadata->>'checkout_total')::numeric, 0),
+            v_payment.amount + COALESCE((v_payment.metadata->>'wallet_applied')::numeric, 0)
+          );
+          v_shortfall := GREATEST(v_checkout_total - v_payment.amount, 0);
+          v_reclaim := LEAST(v_released, v_shortfall);
+          IF v_reclaim > 0.01 THEN
+            PERFORM public.lock_customer_wallet(v_payment.customer_id);
+            SELECT b.available_amount INTO v_available
+            FROM public.customer_wallet_balances(v_payment.customer_id) b;
+            IF v_reclaim > COALESCE(v_available, 0) + 0.0001 THEN
               v_meta := v_meta || jsonb_build_object(
                 'capture_shortfall', v_reclaim,
                 'capture_shortfall_recorded_at', now(),
                 'needs_admin_review', true
               );
             ELSE
-              v_meta := v_meta || jsonb_build_object(
-                'wallet_applied', v_reclaim,
-                'wallet_checkout_reclaimed', v_reclaim,
-                'wallet_checkout_released', 0
+              v_key := 'checkout_spend_recapture:' || v_payment.id::text;
+              v_entry_id := public.customer_wallet_insert_entry(
+                v_payment.customer_id,
+                'debit',
+                v_reclaim,
+                'checkout_spend',
+                v_payment.booking_id,
+                v_payment.id,
+                NULL,
+                v_key,
+                jsonb_build_object('recapture_after_release', true, 'checkout_total', v_checkout_total)
               );
+              IF v_entry_id IS NULL THEN
+                v_meta := v_meta || jsonb_build_object(
+                  'capture_shortfall', v_reclaim,
+                  'capture_shortfall_recorded_at', now(),
+                  'needs_admin_review', true
+                );
+              ELSE
+                v_meta := v_meta || jsonb_build_object(
+                  'wallet_applied', v_reclaim,
+                  'wallet_checkout_reclaimed', v_reclaim,
+                  'wallet_checkout_released', 0
+                );
+              END IF;
             END IF;
           END IF;
         END IF;
@@ -579,11 +630,17 @@ BEGIN
     processed_at = now();
   UPDATE public.payments SET status = v_status, provider_ref = p_provider_ref,
     metadata = COALESCE(metadata, '{}'::jsonb) || v_meta,
-    captured_at = CASE WHEN v_status = 'captured' THEN now() ELSE captured_at END,
-    reviewed_at = CASE WHEN v_status IN ('captured','rejected') THEN now() ELSE reviewed_at END,
+    captured_at = CASE WHEN v_outcome = 'captured' THEN now() ELSE captured_at END,
+    reviewed_at = CASE WHEN v_outcome IN ('captured','rejected') THEN now() ELSE reviewed_at END,
     rejection_reason = CASE WHEN v_status = 'rejected' THEN 'Paymob payment failed or was declined.' ELSE NULL END
   WHERE id = v_payment.id;
-  RETURN jsonb_build_object('ok', true, 'payment_id', v_payment.id, 'status', v_status, 'outcome', v_outcome);
+  RETURN jsonb_build_object(
+    'ok', true,
+    'payment_id', v_payment.id,
+    'status', v_status,
+    'outcome', v_outcome,
+    'superseded_capture', v_funding_payment_id IS NOT NULL AND v_outcome = 'captured'
+  );
 END;
 $$;
 
