@@ -99,7 +99,7 @@ export function useCreatePayment() {
         .from("payments")
         .insert({
           booking_id: input.bookingId,
-          customer_id: user.id,
+          customer_id: booking.customer_id,
           payment_method_id: input.paymentMethodId,
           amount,
           currency: booking.currency ?? "EGP",

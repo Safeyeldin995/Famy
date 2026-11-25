@@ -25,7 +25,8 @@ export type NativeDeepLinkTarget =
   | { pathname: "/provider/[id]"; params: { id: string } }
   | { pathname: "/wallet" }
   | { pathname: "/booking/[id]/session"; params: { id: string } }
-  | { pathname: "/pro-booking/[id]/session"; params: { id: string } };
+  | { pathname: "/pro-booking/[id]/session"; params: { id: string } }
+  | { pathname: "/student-parent-link"; params?: { linkId?: string } };
 
 export function workspaceHome(workspace: PushWorkspace): NativeDeepLinkTarget {
   return workspace === "provider" ? { pathname: "/dashboard" } : { pathname: "/home" };
@@ -99,6 +100,18 @@ export function mapNotificationDeepLink(
   const providerProfile = path.match(/^\/provider\/([^/]+)$/);
   if (providerProfile && workspace === "customer") {
     return { pathname: "/provider/[id]", params: { id: providerProfile[1]! } };
+  }
+
+  const parentLink = path.match(/^\/student-parent-link$/);
+  if (parentLink && workspace === "customer") {
+    const query = withoutHash.includes("?") ? withoutHash.split("?")[1] : "";
+    const linkId = query
+      ?.split("&")
+      .map((part) => part.split("="))
+      .find(([key]) => key === "linkId")?.[1];
+    return linkId
+      ? { pathname: "/student-parent-link", params: { linkId } }
+      : { pathname: "/student-parent-link" };
   }
 
   if (path === "/notifications") {

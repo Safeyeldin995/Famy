@@ -17,6 +17,12 @@ import { onlineLessonRequestTotal } from "@/lib/online/onlineLessonRequestQuote"
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
+import {
+  OnlineWebParentContactFields,
+  useOnlineStudentNeedsGuardianContact,
+} from "@/components/online/OnlineWebParentLinkGate";
+import { useRegisterParentGuardianContact } from "@/lib/db/student-parent-link-queries";
+import { sendParentGuardianEmailFn } from "@/lib/email/parentGuardianEmail.functions";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import {
   cairoDayStrip,
@@ -53,6 +59,10 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const [day, setDay] = useState(() => cairoTodayStart());
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const guardian = useOnlineStudentNeedsGuardianContact();
+  const registerGuardian = useRegisterParentGuardianContact();
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -127,6 +137,30 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     return availableSlots.find((s) => s.start.getTime() === slotStart.getTime()) ?? null;
   }, [availableSlots, slotStart]);
 
+  const tryRegisterGuardianContact = async () => {
+    if (!guardian.isMinorStudent) return;
+  const phone = parentPhone.trim();
+    const email = parentEmail.trim();
+    if (!phone || !email) {
+      toast.info(t("studentParentLink.contactRetryHint"));
+      return;
+    }
+    try {
+      const registered = await registerGuardian.mutateAsync({
+        parentPhone: phone,
+        parentEmail: email,
+      });
+      const emailResult = await sendParentGuardianEmailFn({
+        data: { linkId: String((registered as { link_id?: string }).link_id ?? "") || undefined },
+      });
+      if (emailResult?.ok === false) {
+        toast.info(t("studentParentLink.contactRetryHint"));
+      }
+    } catch {
+      toast.info(t("studentParentLink.contactRetryHint"));
+    }
+  };
+
   const submit = async () => {
     if (!resolvedServiceId || !selectedSlot || !selectedCapability || create.isPending) return;
     try {
@@ -157,13 +191,16 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
         idempotency_key: crypto.randomUUID(),
       });
       toast.success(t("onlineWeb.request.success"));
+      if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
+        void tryRegisterGuardianContact();
+      }
       nav({ to: onlineWebLessonPath(result.id), replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong"));
     }
   };
 
-  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading;
+  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading || guardian.loading;
   if (loading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
   }
@@ -174,6 +211,15 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   return (
     <OnlineWebCustomerDobGate>
       <div className="space-y-5">
+        {guardian.isMinorStudent && guardian.needsNewContact ? (
+          <OnlineWebParentContactFields
+            parentPhone={parentPhone}
+            parentEmail={parentEmail}
+            onParentPhoneChange={setParentPhone}
+            onParentEmailChange={setParentEmail}
+            disabled={registerGuardian.isPending || create.isPending}
+          />
+        ) : null}
         {tutoringServices.length > 1 ? (
           <label className="block">
             <span className="text-pro-13 font-bold text-muted-foreground">{t("bookingUx.chooseService")}</span>

@@ -934,7 +934,11 @@ export function useAdminCustomer(id: string) {
         .order('created_at', { ascending: false })
         .limit(50);
       if (paymentsError) throw paymentsError;
-      return { profile, bookings: bookings ?? [], payments: payments ?? [] };
+      return {
+        profile,
+        bookings: bookings ?? [],
+        payments: payments ?? [],
+      };
     },
     enabled: !!id,
   });
