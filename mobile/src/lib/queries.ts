@@ -1,5 +1,7 @@
 // Queries ported from src/lib/db/queries.ts; table/RPC filters and ordering are preserved.
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { bookingPollInterval } from "./bookingPolling";
 import { invalidateQueryKeyList, notificationReadInvalidationKeys } from "./cacheInvalidation";
 import { supabase } from "./supabase";
 import { useSession } from "./session";
@@ -425,18 +427,34 @@ export function useMyBookings() {
   });
 }
 
-const LIVE_BOOKING_STATUSES = new Set(["pending", "confirmed", "on_the_way", "arrived"]);
-
-export function useBooking(id: string | undefined) {
-  return useQuery({
+/**
+ * One booking. Pass `{ live: true }` only from a screen that is focused: the
+ * status is then re-checked every 20s while it is moving (bounded in time and by
+ * errors, see bookingPollInterval), so a missed push still updates the screen.
+ */
+export function useBooking(id: string | undefined, opts?: { live?: boolean }) {
+  const live = opts?.live === true;
+  const pollingSince = useRef<number | null>(null);
+  const consecutiveErrors = useRef(0);
+  useEffect(() => {
+    // Each focus starts a fresh polling window.
+    pollingSince.current = live ? Date.now() : null;
+    consecutiveErrors.current = 0;
+  }, [live]);
+  const query = useQuery({
     enabled: !!id,
     queryKey: ["booking", id],
-    // While the booking is moving (accepted, provider on the way, arrived) keep
-    // the status live even if a push notification is missed.
-    refetchInterval: (query) =>
-      LIVE_BOOKING_STATUSES.has(String((query.state.data as { status?: string } | null)?.status))
-        ? 20_000
-        : false,
+    refetchInterval: (q) => {
+      const data = q.state.data as { status?: string; start_at?: string } | null | undefined;
+      return bookingPollInterval({
+        status: data?.status,
+        startAt: data?.start_at,
+        focused: live,
+        pollingSinceMs: pollingSince.current,
+        nowMs: Date.now(),
+        consecutiveErrors: consecutiveErrors.current,
+      });
+    },
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
@@ -448,6 +466,12 @@ export function useBooking(id: string | undefined) {
       return { ...data, provider: await safeProviderDetails(data.provider_id) };
     },
   });
+  const { errorUpdatedAt, dataUpdatedAt } = query;
+  useEffect(() => {
+    if (errorUpdatedAt > dataUpdatedAt) consecutiveErrors.current += 1;
+    else consecutiveErrors.current = 0;
+  }, [errorUpdatedAt, dataUpdatedAt]);
+  return query;
 }
 
 export function useFavorites() {

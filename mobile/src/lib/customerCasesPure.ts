@@ -19,15 +19,28 @@ export const DISPUTE_ELIGIBLE_STATUSES = [
 const ACTIVE_CASE = new Set(["open", "info_requested"]);
 const ACTIVE_TICKET = new Set(["open", "pending"]);
 
-export type CaseLike = { status: string };
+export type CaseLike = { status: string; category?: string | null };
 
 export function hasActiveCase(rows: CaseLike[] | undefined | null): boolean {
   return (rows ?? []).some((r) => ACTIVE_CASE.has(r.status));
 }
 
-export function hasActiveTicket(rows: CaseLike[] | undefined | null): boolean {
-  return (rows ?? []).some((r) => ACTIVE_TICKET.has(r.status));
+/**
+ * True when an open/pending ticket exists. With a category, only tickets of that
+ * category count (create_support_ticket rejects a second open ticket for the same
+ * booking, user and category).
+ */
+export function hasActiveTicket(
+  rows: CaseLike[] | undefined | null,
+  category?: string,
+): boolean {
+  return (rows ?? []).some(
+    (r) => ACTIVE_TICKET.has(r.status) && (category === undefined || r.category === category),
+  );
 }
+
+/** Category the customer app uses for booking support tickets. */
+export const BOOKING_SUPPORT_CATEGORY = "booking_issue";
 
 export type ProblemOptions = {
   noShow: boolean;
@@ -44,6 +57,7 @@ export function customerProblemOptions(input: {
   serviceMode: string | null | undefined;
   noShowReports?: CaseLike[] | null;
   disputes?: CaseLike[] | null;
+  tickets?: CaseLike[] | null;
 }): ProblemOptions {
   const status = input.bookingStatus ?? "";
   const inPerson = (input.serviceMode ?? "in_person") !== "online";
@@ -56,8 +70,9 @@ export function customerProblemOptions(input: {
       inPerson &&
       (DISPUTE_ELIGIBLE_STATUSES as readonly string[]).includes(status) &&
       !hasActiveCase(input.disputes),
-    // A ticket can be opened on any booking the customer is part of.
-    support: true,
+    // A ticket can be opened on any booking the customer is part of, but only one
+    // open booking_issue ticket at a time (the RPC rejects a second one).
+    support: !hasActiveTicket(input.tickets, BOOKING_SUPPORT_CATEGORY),
   };
 }
 
@@ -82,6 +97,30 @@ export function walletCheckoutSplit(
   const walletPart = Math.round(Math.min(a, t) * 100) / 100;
   const cardPart = Math.round(Math.max(0, t - walletPart) * 100) / 100;
   return { walletPart, cardPart, walletOnly: t > 0 && cardPart <= 0.01 };
+}
+
+export type WalletSplitView =
+  | { kind: "none" }
+  | { kind: "checking" }
+  | { kind: "split"; walletPart: number; cardPart: number; walletOnly: boolean };
+
+/**
+ * What the payment card may promise about the wallet. The balance must be fresh:
+ * while it is (re)loading or failed to load, show a neutral line and never a split,
+ * because the server spends whatever balance is left at checkout time.
+ */
+export function walletSplitView(input: {
+  eligible: boolean;
+  total: number | null | undefined;
+  available: number | null | undefined;
+  balanceFetching: boolean;
+  balanceOk: boolean;
+}): WalletSplitView {
+  if (!input.eligible) return { kind: "none" };
+  if (input.balanceFetching || !input.balanceOk) return { kind: "checking" };
+  const split = walletCheckoutSplit(input.total, input.available);
+  if (split.walletPart <= 0) return { kind: "none" };
+  return { kind: "split", ...split };
 }
 
 export type CancellationPolicyRow = {

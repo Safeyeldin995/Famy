@@ -5,6 +5,8 @@ import {
   isCaseDescriptionValid,
   normalizeCancellationPolicy,
   walletCheckoutSplit,
+  hasActiveTicket,
+  walletSplitView,
 } from "../customerCasesPure";
 
 describe("customerProblemOptions", () => {
@@ -78,5 +80,58 @@ describe("cancellation policy line", () => {
     const always = normalizeCancellationPolicy({ fee_mode: "fixed", fee_value: 20, free_cancel_hours: 0 });
     expect(cancellationPolicyLine(always, fmt)?.key).toBe("bookFlow.policyFeeAlways");
     expect(cancellationPolicyLine(null, fmt)).toBeNull();
+  });
+});
+
+describe("support ticket gating", () => {
+  it("hides «كلم الدعم» while a booking_issue ticket is open or pending", () => {
+    const base = { bookingStatus: "confirmed", serviceMode: "in_person" };
+    expect(customerProblemOptions({ ...base, tickets: [] }).support).toBe(true);
+    expect(
+      customerProblemOptions({ ...base, tickets: [{ status: "open", category: "booking_issue" }] })
+        .support,
+    ).toBe(false);
+    expect(
+      customerProblemOptions({ ...base, tickets: [{ status: "pending", category: "booking_issue" }] })
+        .support,
+    ).toBe(false);
+    // A resolved ticket or another category does not block a new booking_issue ticket.
+    expect(
+      customerProblemOptions({
+        ...base,
+        tickets: [
+          { status: "resolved", category: "booking_issue" },
+          { status: "open", category: "payment" },
+        ],
+      }).support,
+    ).toBe(true);
+  });
+
+  it("hasActiveTicket filters by category only when one is given", () => {
+    const rows = [{ status: "open", category: "payment" }];
+    expect(hasActiveTicket(rows)).toBe(true);
+    expect(hasActiveTicket(rows, "booking_issue")).toBe(false);
+  });
+});
+
+describe("walletSplitView", () => {
+  const ready = { eligible: true, total: 300, balanceFetching: false, balanceOk: true };
+  it("never promises a split while the balance is loading or failed", () => {
+    expect(walletSplitView({ ...ready, available: 500, balanceFetching: true })).toEqual({
+      kind: "checking",
+    });
+    expect(walletSplitView({ ...ready, available: 500, balanceOk: false })).toEqual({
+      kind: "checking",
+    });
+  });
+  it("shows the split only with a fresh balance", () => {
+    expect(walletSplitView({ ...ready, available: 100 })).toEqual({
+      kind: "split",
+      walletPart: 100,
+      cardPart: 200,
+      walletOnly: false,
+    });
+    expect(walletSplitView({ ...ready, available: 0 })).toEqual({ kind: "none" });
+    expect(walletSplitView({ ...ready, eligible: false, available: 100 })).toEqual({ kind: "none" });
   });
 });

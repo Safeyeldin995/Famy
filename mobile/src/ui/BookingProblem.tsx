@@ -49,6 +49,7 @@ export function BookingProblem({
     serviceMode: booking.service_mode,
     noShowReports: cases.data?.noShows,
     disputes: cases.data?.disputes,
+    tickets: cases.data?.tickets,
   });
 
   const existing = [
@@ -145,11 +146,17 @@ export function BookingProblem({
                   onPress={() => setKind("dispute")}
                 />
               ) : null}
-              <Button
-                variant="secondary"
-                label={t("bookingProblem.support")}
-                onPress={() => setKind("support")}
-              />
+              {options.support ? (
+                <Button
+                  variant="secondary"
+                  label={t("bookingProblem.support")}
+                  onPress={() => setKind("support")}
+                />
+              ) : (
+                <Text size="sm" tone="muted">
+                  {t("bookingProblem.supportAlreadyOpen")}
+                </Text>
+              )}
             </>
           ) : (
             <>

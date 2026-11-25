@@ -1708,6 +1708,7 @@ const en = {
     noShowHint: "Describe what happened. The Famy team will review the report and contact you",
     disputeHint: "Describe your complaint in detail. The booking is paused until the Famy team reviews it",
     supportHint: "Write your question or problem and the support team will reply",
+    supportAlreadyOpen: "You already have an open support request on this booking, the support team will reply here",
     details: "Details",
     minLength: "Write at least 10 characters",
     send: "Send",
@@ -2818,6 +2819,7 @@ const en = {
   },
   payment: {
     walletWillCover: "Your balance ({{wallet}}) is used first, the remaining {{card}} by card",
+    walletChecking: "Checking your wallet balance",
     walletCoversAll: "Your balance ({{wallet}}) covers the full amount",
     payWithWallet: "Pay from your balance",
     refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid, minus the cancellation fee if you cancelled late",

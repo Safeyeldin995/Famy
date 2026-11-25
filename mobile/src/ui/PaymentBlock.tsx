@@ -7,6 +7,7 @@ import { refundOwed } from "@shared/payments/refundOwed";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBookingPayment } from "@/lib/queries";
 import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
 import {
@@ -23,7 +24,7 @@ import { Text } from "./Text";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { money } from "@/lib/presentation";
 import { useWalletBalances } from "@/lib/walletQueries";
-import { walletCheckoutSplit } from "@/lib/customerCasesPure";
+import { walletSplitView } from "@/lib/customerCasesPure";
 import {
   paymobChannelForPaymentBlock,
   resolvePaymobCheckoutChannelForPayment,
@@ -69,10 +70,19 @@ export function PaymentBlock({
       live = false;
     };
   }, [bookingId, t]);
+  const qc = useQueryClient();
   const refetchPayment = q.refetch;
+  const refetchWallet = wallet.refetch;
+  // The wallet balance is part of what this card promises, so it is refreshed with
+  // the payment: on mount, on app focus, and after every checkout attempt. Wallet
+  // entries are invalidated too, because a checkout may have spent from them.
   const refresh = useCallback(async () => {
-    await Promise.all([refetchPayment(), refetchBooking()]);
-  }, [refetchPayment, refetchBooking]);
+    void qc.invalidateQueries({ queryKey: ["customer-wallet-entries"] });
+    await Promise.all([refetchPayment(), refetchBooking(), refetchWallet()]);
+  }, [qc, refetchPayment, refetchBooking, refetchWallet]);
+  useEffect(() => {
+    void refetchWallet();
+  }, [refetchWallet]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") void refresh();
@@ -116,12 +126,15 @@ export function PaymentBlock({
   const paymobChannel = paymobChannelForPaymentBlock({ payment: p, selection });
   // The Paymob checkout route spends the wallet balance first (server side);
   // show the customer that split before they pay.
-  const split = walletCheckoutSplit(
-    p?.amount ?? total,
-    type === "online" && p?.status === "pending" && !walletAlreadyApplied(p?.metadata)
-      ? wallet.data?.available_amount
-      : 0,
-  );
+  const walletView = walletSplitView({
+    eligible: type === "online" && p?.status === "pending" && !walletAlreadyApplied(p?.metadata),
+    total: p?.amount ?? total,
+    available: wallet.data?.available_amount,
+    balanceFetching: wallet.isFetching,
+    balanceOk: wallet.isSuccess,
+  });
+  const split =
+    walletView.kind === "split" ? walletView : { walletPart: 0, cardPart: 0, walletOnly: false };
   async function checkout() {
     setBusy(true);
     setError("");
@@ -333,7 +346,12 @@ export function PaymentBlock({
           {type === "online" && (
             <>
               <PaymentLogos />
-              {p.status === "pending" && split.walletPart > 0 && (
+              {p.status === "pending" && walletView.kind === "checking" && (
+                <Text size="sm" tone="muted">
+                  {t("payment.walletChecking")}
+                </Text>
+              )}
+              {p.status === "pending" && walletView.kind === "split" && (
                 <Text weight="bold" style={moneyTextStyle(i18n.language)}>
                   {split.walletOnly
                     ? t("payment.walletCoversAll", {
