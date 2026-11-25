@@ -408,7 +408,7 @@ function ZoneCombinationsSummary({
 function CoveragePanel({ zoneId }: { zoneId: string }) {
   const { t, i18n } = useTranslation();
   const servicesQ = useAdminServices();
-  const providersQ = useAdminProviders("verified");
+  const providersQ = useAdminProviders("verified", undefined, "", 0);
   const zoneServicesQ = useZoneServiceCoverage(zoneId);
   const zoneProvidersQ = useZoneProviderCoverage(zoneId);
   const setService = useSetZoneService();
@@ -471,7 +471,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
           className="mt-2 min-h-11 w-full rounded-xl border px-3"
         />
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-          {(providersQ.data ?? [])
+          {((providersQ.data?.items ?? []) as any[])
             .filter(
               (p: any) =>
                 // Empty search lists everyone (so a provider without a name

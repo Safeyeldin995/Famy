@@ -97,7 +97,7 @@ function AdminFinancePage() {
 
   const summaryQ = useAdminFinanceSummary(range?.from, range?.to);
   const providersQ = useAdminFinanceProviders();
-  const limit = settingsQ.data?.cash_debt_limit ?? 1000;
+  const limit = settingsQ.data?.cash_debt_limit;
   const warnPercent = settingsQ.data?.cash_debt_warn_percent ?? 80;
 
   const choosePreset = (next: FinancePreset) => {
@@ -165,7 +165,7 @@ function AdminFinancePage() {
         </span>
       );
     }
-    if (providerCashDebtNearLimit(row.net, limit, warnPercent)) {
+    if (limit != null && providerCashDebtNearLimit(row.net, limit, warnPercent)) {
       return (
         <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
           {t("admin.finance.statusNearLimit")}
@@ -233,6 +233,14 @@ function AdminFinancePage() {
             {t("admin.finance.customInvalid")}
           </p>
         ) : null}
+        {periodQ.isLoading && preset !== "custom" ? (
+          <p className="text-sm text-muted-foreground">{t("adminOps.loading")}</p>
+        ) : periodQ.isError && preset !== "custom" ? (
+          <AdminQueryError
+            message={t("admin.finance.loadError")}
+            onRetry={() => periodQ.refetch()}
+          />
+        ) : null}
         {rangeLabel ? <p className="text-sm text-muted-foreground">{rangeLabel}</p> : null}
       </section>
 
@@ -241,7 +249,12 @@ function AdminFinancePage() {
           <h2 className="text-base font-extrabold">{t("admin.finance.paidTitle")}</h2>
           <p className="text-xs text-muted-foreground">{t("admin.finance.paidHint")}</p>
         </div>
-        {!range ? null : (
+        {!range && periodQ.isError && preset !== "custom" ? (
+          <AdminQueryError
+            message={t("admin.finance.loadError")}
+            onRetry={() => periodQ.refetch()}
+          />
+        ) : !range ? null : (
           <AdminQueryState
             isLoading={summaryQ.isLoading}
             isError={summaryQ.isError}
@@ -408,7 +421,9 @@ function AdminFinancePage() {
           <li>{t("admin.finance.how1")}</li>
           <li>{t("admin.finance.how2")}</li>
           <li>{t("admin.finance.how3")}</li>
-          <li>{t("admin.finance.how4", { limit: formatEGP(limit) })}</li>
+          {limit != null ? (
+            <li>{t("admin.finance.how4", { limit: formatEGP(limit) })}</li>
+          ) : null}
           <li>{t("admin.finance.how5")}</li>
         </ul>
       </section>

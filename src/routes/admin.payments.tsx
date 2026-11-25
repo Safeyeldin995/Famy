@@ -6,7 +6,7 @@ import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { toast } from "sonner";
 import {
   useAdminCashLedgerBookings,
-  useAdminPayments,
+  useAdminPaymentsList,
   useRecordHistoricCash,
   useRecordPaymentRefund,
 } from "@/lib/db/admin-queries";
@@ -358,6 +358,7 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
   const { t } = useTranslation();
   const tab = search.tab ?? "needs_action";
   const [page, setPage] = useState(0);
+  const [allPage, setAllPage] = useState(0);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounced(query, 300);
   const [allStatus, setAllStatus] = useState(search.status ?? "");
@@ -378,13 +379,12 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
   );
   useEffect(() => {
     setPage(0);
+    setAllPage(0);
   }, [debouncedQuery, tab]);
-  const allQ = useAdminPayments(allStatus || undefined);
+  const allQ = useAdminPaymentsList(debouncedQuery, allStatus, allPage);
   const paymentRows =
     tab === "all"
-      ? (allQ.data ?? []).filter((p: any) =>
-          matchesBooking({ ...p.booking, id: p.booking_id }, debouncedQuery),
-        )
+      ? (allQ.data?.items ?? [])
       : tab === "fee_payments"
         ? []
         : (queue.data?.items ?? []);
@@ -394,12 +394,7 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
       .map((p: any) => p.booking_id),
   );
   const recorded = cashLedger.data ?? new Set<string>();
-  const needsTotal =
-    counts.data?.needs_action ??
-    (counts.data?.refunds_due ?? 0) +
-      (counts.data?.receipts_ready ?? 0) +
-      (counts.data?.cash_to_confirm ?? 0) +
-      (counts.data?.fee_payments ?? 0);
+  const needsTotal = counts.data?.needs_action ?? 0;
   const loading =
     tab === "all" ? allQ.isLoading : tab === "fee_payments" ? counts.isLoading : queue.isLoading;
   const error =
@@ -482,10 +477,42 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
               <PaymentCard key={p.id} payment={p} cashRecorded={recorded.has(p.booking_id)} />
             ))}
           </ul>
-          {tab !== "all" && (queue.data?.total ?? 0) > (page + 1) * 50 ? (
-            <button type="button" className={adminControl} onClick={() => setPage((p) => p + 1)}>
-              {t("admin.paymentsQueue.loadMore")}
-            </button>
+          {tab === "all" && (allQ.data?.total ?? 0) > (allPage + 1) * 50 ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={adminControl}
+                disabled={allPage === 0}
+                onClick={() => setAllPage((p) => Math.max(0, p - 1))}
+              >
+                {t("admin.auditLog.prev")}
+              </button>
+              <button
+                type="button"
+                className={adminControl}
+                onClick={() => setAllPage((p) => p + 1)}
+              >
+                {t("admin.auditLog.next")}
+              </button>
+            </div>
+          ) : tab !== "all" && (queue.data?.total ?? 0) > (page + 1) * 50 ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={adminControl}
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                {t("admin.auditLog.prev")}
+              </button>
+              <button
+                type="button"
+                className={adminControl}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                {t("admin.auditLog.next")}
+              </button>
+            </div>
           ) : null}
         </>
       )}

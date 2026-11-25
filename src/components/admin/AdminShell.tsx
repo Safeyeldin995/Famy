@@ -35,12 +35,6 @@ import {
   Video,
 } from "lucide-react";
 import { useAdminWorkQueueCounts } from "@/lib/db/admin-queries";
-import {
-  useAdminFinanceProviders,
-  useAdminFinanceSummary,
-  useSettlementClosedPeriod,
-} from "@/lib/db/admin-finance-queries";
-import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
@@ -134,30 +128,13 @@ export function AdminShell({
   const nav = useNavigate();
   const role = useMyRole();
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-  if (/\/statement\/print\/?$/.test(rawPathname)) {
-    return <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>;
-  }
+  const isStatementPrint = /\/statement\/print\/?$/.test(rawPathname);
   const pathname = normalizeAdminPathname(rawPathname)
     .replace(/^\/admin\/provider\//, "/admin/providers/")
     .replace(/^\/admin\/customer\//, "/admin/customers/");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const queue = useAdminWorkQueueCounts();
-  const settlementPeriod = useSettlementClosedPeriod();
-  const [financeAnchor] = useState(() => new Date());
-  const financeRange = useMemo(
-    () =>
-      settlementPeriod.data != null
-        ? financeRangeForPreset("thisWeek", settlementPeriod.data, financeAnchor)
-        : null,
-    [settlementPeriod.data, financeAnchor],
-  );
-  const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
-  const financeProviders = useAdminFinanceProviders();
-  const navBadgeExtras = {
-    pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,
-    providersAtCashLimit: (financeProviders.data ?? []).filter((row) => row.at_limit).length,
-  };
   const mobileTabs = useRef<HTMLElement>(null);
   useEffect(() => {
     let active = true;
@@ -211,6 +188,13 @@ export function AdminShell({
         </Link>
       </div>
     );
+  }
+
+  if (isStatementPrint) {
+    const printBody = (
+      <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>
+    );
+    return previewMode ? printBody : <AdminMfaGate>{printBody}</AdminMfaGate>;
   }
 
   const flatTabs = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
@@ -318,7 +302,7 @@ export function AdminShell({
                       const href = tab.to;
                       const badge =
                         queue.data != null
-                          ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
+                          ? adminNavBadgeCount(tab.to, queue.data)
                           : 0;
                       return (
                         <li key={tab.to}>
@@ -376,7 +360,7 @@ export function AdminShell({
                         const active = isActive(tab);
                         const badge =
                           queue.data != null
-                            ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
+                            ? adminNavBadgeCount(tab.to, queue.data)
                             : 0;
                         return (
                           <li key={tab.to}>

@@ -2,7 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
 import { normalizeAdminWorkQueueCounts } from '@/lib/db/admin-work-queue';
+import { invalidateAdminPaymentQueue } from '@/lib/db/admin-payment-invalidation';
 import type { AdminWorkQueueKey } from '@/lib/db/admin-work-queue';
+
+const ADMIN_LIST_PAGE_SIZE = 50;
 
 export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
 
@@ -53,33 +56,26 @@ export function useAdminBabysittingAgeGroups(providerId: string) {
   });
 }
 
-export function useAdminProviders(filter: AdminProviderFilter = "all", queue?: AdminWorkQueueKey) {
+export function useAdminProviders(
+  filter: AdminProviderFilter = "all",
+  queue?: AdminWorkQueueKey,
+  query = "",
+  page = 0,
+) {
+  const q = query.trim();
   return useQuery({
-    queryKey: ['admin', 'providers', filter, queue ?? 'none'],
+    queryKey: ['admin', 'providers', filter, queue ?? 'none', q, page],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
-      if (identityError) throw identityError;
-      let providerIds = (identityRows ?? []).map((row) => row.provider_id);
-      if (queue) {
-        const { data: queueRows, error: queueError } = await (supabase.rpc as any)(
-          'admin_work_queue_provider_ids', { p_queue: queue },
-        );
-        if (queueError) throw queueError;
-        const inQueue = new Set((queueRows ?? []).map((row: { provider_id: string }) => row.provider_id));
-        providerIds = providerIds.filter((id) => inQueue.has(id));
-      }
-      if (providerIds.length === 0) return [];
-      let q = supabase
-        .from('providers')
-        .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
-        .in('id', providerIds)
-        .order('created_at', { ascending: false });
-      if (filter === 'pending') q = q.eq('is_verified', false).in('onboarding_status', ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_CHANGES']);
-      else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
-      else if (filter === 'suspended') q = q.eq('is_active', false).eq('is_verified', true);
-      const { data, error } = await q;
+      const { data, error } = await (supabase.rpc as any)('admin_providers_list', {
+        p_query: q,
+        p_filter: filter,
+        p_queue: queue ?? '',
+        p_limit: ADMIN_LIST_PAGE_SIZE,
+        p_offset: page * ADMIN_LIST_PAGE_SIZE,
+      });
       if (error) throw error;
-      return data ?? [];
+      const row = data as { total: number; items: unknown[] };
+      return { total: Number(row.total ?? 0), items: row.items ?? [] };
     },
   });
 }
@@ -736,31 +732,20 @@ export function useAdminDashboardKpis() {
     },
   });
 }
-export function useAdminPayments(status?: string | string[]) {
+export function useAdminPaymentsList(query = "", status = "", page = 0) {
+  const q = query.trim();
   return useQuery({
-    queryKey: ['admin', 'payments', status ?? 'all'],
+    queryKey: ['admin', 'payments', 'list', q, status, page],
     queryFn: async () => {
-      let q = supabase
-        .from('payments')
-        .select(`
-          *,
-          booking:bookings(
-            id,
-            status,
-            provider:providers(id, profile:profiles(full_name)),
-            customer:profiles!bookings_customer_id_fkey(id, full_name, phone)
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (Array.isArray(status)) {
-        if (status.length > 0) q = q.in('status', status as any);
-      } else if (status) {
-        q = q.eq('status', status as any);
-      }
-      const { data, error } = await q;
+      const { data, error } = await (supabase.rpc as any)('admin_payments_list', {
+        p_query: q,
+        p_status: status || null,
+        p_limit: ADMIN_LIST_PAGE_SIZE,
+        p_offset: page * ADMIN_LIST_PAGE_SIZE,
+      });
       if (error) throw error;
-      return data ?? [];
+      const row = data as { total: number; items: unknown[] };
+      return { total: Number(row.total ?? 0), items: row.items ?? [] };
     },
   });
 }
@@ -803,6 +788,7 @@ export function useRecordHistoricCash() {
       qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
       qc.invalidateQueries({ queryKey: ['admin-finance-summary'] });
       qc.invalidateQueries({ queryKey: ['admin-finance-providers'] });
+      invalidateAdminPaymentQueue(qc);
     },
   });
 }
@@ -821,72 +807,31 @@ export function useRecordPaymentRefund() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
       qc.invalidateQueries({ queryKey: ['admin-finance-summary'] });
+      invalidateAdminPaymentQueue(qc);
     },
   });
 }
 
 export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings" | "no_bookings";
 
-export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
+export function useAdminCustomers(
+  filter: AdminCustomerFilter = "all",
+  query = "",
+  page = 0,
+) {
+  const q = query.trim();
   return useQuery({
-    queryKey: ['admin', 'customers'],
+    queryKey: ['admin', 'customers', filter, q, page],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
-      if (identityError) throw identityError;
-      const customerIds = (identityRows ?? []).map((row) => row.user_id);
-      if (customerIds.length === 0) return [];
-      const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', customerIds)
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (pErr) throw pErr;
-      const ids = (profiles ?? []).map((p) => p.id);
-      if (ids.length === 0) return [];
-
-      const { data: bookings, error: bErr } = await supabase
-        .from('bookings')
-        .select('customer_id, status')
-        .in('customer_id', ids);
-      if (bErr) throw bErr;
-
-      const { data: payments, error: payErr } = await supabase
-        .from('payments')
-        .select('customer_id, amount, status')
-        .in('customer_id', ids)
-        .eq('status', 'captured');
-      if (payErr) throw payErr;
-
-      const bookingsByCustomer = new Map<string, typeof bookings>();
-      for (const booking of bookings ?? []) {
-        const current = bookingsByCustomer.get(booking.customer_id) ?? [];
-        current.push(booking);
-        bookingsByCustomer.set(booking.customer_id, current);
-      }
-      const spentByCustomer = new Map<string, number>();
-      for (const payment of payments ?? []) {
-        spentByCustomer.set(
-          payment.customer_id,
-          (spentByCustomer.get(payment.customer_id) ?? 0) + Number(payment.amount ?? 0),
-        );
-      }
-      const rows = (profiles ?? []).map((p) => {
-        const myBookings = bookingsByCustomer.get(p.id) ?? [];
-        const totalBookings = myBookings.length;
-        const completedBookings = myBookings.filter((b) => b.status === 'completed').length;
-        const cancelledBookings = myBookings.filter((b) => b.status === 'cancelled' || b.status === 'no_show').length;
-        const totalSpent = spentByCustomer.get(p.id) ?? 0;
-        return { ...p, totalBookings, completedBookings, cancelledBookings, totalSpent };
+      const { data, error } = await (supabase.rpc as any)('admin_customers_list', {
+        p_query: q,
+        p_filter: filter,
+        p_limit: ADMIN_LIST_PAGE_SIZE,
+        p_offset: page * ADMIN_LIST_PAGE_SIZE,
       });
-      return rows;
-    },
-    select: (rows) => {
-      if (filter === 'active') return rows.filter((row) => !row.is_suspended);
-      if (filter === 'suspended') return rows.filter((row) => row.is_suspended);
-      if (filter === 'has_bookings') return rows.filter((row) => row.totalBookings > 0);
-      if (filter === 'no_bookings') return rows.filter((row) => row.totalBookings === 0);
-      return rows;
+      if (error) throw error;
+      const row = data as { total: number; items: unknown[] };
+      return { total: Number(row.total ?? 0), items: row.items ?? [] };
     },
   });
 }

@@ -5,6 +5,7 @@
  * tg_snapshot_payment_method in 20260714120000_configurable_payment_methods.sql.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateAdminPaymentQueue } from '@/lib/db/admin-payment-invalidation';
 import { supabase } from '@/integrations/supabase/client';
 import { bookingAmountDue } from '@/lib/payments/amountDue';
 
@@ -165,6 +166,7 @@ export function useCapturePayment() {
       qc.invalidateQueries({ queryKey: ['provider-earnings'] });
       qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
       qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      invalidateAdminPaymentQueue(qc);
     },
   });
 }
@@ -189,6 +191,7 @@ export function useRejectPayment() {
       qc.invalidateQueries({ queryKey: ['payment', v.bookingId] });
       qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
       qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      invalidateAdminPaymentQueue(qc);
     },
   });
 }

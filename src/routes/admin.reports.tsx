@@ -10,6 +10,7 @@ import {
 import { useAdminReports } from "@/lib/db/admin-daily-ops-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminControl, adminScreen } from "@/components/admin/operations";
+import { adminDate } from "@/components/admin/adminPresentation";
 import { formatEGP } from "@/lib/utils";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { downloadReportsCsv } from "@/lib/admin/reportsExport";
@@ -65,8 +66,13 @@ function AdminReportsPage() {
     [t],
   );
 
-  const formatBucket = (iso: string) =>
-    new Date(iso).toLocaleString(lang, { timeZone: "Africa/Cairo", dateStyle: "medium" });
+  const formatBucket = (iso: string) => adminDate(iso, lang, false);
+
+  const basisLabel = (key: (typeof METRIC_KEYS)[number], raw: string) => {
+  const mapped = t(`admin.reports.basis.${key}`, { defaultValue: "" });
+    if (mapped) return mapped;
+    return raw.replace(/^bookings\./, "").replace(/^payments\./, "");
+  };
 
   const formatMetric = (key: (typeof METRIC_KEYS)[number], value: number) => {
     if (key === "bookings_created" || key === "bookings_completed" || key === "bookings_cancelled") {
@@ -88,8 +94,8 @@ function AdminReportsPage() {
               <li key={key}>
                 <strong className="text-foreground">{columnLabels[key]}:</strong>{" "}
                 {t("admin.reports.basisLine", {
-                  basis: basis.basis,
-                  timestamp: basis.timestamp,
+                  basis: basisLabel(key, basis.basis),
+                  timestamp: adminDate(basis.timestamp, lang),
                 })}
               </li>
             );
@@ -138,6 +144,9 @@ function AdminReportsPage() {
             aria-label={t("admin.statement.to")}
           />
         </div>
+      ) : null}
+      {preset === "custom" && fromDay && toDay && !range ? (
+        <p className="text-sm font-semibold text-destructive">{t("admin.reports.customInvalid")}</p>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {(["day", "week", "month"] as const).map((g) => (

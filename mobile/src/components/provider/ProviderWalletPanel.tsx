@@ -51,7 +51,7 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
 
   const net = balance.data?.net ?? 0;
   const state = walletState(net);
-  const limit = settings.data?.cash_debt_limit ?? 1000;
+  const limit = settings.data?.cash_debt_limit;
   const blocked = blockedQ.data === true;
   const bookingRows = walletBookingRows(ledger.data ?? [], bookings.data ?? new Map());
   const transfers = walletTransferRows(ledger.data ?? []);

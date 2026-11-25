@@ -1,12 +1,15 @@
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useAdminOnlineSessionReviews } from "@/lib/db/admin-online-session-queries";
+import { useResolveOnlineSessionReview } from "@/lib/db/admin-online-lesson-queries";
 import { useTranslation } from "react-i18next";
 import { operationDate } from "@/components/admin/operations";
 import { bookingCode } from "@/components/admin/operations";
+import { toast } from "sonner";
 
 export function AdminOnlineSessionReviewQueue() {
   const { t, i18n } = useTranslation();
   const q = useAdminOnlineSessionReviews("open");
+  const resolve = useResolveOnlineSessionReview();
 
   if (q.isLoading || !q.data?.length) return null;
 
@@ -27,6 +30,40 @@ export function AdminOnlineSessionReviewQueue() {
             <span className="text-muted-foreground">
               {operationDate(row.created_at, i18n.language)}
             </span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                className="focus-ring rounded-lg bg-brand px-2 py-1 text-[10px] font-bold text-brand-foreground"
+                disabled={resolve.isPending}
+                onClick={() =>
+                  resolve.mutate(
+                    { id: row.id, status: "resolved" },
+                    {
+                      onSuccess: () => toast.success(t("admin.onlineLessonIssues.closed")),
+                      onError: (e: any) => toast.error(e?.message ?? t("common.error")),
+                    },
+                  )
+                }
+              >
+                {t("admin.onlineLessonIssues.resolve")}
+              </button>
+              <button
+                type="button"
+                className="focus-ring rounded-lg border border-border px-2 py-1 text-[10px] font-bold"
+                disabled={resolve.isPending}
+                onClick={() =>
+                  resolve.mutate(
+                    { id: row.id, status: "dismissed" },
+                    {
+                      onSuccess: () => toast.success(t("admin.onlineLessonIssues.closed")),
+                      onError: (e: any) => toast.error(e?.message ?? t("common.error")),
+                    },
+                  )
+                }
+              >
+                {t("admin.onlineLessonIssues.dismiss")}
+              </button>
+            </div>
           </li>
         ))}
       </ul>

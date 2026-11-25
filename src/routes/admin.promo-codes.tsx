@@ -1,6 +1,6 @@
 import { catalogScreen, catalogName, catalogDate } from "@/components/admin/CatalogControls";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Plus, Search, Copy, Tag } from "lucide-react";
@@ -82,7 +82,11 @@ function formFromRow(p: PromoCodeRow): PromoForm {
   };
 }
 
-function validate(f: PromoForm, t: (key: string) => string): Record<string, string> {
+function validate(
+  f: PromoForm,
+  t: (key: string) => string,
+  scope?: { categoryIds: string[]; serviceIds: string[] },
+): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!f.code.trim()) errors.code = t("admin.promoCodes.codeRequired");
   else if (!/^[a-zA-Z0-9_-]+$/.test(f.code.trim())) errors.code = t("admin.promoCodes.codeFormat");
@@ -111,6 +115,12 @@ function validate(f: PromoForm, t: (key: string) => string): Record<string, stri
   }
   if (f.starts_at && f.expires_at && new Date(f.expires_at) <= new Date(f.starts_at)) {
     errors.expires_at = t("admin.promoCodes.expiresAfterStart");
+  }
+  if (f.applicable_scope === "categories" && scope && scope.categoryIds.length === 0) {
+    errors.scope = t("admin.promoCodes.scopeCategoriesRequired");
+  }
+  if (f.applicable_scope === "services" && scope && scope.serviceIds.length === 0) {
+    errors.scope = t("admin.promoCodes.scopeServicesRequired");
   }
   return errors;
 }
@@ -198,8 +208,11 @@ function PromoFormFields({
         </label>
       </div>
 
-      <details className="rounded-xl border p-3">
+      <details className="rounded-xl border p-3" open={form.applicable_scope !== "all" || undefined}>
         <summary className="cursor-pointer font-bold">{t("adminCatalog.promoAudience")}</summary>
+        {errors.scope ? (
+          <p className="mt-2 text-xs font-semibold text-coral">{errors.scope}</p>
+        ) : null}
         {form.applicable_scope === "categories" && (
           <div className="rounded-lg border border-border/60 bg-surface-2 p-3">
             <span className="text-xs font-semibold text-muted-foreground">
@@ -547,6 +560,18 @@ function AdminPromoCodes() {
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
 
   const editingScopeQ = usePromoCodeScope(editingId);
+  const hydratedEditId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!editingId || !editingScopeQ.data) return;
+    if (hydratedEditId.current === editingId) return;
+    hydratedEditId.current = editingId;
+    setEditScope({
+      categoryIds: [...editingScopeQ.data.categoryIds],
+      serviceIds: [...editingScopeQ.data.serviceIds],
+    });
+    setEditScopeTouched(false);
+  }, [editingId, editingScopeQ.data]);
 
   const promos = q.data ?? [];
   const categories = categoriesQ.data ?? [];
@@ -574,23 +599,30 @@ function AdminPromoCodes() {
   };
 
   const submitCreate = () => {
-    const errors = validate(createForm, t);
+    const errors = validate(createForm, t, createScope);
     setCreateErrors(errors);
     if (Object.keys(errors).length > 0) return;
     create.mutate(toInput(createForm, true), {
       onSuccess: (row) => {
-        const needsScope =
-          createForm.applicable_scope !== "all" &&
-          (createScope.categoryIds.length > 0 || createScope.serviceIds.length > 0);
-        if (needsScope) {
-          setScope.mutate({
+        const saveScope = () => {
+          setCreating(false);
+          toast.success(t("admin.promoCodes.created"));
+        };
+        if (createForm.applicable_scope === "all") {
+          saveScope();
+          return;
+        }
+        setScope.mutate(
+          {
             promoCodeId: row.id,
             categoryIds: createScope.categoryIds,
             serviceIds: createScope.serviceIds,
-          });
-        }
-        setCreating(false);
-        toast.success(t("admin.promoCodes.created"));
+          },
+          {
+            onSuccess: saveScope,
+            onError: (e: any) => toast.error(dbErrorMessage(e, t)),
+          },
+        );
       },
       onError: (e: any) => toast.error(dbErrorMessage(e, t)),
     });
@@ -602,29 +634,38 @@ function AdminPromoCodes() {
     setEditForm(formFromRow(p));
     setEditScope({ categoryIds: [], serviceIds: [] });
     setEditScopeTouched(false);
+    hydratedEditId.current = null;
     setEditingId(p.id);
   };
 
   const submitEdit = (p: PromoCodeRow) => {
-    const errors = validate(editForm, t);
+    const errors = validate(
+      editForm,
+      t,
+      editForm.applicable_scope !== "all" ? editScope : undefined,
+    );
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
+    const finish = () => {
+      setEditingId(null);
+      toast.success(t("admin.promoCodes.updated"));
+    };
     update.mutate(
       { id: p.id, ...toInput(editForm, p.is_active) },
       {
         onSuccess: () => {
-          // Only rewrite the audience when the admin changed it. The edit
-          // state starts empty, so sending it untouched would wipe the
-          // promo's existing category/service links.
-          if (editScopeTouched) {
-            setScope.mutate({
+          if (!editScopeTouched) {
+            finish();
+            return;
+          }
+          setScope.mutate(
+            {
               promoCodeId: p.id,
               categoryIds: editScope.categoryIds,
               serviceIds: editScope.serviceIds,
-            });
-          }
-          setEditingId(null);
-          toast.success(t("admin.promoCodes.updated"));
+            },
+            { onSuccess: finish, onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
+          );
         },
         onError: (e: any) => toast.error(dbErrorMessage(e, t)),
       },
@@ -774,20 +815,7 @@ function AdminPromoCodes() {
                         errors={editErrors}
                         categories={categories}
                         services={services}
-                        scope={
-                          editingScopeQ.data
-                            ? {
-                                categoryIds:
-                                  editScope.categoryIds.length || editScope.serviceIds.length
-                                    ? editScope.categoryIds
-                                    : editingScopeQ.data.categoryIds,
-                                serviceIds:
-                                  editScope.categoryIds.length || editScope.serviceIds.length
-                                    ? editScope.serviceIds
-                                    : editingScopeQ.data.serviceIds,
-                              }
-                            : editScope
-                        }
+                        scope={editScope}
                         setScope={(next) => {
                           setEditScopeTouched(true);
                           setEditScope(next);
