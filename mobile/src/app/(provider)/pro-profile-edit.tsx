@@ -23,6 +23,7 @@ import {
 import {
   providerPriceChangeDirty,
   providerPriceNeedsAdminReview,
+  providerServicePriceEditingBlocked,
 } from "@shared/provider/providerPriceChangeRequest";
 import { useMyProvider, useUpdateProvider } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
@@ -36,6 +37,11 @@ import { Text } from "@/ui/Text";
 import { PendingServiceRequestSummary } from "@/ui/provider/PendingServiceRequestSummary";
 import { ProviderServicePreparationNotesField } from "@/ui/provider/ProviderServicePreparationNotesField";
 import { normalizePreparationNotes } from "@shared/provider/preparationNotes";
+import { ProviderServiceLifecycleActions } from "@/ui/provider/ProviderServiceLifecycleActions";
+import {
+  providerServiceStatusI18nKey,
+  type ProviderServiceRowStatus,
+} from "@shared/provider/providerServiceGroups";
 
 export default function ProProfileEditScreen() {
   const { t, i18n } = useTranslation();
@@ -61,6 +67,7 @@ export default function ProProfileEditScreen() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(false);
+  const [rejectedOpen, setRejectedOpen] = useState(false);
 
   useEffect(() => {
     if (!provider) return;
@@ -139,8 +146,26 @@ export default function ProProfileEditScreen() {
     }
   };
 
-  const mine = mineQ.data ?? [];
+  const mine = (mineQ.data ?? []).filter(
+    (row: { status?: string }) => row.status !== "removed",
+  );
   const selectedIds = new Set(mine.map((row: { service_id: string }) => row.service_id));
+  const catalog = servicesQ.data ?? [];
+  const catalogById = new Map(catalog.map((s: { id: string }) => [String(s.id), s]));
+  const rejectedRows = mine.filter((row: { status?: string }) => row.status === "rejected");
+  const activeRows = mine.filter((row: { status?: string }) => row.status !== "rejected");
+  const rankStatus = (status?: string) => {
+    if (status === "approved") return 0;
+    if (status === "pending") return 1;
+    if (status === "paused") return 2;
+    return 3;
+  };
+  const approvedServiceRows = [...activeRows].sort(
+    (a: { status?: string }, b: { status?: string }) => rankStatus(a.status) - rankStatus(b.status),
+  );
+  const addableServices = isApprovedProvider
+    ? catalog.filter((s: { id: string }) => !selectedIds.has(String(s.id)))
+    : [];
 
   return (
     <Page
@@ -166,17 +191,24 @@ export default function ProProfileEditScreen() {
         <Text weight="heavy">{t("mobile.servicesPrices")}</Text>
       </QueryState>
       <QueryState query={servicesQ}>
-        {(servicesQ.data ?? []).map((service: Record<string, unknown>) => {
+        {(isApprovedProvider
+          ? approvedServiceRows
+              .map((row: { service_id: string }) => catalogById.get(row.service_id))
+              .filter(Boolean)
+          : catalog
+        ).map((service: Record<string, unknown>) => {
           const id = String(service.id);
           const on = selectedIds.has(id);
           const row = mine.find((m: { service_id: string }) => m.service_id === id) as
             Record<string, unknown> | undefined;
+          const rowStatus = row?.status as ProviderServiceRowStatus | undefined;
           const tutoring = isTutoringCategorySlug((service.category as { slug?: string })?.slug);
           const min = service.minimum_price as number | null;
           const max = service.maximum_price as number | null;
           const livePrice = (row?.price_override as number | null) ?? null;
           const pendingPrice = (row?.pending_price_override as number | null) ?? null;
           const priceChangeReason = (row?.price_change_reason as string | null) ?? null;
+          const priceLocked = providerServicePriceEditingBlocked(rowStatus);
           const needsReview = providerPriceNeedsAdminReview(
             provider?.onboarding_status as string,
             row?.status as string | undefined,
@@ -192,9 +224,9 @@ export default function ProProfileEditScreen() {
                   {localized(service, i18n.language)}
                 </Text>
               </View>
-              {row?.status ? (
+              {rowStatus ? (
                 <Text tone="muted" size="sm">
-                  {t(`providerSetup.status.${String(row.status)}`)}
+                  {t(providerServiceStatusI18nKey(rowStatus))}
                 </Text>
               ) : isApprovedProvider ? (
                 <Text tone="muted" size="sm">
@@ -212,7 +244,7 @@ export default function ProProfileEditScreen() {
                     })
                   }
                 />
-              ) : isApprovedProvider && row?.status === "pending" ? (
+              ) : isApprovedProvider && rowStatus === "pending" ? (
                 <>
                   <Text tone="muted" size="sm">
                     {t("pro.serviceRequest.statusPending")}
@@ -240,7 +272,7 @@ export default function ProProfileEditScreen() {
                   label={t(on ? "mobilePro.serviceOn" : "mobilePro.serviceOff")}
                   loading={toggle.isPending}
                   disabled={
-                    serviceActionBusy || (row?.status === "approved" && on) || isApprovedProvider
+                    serviceActionBusy || (rowStatus === "approved" && on) || isApprovedProvider
                   }
                   onPress={() => {
                     if (!providerId || isApprovedProvider || serviceActionBusy) return;
@@ -248,20 +280,24 @@ export default function ProProfileEditScreen() {
                   }}
                 />
               )}
-              {isApprovedProvider && row?.status === "rejected" ? (
-                <Button
-                  variant="secondary"
-                  label={t("pro.serviceRequest.editAndResubmit")}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/pro-request-service",
-                      params: { serviceId: id },
-                    })
-                  }
+              {isApprovedProvider &&
+              providerId &&
+              (rowStatus === "approved" || rowStatus === "paused") ? (
+                <ProviderServiceLifecycleActions
+                  providerId={providerId}
+                  serviceId={id}
+                  status={rowStatus}
+                  onSuccess={(message) => setPriceSuccess(message)}
+                  onError={() => setActionError(true)}
                 />
               ) : null}
               {on && !tutoring && service.provider_pricing_allowed ? (
                 <>
+                  {priceLocked ? (
+                    <Text tone="muted" size="sm">
+                      {t("pro.serviceLifecycle.priceResumeFirst")}
+                    </Text>
+                  ) : null}
                   {priceChangeReason && !pendingPrice ? (
                     <Text tone="danger" size="sm">
                       {t("pro.profile.priceChangeRejected", { reason: priceChangeReason })}
@@ -279,10 +315,10 @@ export default function ProProfileEditScreen() {
                     min={min}
                     max={max}
                     value={current}
-                    disabled={pendingPrice != null}
+                    disabled={pendingPrice != null || priceLocked}
                     onChange={(price) => setPriceDrafts((d) => ({ ...d, [id]: price }))}
                   />
-                  {needsReview ? (
+                  {!priceLocked && needsReview ? (
                     pendingPrice != null ? (
                       <Button
                         variant="secondary"
@@ -328,7 +364,7 @@ export default function ProProfileEditScreen() {
                         }}
                       />
                     ) : null
-                  ) : (
+                  ) : !priceLocked ? (
                     <Button
                       variant="secondary"
                       label={t("common.save")}
@@ -348,8 +384,8 @@ export default function ProProfileEditScreen() {
                         );
                       }}
                     />
-                  )}
-                  {!isPriceInRange(current, min, max) ? (
+                  ) : null}
+                  {!priceLocked && !isPriceInRange(current, min, max) ? (
                     <Text tone="danger" size="sm">
                       {t("pricePicker.outOfRange")}
                     </Text>
@@ -389,6 +425,73 @@ export default function ProProfileEditScreen() {
             </View>
           );
         })}
+        {isApprovedProvider && addableServices.length > 0 ? (
+          <View style={{ marginTop: space.md, gap: space.sm }}>
+            <Text weight="heavy">{t("pro.profile.addNewService")}</Text>
+            <Text tone="muted" size="sm">
+              {t("pro.profile.addNewServiceHint")}
+            </Text>
+            {addableServices.map((service: Record<string, unknown>) => {
+              const id = String(service.id);
+              return (
+                <View key={`add-${id}`} style={proCard.card}>
+                  <Text weight="bold">{localized(service, i18n.language)}</Text>
+                  <Text tone="muted" size="sm">
+                    {t("pro.serviceRequest.notAdded")}
+                  </Text>
+                  <Button
+                    variant="secondary"
+                    label={t("pro.serviceRequest.requestCta")}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/pro-request-service",
+                        params: { serviceId: id },
+                      })
+                    }
+                  />
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+        {isApprovedProvider && rejectedRows.length > 0 ? (
+          <View style={proCard.card}>
+            <Button
+              variant="secondary"
+              label={t("pro.serviceLifecycle.rejectedSection")}
+              onPress={() => setRejectedOpen((v) => !v)}
+            />
+            {rejectedOpen
+              ? rejectedRows.map((row: { service_id: string; rejection_reason?: string | null }) => {
+                  const service = catalogById.get(row.service_id) as Record<string, unknown> | undefined;
+                  if (!service) return null;
+                  return (
+                    <View key={row.service_id} style={{ marginTop: space.md, gap: space.sm }}>
+                      <Text weight="bold">{localized(service, i18n.language)}</Text>
+                      <Text tone="muted" size="sm">
+                        {t("pro.serviceLifecycle.statusRejected")}
+                      </Text>
+                      {row.rejection_reason ? (
+                        <Text tone="danger" size="sm">
+                          {String(row.rejection_reason)}
+                        </Text>
+                      ) : null}
+                      <Button
+                        variant="secondary"
+                        label={t("pro.serviceRequest.editAndResubmit")}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/pro-request-service",
+                            params: { serviceId: row.service_id },
+                          })
+                        }
+                      />
+                    </View>
+                  );
+                })
+              : null}
+          </View>
+        ) : null}
       </QueryState>
       <Button
         variant="secondary"
