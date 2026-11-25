@@ -165,19 +165,55 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(events[0]?.outcome).toBe("captured");
   });
 
-  it("refund webhook flags payment without changing status or moving money", async () => {
+  it("provider_review_manual_payment captures cash after completed booking", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "completed" });
+    await setBookingStatusAsSystem(db, bookingId, "completed");
+    const { cashId } = await seedPaymentsForBooking(db, bookingId);
+
+    const capture = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.provider_review_manual_payment($1::uuid, 'capture') AS payload`,
+      [cashId],
+    );
+    expect(capture.error).toBeUndefined();
+    const payload = capture.rows?.[0]?.payload as { status?: string } | undefined;
+    expect(payload?.status).toBe("captured");
+
+    const row = await queryRows<{ status: string; captured_at: string | null }>(
+      db,
+      `SELECT status::text AS status, captured_at::text AS captured_at FROM public.payments WHERE id = $1`,
+      [cashId],
+    );
+    expect(row[0]?.status).toBe("captured");
+    expect(row[0]?.captured_at).toBeTruthy();
+  });
+
+  it("refund webhook after capture keeps capture event and flags payment metadata", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
     const orderId = 880012;
+    const txnId = 880012;
     await bindPaymobOrder(paymobId, orderId);
-    await asServiceRole(db, () =>
-      db.exec(`
-        SELECT set_config('app.ledger_internal_capture', 'on', true);
-        UPDATE public.payments
-        SET status = 'captured', captured_at = now()
-        WHERE id = '${paymobId}';
-      `),
+
+    const amountRows = await queryRows<{ amount: string }>(
+      db,
+      "SELECT amount::text AS amount FROM public.payments WHERE id = $1",
+      [paymobId],
     );
+    const amountCents = Math.round(Number(amountRows[0]!.amount) * 100);
+
+    const captureWebhook = await asServiceRole(db, () =>
+      queryRows<{ payload: { ok?: boolean; status?: string } }>(
+        db,
+        `SELECT public.paymob_apply_transaction_webhook(
+           $1::bigint, $2::bigint, 77, 'EGP', true, false, $3::bigint, 'txn-capture-refund'
+         ) AS payload`,
+        [txnId, orderId, amountCents],
+      ),
+    );
+    expect(captureWebhook[0]?.payload?.ok).toBe(true);
+    expect(captureWebhook[0]?.payload?.status).toBe("captured");
 
     const before = await queryRows<{ amount: string; status: string }>(
       db,
@@ -186,14 +222,22 @@ describe("audit security money batch", { concurrent: false }, () => {
     );
 
     const first = await asServiceRole(db, () =>
-      queryRows<{ payload: { ok?: boolean; status?: string; duplicate?: boolean } }>(
+      queryRows<{
+        payload: {
+          ok?: boolean;
+          status?: string;
+          duplicate?: boolean;
+          capture_preserved?: boolean;
+        };
+      }>(
         db,
-        `SELECT public.paymob_apply_refund_webhook(880012, $1::bigint, 12345, false, '{}'::jsonb) AS payload`,
-        [orderId],
+        `SELECT public.paymob_apply_refund_webhook($1::bigint, $2::bigint, 12345, false, '{}'::jsonb) AS payload`,
+        [txnId, orderId],
       ),
     );
     expect(first[0]?.payload?.ok).toBe(true);
     expect(first[0]?.payload?.status).toBe("captured");
+    expect(first[0]?.payload?.capture_preserved).toBe(true);
 
     const after = await queryRows<{
       amount: string;
@@ -223,18 +267,109 @@ describe("audit security money batch", { concurrent: false }, () => {
 
     const event = await queryRows<{ outcome: string }>(
       db,
-      `SELECT outcome FROM public.paymob_webhook_events WHERE paymob_transaction_id = 880012`,
+      `SELECT outcome FROM public.paymob_webhook_events WHERE paymob_transaction_id = $1`,
+      [txnId],
     );
-    expect(event[0]?.outcome).toBe("refunded");
+    expect(event[0]?.outcome).toBe("captured");
 
     const second = await asServiceRole(db, () =>
       queryRows<{ payload: { duplicate?: boolean } }>(
         db,
-        `SELECT public.paymob_apply_refund_webhook(880012, $1::bigint, 12345, false, '{}'::jsonb) AS payload`,
-        [orderId],
+        `SELECT public.paymob_apply_refund_webhook($1::bigint, $2::bigint, 12345, false, '{}'::jsonb) AS payload`,
+        [txnId, orderId],
       ),
     );
     expect(second[0]?.payload?.duplicate).toBe(true);
+  });
+
+  it("unmapped capture is queued for admin and reconciles when order mapping exists", async () => {
+    const unmappedOrderId = 880099;
+    const unmappedTxnId = 880099;
+
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    const amountRows = await queryRows<{ amount: string }>(
+      db,
+      "SELECT amount::text AS amount FROM public.payments WHERE id = $1",
+      [paymobId],
+    );
+    const amountCents = Math.round(Number(amountRows[0]!.amount) * 100);
+
+    const unmapped = await asServiceRole(db, () =>
+      queryRows<{ payload: { unmapped_order?: boolean } }>(
+        db,
+        `SELECT public.paymob_apply_transaction_webhook(
+           $1::bigint, $2::bigint, 77, 'EGP', true, false, $3::bigint, 'orphan-capture'
+         ) AS payload`,
+        [unmappedTxnId, unmappedOrderId, amountCents],
+      ),
+    );
+    expect(unmapped[0]?.payload?.unmapped_order).toBe(true);
+
+    const stored = await queryRows<{ order_id: string; reconciled: string | null }>(
+      db,
+      `SELECT paymob_order_id::text AS order_id, reconciled_payment_id::text AS reconciled
+       FROM public.paymob_unmapped_captures WHERE paymob_transaction_id = $1`,
+      [unmappedTxnId],
+    );
+    expect(stored[0]?.order_id).toBe(String(unmappedOrderId));
+    expect(stored[0]?.reconciled).toBeNull();
+
+    const counts = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_payment_queue_counts() AS payload",
+    );
+    expect(counts.error).toBeUndefined();
+    const countPayload = counts.rows?.[0]?.payload as { needs_action?: number } | undefined;
+    expect(Number(countPayload?.needs_action ?? 0)).toBeGreaterThanOrEqual(1);
+
+    const queue = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_queue('needs_action', '', 50, 0) AS payload`,
+    );
+    expect(queue.error).toBeUndefined();
+    const items = (queue.rows?.[0]?.payload as { items?: unknown[] } | undefined)?.items ?? [];
+    const hasUnmapped = items.some(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        (item as { metadata?: { paymob_unmapped?: boolean } }).metadata?.paymob_unmapped === true &&
+        (item as { metadata?: { paymob_order_id?: number } }).metadata?.paymob_order_id ===
+          unmappedOrderId,
+    );
+    expect(hasUnmapped).toBe(true);
+
+    await bindPaymobOrder(paymobId, unmappedOrderId);
+
+    const replay = await asServiceRole(db, () =>
+      queryRows<{ payload: { ok?: boolean; duplicate?: boolean; status?: string } }>(
+        db,
+        `SELECT public.paymob_apply_transaction_webhook(
+           $1::bigint, $2::bigint, 77, 'EGP', true, false, $3::bigint, 'orphan-capture'
+         ) AS payload`,
+        [unmappedTxnId, unmappedOrderId, amountCents],
+      ),
+    );
+    expect(replay[0]?.payload?.ok).toBe(true);
+    expect(replay[0]?.payload?.status).toBe("captured");
+
+    const payment = await queryRows<{ status: string }>(
+      db,
+      `SELECT status::text AS status FROM public.payments WHERE id = $1`,
+      [paymobId],
+    );
+    expect(payment[0]?.status).toBe("captured");
+
+    const reconciled = await queryRows<{ reconciled: string | null; needs_review: boolean }>(
+      db,
+      `SELECT reconciled_payment_id::text AS reconciled, needs_admin_review AS needs_review
+       FROM public.paymob_unmapped_captures WHERE paymob_transaction_id = $1`,
+      [unmappedTxnId],
+    );
+    expect(reconciled[0]?.reconciled).toBe(paymobId);
+    expect(reconciled[0]?.needs_review).toBe(false);
   });
 
   it("account_deletion_check returns funds_owed_to_user for wallet credit before active_bookings", async () => {

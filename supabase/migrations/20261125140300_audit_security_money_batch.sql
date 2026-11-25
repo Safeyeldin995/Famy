@@ -253,6 +253,187 @@ $$;
 REVOKE ALL ON FUNCTION public.provider_booking_payment(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.provider_booking_payment(uuid) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.provider_review_manual_payment(
+  p_payment_id uuid,
+  p_action text,
+  p_rejection_reason text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_pay public.payments%ROWTYPE;
+  v_booking_status public.booking_status;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+  IF p_action NOT IN ('capture', 'reject') THEN
+    RAISE EXCEPTION 'Invalid payment review action.' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT p.* INTO v_pay
+  FROM public.payments p
+  WHERE p.id = p_payment_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payment not found.' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.bookings b
+    JOIN public.providers pr ON pr.id = b.provider_id
+    WHERE b.id = v_pay.booking_id
+      AND pr.profile_id = v_uid
+  ) AND NOT public.has_role(v_uid, 'admin') THEN
+    RAISE EXCEPTION 'Payment review not authorized.' USING ERRCODE = '42501';
+  END IF;
+
+  IF COALESCE(v_pay.payment_method_type, '') = 'online'
+     OR COALESCE(v_pay.payment_method_code, '') = 'paymob'
+     OR v_pay.method::text = 'paymob' THEN
+    RAISE EXCEPTION 'Online payments can only be updated by the payment gateway.' USING ERRCODE = '42501';
+  END IF;
+
+  IF v_pay.status NOT IN ('pending', 'pending_review') THEN
+    RAISE EXCEPTION 'Payment is not awaiting review.' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT b.status INTO v_booking_status
+  FROM public.bookings b
+  WHERE b.id = v_pay.booking_id;
+
+  IF p_action = 'capture' THEN
+    IF v_booking_status::text <> 'completed' THEN
+      RAISE EXCEPTION 'Payment cannot be captured until the booking is completed.' USING ERRCODE = '23514';
+    END IF;
+    UPDATE public.payments
+    SET
+      status = 'captured',
+      captured_at = now(),
+      reviewed_at = now(),
+      reviewed_by = v_uid,
+      rejection_reason = NULL
+    WHERE id = p_payment_id;
+  ELSE
+    UPDATE public.payments
+    SET
+      status = 'rejected',
+      captured_at = NULL,
+      reviewed_at = now(),
+      reviewed_by = v_uid,
+      rejection_reason = NULLIF(btrim(p_rejection_reason), '')
+    WHERE id = p_payment_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'payment_id', p_payment_id,
+    'status', (SELECT status::text FROM public.payments WHERE id = p_payment_id)
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.provider_review_manual_payment(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.provider_review_manual_payment(uuid, text, text) TO authenticated;
+
+CREATE TABLE IF NOT EXISTS public.paymob_unmapped_captures (
+  paymob_transaction_id bigint PRIMARY KEY,
+  paymob_order_id bigint NOT NULL,
+  paymob_integration_id bigint,
+  currency text,
+  amount_cents bigint,
+  provider_ref text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  reconciled_payment_id uuid REFERENCES public.payments(id) ON DELETE SET NULL,
+  reconciled_at timestamptz,
+  needs_admin_review boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_paymob_unmapped_captures_order
+  ON public.paymob_unmapped_captures (paymob_order_id)
+  WHERE reconciled_payment_id IS NULL;
+
+ALTER TABLE public.paymob_unmapped_captures ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.paymob_unmapped_captures FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.paymob_unmapped_captures TO service_role;
+
+CREATE OR REPLACE FUNCTION public.paymob_record_unmapped_capture(
+  p_paymob_transaction_id bigint,
+  p_order_id bigint,
+  p_integration_id bigint,
+  p_currency text,
+  p_amount_cents bigint,
+  p_provider_ref text,
+  p_metadata jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_paymob_transaction_id IS NULL OR p_paymob_transaction_id <= 0
+     OR p_order_id IS NULL OR p_order_id <= 0 THEN
+    RAISE EXCEPTION 'Invalid Paymob unmapped capture.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.paymob_unmapped_captures (
+    paymob_transaction_id,
+    paymob_order_id,
+    paymob_integration_id,
+    currency,
+    amount_cents,
+    provider_ref,
+    metadata,
+    needs_admin_review
+  ) VALUES (
+    p_paymob_transaction_id,
+    p_order_id,
+    p_integration_id,
+    p_currency,
+    p_amount_cents,
+    p_provider_ref,
+    COALESCE(p_metadata, '{}'::jsonb)
+      || jsonb_build_object(
+        'paymob_unmapped', true,
+        'needs_admin_review', true,
+        'unmapped_order', true
+      ),
+    true
+  )
+  ON CONFLICT (paymob_transaction_id) DO UPDATE SET
+    paymob_integration_id = EXCLUDED.paymob_integration_id,
+    currency = EXCLUDED.currency,
+    amount_cents = EXCLUDED.amount_cents,
+    provider_ref = EXCLUDED.provider_ref,
+    metadata = public.paymob_unmapped_captures.metadata || EXCLUDED.metadata,
+    needs_admin_review = true;
+
+  INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
+  VALUES (p_paymob_transaction_id, NULL, 'unmapped')
+  ON CONFLICT (paymob_transaction_id) DO UPDATE SET
+    outcome = EXCLUDED.outcome,
+    processed_at = now();
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'unmapped_order', true,
+    'needs_admin_review', true,
+    'paymob_transaction_id', p_paymob_transaction_id,
+    'paymob_order_id', p_order_id
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.paymob_record_unmapped_capture(bigint, bigint, bigint, text, bigint, text, jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paymob_record_unmapped_capture(bigint, bigint, bigint, text, bigint, text, jsonb)
+  TO service_role;
+
 -- ---------------------------------------------------------------------------
 -- #451 Late capture shortfall + unmapped debt-settlement capture
 -- ---------------------------------------------------------------------------
@@ -289,6 +470,13 @@ BEGIN
       p_success, p_pending, p_amount_cents, p_provider_ref
     );
   END IF;
+  UPDATE public.paymob_unmapped_captures u
+  SET
+    reconciled_payment_id = v_payment.id,
+    reconciled_at = now(),
+    needs_admin_review = false
+  WHERE u.paymob_order_id = p_order_id
+    AND u.reconciled_payment_id IS NULL;
   IF v_payment.payment_method_code IS DISTINCT FROM 'paymob'
      OR v_payment.payment_method_type IS DISTINCT FROM 'online'
      OR v_payment.paymob_integration_id IS DISTINCT FROM p_integration_id
@@ -300,10 +488,12 @@ BEGIN
   v_status := v_outcome::public.payment_status;
   SELECT * INTO v_event FROM public.paymob_webhook_events WHERE paymob_transaction_id = p_paymob_transaction_id;
   IF FOUND THEN
-    IF v_event.payment_id IS DISTINCT FROM v_payment.id THEN
+    IF v_event.payment_id IS NOT NULL AND v_event.payment_id IS DISTINCT FROM v_payment.id THEN
       RAISE EXCEPTION 'Paymob transaction already belongs to another payment.' USING ERRCODE = '23514';
     END IF;
-    IF v_event.outcome <> 'pending' OR p_pending THEN
+    IF v_event.outcome = 'unmapped' AND v_event.payment_id IS NULL THEN
+      NULL;
+    ELSIF v_event.outcome <> 'pending' OR p_pending THEN
       RETURN jsonb_build_object('duplicate', true);
     END IF;
   END IF;
@@ -380,7 +570,10 @@ BEGIN
 
   INSERT INTO public.paymob_webhook_events(paymob_transaction_id, payment_id, outcome)
   VALUES(p_paymob_transaction_id, v_payment.id, v_outcome)
-  ON CONFLICT(paymob_transaction_id) DO UPDATE SET outcome = EXCLUDED.outcome, processed_at = now();
+  ON CONFLICT(paymob_transaction_id) DO UPDATE SET
+    outcome = EXCLUDED.outcome,
+    payment_id = EXCLUDED.payment_id,
+    processed_at = now();
   UPDATE public.payments SET status = v_status, provider_ref = p_provider_ref,
     metadata = COALESCE(metadata, '{}'::jsonb) || v_meta,
     captured_at = CASE WHEN v_status = 'captured' THEN now() ELSE captured_at END,
@@ -409,13 +602,14 @@ BEGIN
   WHERE paymob_order_id = p_order_id;
   IF NOT FOUND THEN
     IF COALESCE(p_success, false) AND NOT COALESCE(p_pending, true) THEN
-      INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
-      VALUES (p_paymob_transaction_id, NULL, 'ignored')
-      ON CONFLICT (paymob_transaction_id) DO NOTHING;
-      RETURN jsonb_build_object(
-        'ok', true,
-        'unmapped_order', true,
-        'needs_admin_review', true
+      RETURN public.paymob_record_unmapped_capture(
+        p_paymob_transaction_id,
+        p_order_id,
+        p_integration_id,
+        p_currency,
+        p_amount_cents,
+        p_provider_ref,
+        jsonb_build_object('debt_settlement_unmapped', true)
       );
     END IF;
     RAISE EXCEPTION 'Trusted Paymob order mapping not found.' USING ERRCODE = 'P0002';
@@ -457,7 +651,7 @@ REVOKE ALL ON FUNCTION public.paymob_apply_debt_settlement(bigint, bigint, bigin
 ALTER TABLE public.paymob_webhook_events DROP CONSTRAINT IF EXISTS paymob_webhook_events_outcome_check;
 ALTER TABLE public.paymob_webhook_events
   ADD CONSTRAINT paymob_webhook_events_outcome_check
-  CHECK (outcome IN ('captured', 'rejected', 'pending', 'ignored', 'refunded'));
+  CHECK (outcome IN ('captured', 'rejected', 'pending', 'ignored', 'refunded', 'unmapped'));
 
 CREATE OR REPLACE FUNCTION public.paymob_apply_refund_webhook(
   p_paymob_transaction_id bigint,
@@ -475,6 +669,8 @@ DECLARE
   v_payment public.payments%ROWTYPE;
   v_event public.paymob_webhook_events%ROWTYPE;
   v_status public.payment_status;
+  v_reuse_capture boolean := false;
+  v_meta jsonb;
 BEGIN
   IF p_paymob_transaction_id IS NULL OR p_paymob_transaction_id <= 0
      OR p_order_id IS NULL OR p_order_id <= 0 THEN
@@ -487,7 +683,14 @@ BEGIN
   FROM public.paymob_webhook_events
   WHERE paymob_transaction_id = p_paymob_transaction_id;
   IF FOUND THEN
+  IF v_event.outcome = 'refunded' THEN
     RETURN jsonb_build_object('duplicate', true, 'payment_id', v_event.payment_id);
+  END IF;
+  IF v_event.outcome = 'captured' THEN
+    v_reuse_capture := true;
+  ELSIF v_event.outcome <> 'pending' THEN
+    RETURN jsonb_build_object('duplicate', true, 'payment_id', v_event.payment_id);
+  END IF;
   END IF;
 
   SELECT * INTO v_payment
@@ -496,36 +699,51 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND THEN
-    INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
-    VALUES (p_paymob_transaction_id, NULL, 'ignored');
-    RETURN jsonb_build_object(
-      'ok', true,
-      'unmapped_order', true,
-      'needs_admin_review', true
+    RETURN public.paymob_record_unmapped_capture(
+      p_paymob_transaction_id,
+      p_order_id,
+      NULL,
+      NULL,
+      p_amount_cents,
+      NULL,
+      COALESCE(p_metadata, '{}'::jsonb)
+        || jsonb_build_object('gateway_refund_voided', COALESCE(p_is_voided, false))
     );
   END IF;
 
-  v_status := v_payment.status;
+  IF v_reuse_capture
+     AND COALESCE(v_payment.metadata->>'gateway_refund_recorded_at', '') <> '' THEN
+    RETURN jsonb_build_object('duplicate', true, 'payment_id', v_payment.id);
+  END IF;
 
-  UPDATE public.payments
-  SET metadata = COALESCE(metadata, '{}'::jsonb)
-    || COALESCE(p_metadata, '{}'::jsonb)
+  v_status := v_payment.status;
+  v_meta := COALESCE(p_metadata, '{}'::jsonb)
     || jsonb_build_object(
       'gateway_refund_recorded_at', now(),
       'gateway_refund_amount_cents', p_amount_cents,
       'gateway_refund_voided', COALESCE(p_is_voided, false),
       'needs_admin_review', true
-    )
+    );
+
+  UPDATE public.payments
+  SET metadata = COALESCE(metadata, '{}'::jsonb) || v_meta
   WHERE id = v_payment.id;
 
-  INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
-  VALUES (p_paymob_transaction_id, v_payment.id, 'refunded');
+  IF NOT v_reuse_capture THEN
+    INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
+    VALUES (p_paymob_transaction_id, v_payment.id, 'refunded')
+    ON CONFLICT (paymob_transaction_id) DO UPDATE SET
+      payment_id = EXCLUDED.payment_id,
+      outcome = EXCLUDED.outcome,
+      processed_at = now();
+  END IF;
 
   RETURN jsonb_build_object(
     'ok', true,
     'payment_id', v_payment.id,
     'status', v_status,
-    'outcome', 'refunded'
+    'outcome', 'refunded',
+    'capture_preserved', v_reuse_capture
   );
 END;
 $$;
@@ -900,6 +1118,8 @@ DECLARE
   v_offset int := GREATEST(COALESCE(p_offset, 0), 0);
   v_total bigint;
   v_items jsonb;
+  v_unmapped bigint;
+  v_unmapped_items jsonb;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
@@ -1003,6 +1223,44 @@ BEGIN
     ), '[]'::jsonb)
   INTO v_total, v_items;
 
+  IF v_tab = 'needs_action' THEN
+    SELECT count(*) INTO v_unmapped
+    FROM public.paymob_unmapped_captures u
+    WHERE u.needs_admin_review AND u.reconciled_payment_id IS NULL;
+
+    SELECT COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'id', NULL,
+          'booking_id', NULL,
+          'customer_id', NULL,
+          'amount', round(u.amount_cents::numeric / 100.0, 2),
+          'currency', COALESCE(u.currency, 'EGP'),
+          'status', 'captured',
+          'method', 'paymob',
+          'payment_method_type', 'online',
+          'payment_method_code', 'paymob',
+          'created_at', u.created_at,
+          'metadata', u.metadata || jsonb_build_object(
+            'paymob_unmapped', true,
+            'paymob_order_id', u.paymob_order_id,
+            'paymob_transaction_id', u.paymob_transaction_id,
+            'needs_admin_review', true
+          ),
+          'situation', 'paymobNeedsAction',
+          'booking', NULL
+        ) ORDER BY u.created_at DESC
+      ),
+      '[]'::jsonb
+    )
+    INTO v_unmapped_items
+    FROM public.paymob_unmapped_captures u
+    WHERE u.needs_admin_review AND u.reconciled_payment_id IS NULL;
+
+    v_total := COALESCE(v_total, 0) + COALESCE(v_unmapped, 0);
+    v_items := COALESCE(v_items, '[]'::jsonb) || COALESCE(v_unmapped_items, '[]'::jsonb);
+  END IF;
+
   RETURN jsonb_build_object(
     'tab', v_tab,
     'total', v_total,
@@ -1030,6 +1288,7 @@ DECLARE
   v_cash bigint;
   v_needs_action bigint;
   v_fee_payments bigint;
+  v_unmapped bigint;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
@@ -1065,6 +1324,15 @@ BEGIN
   INTO v_fee_payments
   FROM public.customer_debt_settlements s
   WHERE s.status = 'pending_review';
+
+  SELECT count(*)
+  INTO v_unmapped
+  FROM public.paymob_unmapped_captures u
+  WHERE u.needs_admin_review AND u.reconciled_payment_id IS NULL;
+
+  v_needs_action := COALESCE(v_needs_action, 0)
+    + COALESCE(v_fee_payments, 0)
+    + COALESCE(v_unmapped, 0);
 
   RETURN jsonb_build_object(
     'refunds_due', COALESCE(v_refunds, 0),
