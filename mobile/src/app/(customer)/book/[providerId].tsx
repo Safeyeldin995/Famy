@@ -131,6 +131,8 @@ import {
 import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
+import { useCancellationPolicy } from "@/lib/caseQueries";
+import { cancellationPolicyLine, normalizeCancellationPolicy } from "@/lib/customerCasesPure";
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
   const {
@@ -185,6 +187,12 @@ function BookForm({
   const isOnlineBooking = serviceMode === "online";
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  // Show the in-person cancellation rule (from the database) before the customer commits.
+  const cancellationPolicy = useCancellationPolicy("in_person");
+  const policyLine = cancellationPolicyLine(
+    normalizeCancellationPolicy(cancellationPolicy.data),
+    (amount) => money(amount, lang),
+  );
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
   const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
   const [editing, setEditing] = useState(false);
@@ -1314,6 +1322,11 @@ function BookForm({
                 {t("onlineLesson.requestHint")}
               </Text>
             </>
+          ) : null}
+          {!isOnlineBooking && policyLine ? (
+            <Text size="sm" weight="bold" accessibilityRole="text">
+              {t(policyLine.key, policyLine.params)}
+            </Text>
           ) : null}
           {!isOnlineBooking ? <QueryState query={methods} empty={!methods.data?.length} /> : null}
           {!isOnlineBooking ? (
