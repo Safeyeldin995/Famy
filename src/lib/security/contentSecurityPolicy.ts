@@ -16,8 +16,8 @@ function hostFromDsn(dsn: string | undefined): string | null {
   }
 }
 
-function uniqueSources(sources: string[]): string[] {
-  return [...new Set(sources.filter(Boolean))];
+function uniqueSources(sources: Array<string | null | undefined>): string[] {
+  return [...new Set(sources.filter((s): s is string => Boolean(s)))];
 }
 
 function warnMissingCspOrigin(label: string, envKeys: string[]): void {
