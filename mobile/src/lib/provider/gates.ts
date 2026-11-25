@@ -14,9 +14,7 @@ export function providerStatusNativePath(
 ): ProviderNativePath {
   if (!hasProviderRow || onboardingStatus === "DRAFT" || !onboardingStatus) return "/pro-apply";
   // Like web /pro: show the admin's reason and the resubmit action, not the signup wizard.
-  if (onboardingStatus === "NEEDS_CHANGES") return "/pro-setup-home";
-  if (onboardingStatus === "SUBMITTED" || onboardingStatus === "UNDER_REVIEW")
-    return "/pro-documents";
+  // Submitted / under review / needs changes / rejected / suspended: home checklist (not documents).
   return "/pro-setup-home";
 }
 
@@ -35,6 +33,12 @@ export function providerStatusTitleKey(
   return "mobilePro.finishOnWeb";
 }
 
+export function providerOnboardingTerminal(
+  onboardingStatus: string | null | undefined,
+): onboardingStatus is "REJECTED" | "SUSPENDED" {
+  return onboardingStatus === "REJECTED" || onboardingStatus === "SUSPENDED";
+}
+
 export function providerStatusBodyKey(
   hasProviderRow: boolean,
   onboardingStatus: string | null | undefined,
@@ -45,5 +49,7 @@ export function providerStatusBodyKey(
   if (onboardingStatus === "SUBMITTED" || onboardingStatus === "UNDER_REVIEW") {
     return "pro.onboardingWizard.statusBody.UNDER_REVIEW";
   }
+  if (onboardingStatus === "REJECTED") return "pro.onboardingWizard.statusBody.REJECTED";
+  if (onboardingStatus === "SUSPENDED") return "pro.onboardingWizard.statusBody.SUSPENDED";
   return "mobilePro.finishOnWebBody";
 }

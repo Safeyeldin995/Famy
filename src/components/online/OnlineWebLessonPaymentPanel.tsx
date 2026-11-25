@@ -35,7 +35,7 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
       return Number(row?.available_amount ?? 0);
     },
   });
-  const walletBalance = balanceQ.data ?? 0;
+  const walletBalance = balanceQ.isSuccess ? balanceQ.data ?? 0 : 0;
 
   const onlineMethod = useMemo(
     () =>
@@ -95,8 +95,8 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
         returnSurface: "online_web",
       });
       if (!checkout.ok) throw new Error(checkout.message);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("onlineLesson.payFailedNext"));
+    } catch {
+      toast.error(t("onlineLesson.payFailedNext"));
     } finally {
       setBusy(false);
     }
@@ -119,7 +119,25 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
               amount: formatEGP(cardDue, undefined, i18n.language),
             })}
       </p>
-      <PrimaryButton className="h-12 w-full" disabled={busy} onClick={() => void payOnce()}>
+      {balanceQ.isLoading ? (
+        <p className="text-pro-13 text-muted-foreground">{t("common.loading")}</p>
+      ) : balanceQ.isError ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-pro-13 text-muted-foreground">{t("onlineWeb.wallet.balanceError")}</p>
+          <button
+            type="button"
+            className="text-pro-13 font-bold text-brand underline"
+            onClick={() => void balanceQ.refetch()}
+          >
+            {t("common.tryAgain")}
+          </button>
+        </div>
+      ) : null}
+      <PrimaryButton
+        className="h-12 w-full"
+        disabled={busy || balanceQ.isLoading || balanceQ.isError}
+        onClick={() => void payOnce()}
+      >
         {walletOnly ? t("onlineLesson.confirmWalletPay") : t("onlineWeb.walkthrough.payNow")}
       </PrimaryButton>
     </div>

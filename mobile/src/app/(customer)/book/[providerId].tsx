@@ -15,6 +15,7 @@ import {
   type CapabilityPickValue,
 } from "@shared/tutoring/providerCapabilityCascade";
 import { planPostCreatePayment } from "@/lib/bookingPure";
+import { hapticSuccess } from "@/ui/haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -543,22 +544,11 @@ function BookForm({
         router.replace({ pathname: "/booking/[id]", params: { id: createdId.current } });
         return;
       }
-      const { data: clashes, error: clashError } = await supabase
-        .from("bookings")
-        .select("id")
-        .eq("provider_id", providerId)
-        .in("status", [
-          "pending",
-          "confirmed",
-          "on_the_way",
-          "arrived",
-          "arrival_confirmed",
-          "in_progress",
-          "completion_requested",
-        ])
-        .lt("start_at", currentSlot.end.toISOString())
-        .gt("end_at", currentSlot.start.toISOString())
-        .limit(1);
+      const { data: clashes, error: clashError } = await supabase.rpc("provider_busy_ranges", {
+        p_provider_id: providerId,
+        p_from: currentSlot.start.toISOString(),
+        p_to: currentSlot.end.toISOString(),
+      });
       if (clashError) throw clashError;
       if (clashes?.length) {
         setSlot(null);
@@ -664,6 +654,7 @@ function BookForm({
           }
         }
       }
+      hapticSuccess();
       router.replace({
         pathname: "/booking/[id]",
         params: { id: booking.id, created: "1", educationWarning: educationWarning ? "1" : "0" },
@@ -685,7 +676,7 @@ function BookForm({
     }
   }
   const recipientUI = (
-    <View style={{ gap: 12 }}>
+    <View nativeID="booking-recipient" style={{ gap: 12 }}>
       <Choices
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
@@ -1013,6 +1004,10 @@ function BookForm({
       )}
       {isOnlineWhenStep(step, isOnlineBooking) && (
         <>
+          {isOnlineBooking && tutoring ? recipientUI : null}
+          {fieldHint?.focusId === "booking-recipient" ? (
+            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          ) : null}
           {isOnlineBooking && service ? (
             <Text weight="bold">
               {localized(service.service, lang)} · {provider.data?.profile.full_name?.split(" ")[0]}

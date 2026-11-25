@@ -11,15 +11,25 @@ import { Button } from "./Button";
 import { DateField } from "./DateField";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 import { scheduleTimeChoices, timeChoiceLabel } from "@shared/provider/scheduleDate";
+import { formatBookingDurationLabel } from "@/lib/bookingDuration";
+import { rescheduleErrorKey } from "@/lib/serverErrorMessages";
+
+function rescheduleErrorMessage(error: unknown, t: (key: string) => string) {
+  return t(rescheduleErrorKey(error));
+}
 
 export function RescheduleSection({
   booking,
+  viewer = "customer",
 }: {
   booking: { id: string; customer_id: string; status: string; start_at: string; end_at: string };
+  viewer?: "customer" | "provider";
 }) {
   const { t, i18n } = useTranslation();
   const requests = useRescheduleRequests(booking.id);
   const action = useRescheduleAction(booking.id);
+  // The server refuses any change in session length: a reschedule only moves the start.
+  const sessionMs = +new Date(booking.end_at) - +new Date(booking.start_at);
   const initial = new Date(booking.start_at);
   const [date, setDate] = useState(
     `${initial.getFullYear()}-${String(initial.getMonth() + 1).padStart(2, "0")}-${String(initial.getDate()).padStart(2, "0")}`,
@@ -27,17 +37,21 @@ export function RescheduleSection({
   const [time, setTime] = useState(
     `${String(initial.getHours()).padStart(2, "0")}:${String(initial.getMinutes()).padStart(2, "0")}`,
   );
-  const [hours, setHours] = useState(
-    String(Math.max(1, Math.round((+new Date(booking.end_at) - +initial) / 3600000))),
-  );
   const [reason, setReason] = useState("");
-  const [form, setForm] = useState<"" | "request" | "reject" | "withdraw">("");
+  const [form, setForm] = useState<"" | "request" | "reject" | "withdraw" | "counter">("");
   const [history, setHistory] = useState(false);
   const open = requests.data?.find((row) => row.status === "pending");
-  const mine = open?.requested_by === booking.customer_id;
+  const requestedByCustomer = open ? open.requested_by === booking.customer_id : false;
+  const awaitingMe = open
+    ? viewer === "customer"
+      ? !requestedByCustomer
+      : requestedByCustomer
+    : false;
+  const isMine = open ? !awaitingMe : false;
   const eligible = ["pending", "confirmed"].includes(booking.status);
   const start = new Date(`${date}T${time}:00`);
-  const valid = Number.isFinite(+start) && Number.isInteger(Number(hours)) && Number(hours) >= 1;
+  const valid = Number.isFinite(+start) && sessionMs > 0;
+  const durationLabel = formatBookingDurationLabel(booking.start_at, booking.end_at, i18n.language, t);
   if (!eligible && !requests.data?.length && !requests.isError) return null;
   const perform = (input: Parameters<typeof action.mutate>[0]) =>
     action.mutate(input, {
@@ -52,55 +66,82 @@ export function RescheduleSection({
       <QueryState query={requests}>
         {open ? (
           <>
-            <Text>{dateTime(open.proposed_start_at, i18n.language)}</Text>
-            {!!open.reason && (
+            <Text>
+              {joinUiParts(
+                [dateTime(open.proposed_start_at, i18n.language), dateTime(open.proposed_end_at, i18n.language)],
+                i18n.language,
+              )}
+            </Text>
+            {!!open.request_reason && (
               <Text size="sm" tone="muted">
-                {open.reason}
+                {open.request_reason}
               </Text>
             )}
-            {mine ? (
+            {awaitingMe ? (
+              <View style={{ gap: space.sm }}>
+                <View style={{ flexDirection: "row", gap: space.sm }}>
+                  <Button
+                    style={{ flex: 1 }}
+                    label={t("reschedule.accept")}
+                    disabled={action.isPending}
+                    onPress={() => perform({ type: "accept", requestId: open.id })}
+                  />
+                  <Button
+                    style={{ flex: 1 }}
+                    variant="secondary"
+                    label={t("reschedule.reject")}
+                    disabled={action.isPending}
+                    onPress={() => setForm("reject")}
+                  />
+                </View>
+                {viewer === "provider" ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("reschedule.proposeOther")}
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                    onPress={() => setForm("counter")}
+                  >
+                    <Text tone="brand" weight="heavy">
+                      {t("reschedule.proposeOther")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
               <>
                 <Text size="sm" tone="muted">
                   {t("reschedule.waiting")}
                 </Text>
-                <Button
-                  variant="secondary"
-                  label={t("reschedule.withdraw")}
-                  onPress={() => setForm("withdraw")}
-                  disabled={action.isPending}
-                />
+                {isMine ? (
+                  <Button
+                    variant="secondary"
+                    label={t("reschedule.withdraw")}
+                    onPress={() => setForm("withdraw")}
+                    disabled={action.isPending}
+                  />
+                ) : null}
               </>
-            ) : (
-              <View style={{ flexDirection: "row", gap: space.sm }}>
-                <Button
-                  style={{ flex: 1 }}
-                  label={t("reschedule.accept")}
-                  disabled={action.isPending}
-                  onPress={() => perform({ type: "accept", requestId: open.id })}
-                />
-                <Button
-                  style={{ flex: 1 }}
-                  variant="secondary"
-                  label={t("reschedule.reject")}
-                  disabled={action.isPending}
-                  onPress={() => setForm("reject")}
-                />
-              </View>
             )}
           </>
         ) : eligible && !form ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("reschedule.requestButton")}
-            style={{ minHeight: 44, justifyContent: "center" }}
-            onPress={() => setForm("request")}
-          >
-            <Text tone="brand" weight="heavy">
-              {t("reschedule.requestButton")}
+          viewer === "customer" ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("reschedule.requestButton")}
+              style={{ minHeight: 44, justifyContent: "center" }}
+              onPress={() => setForm("request")}
+            >
+              <Text tone="brand" weight="heavy">
+                {t("reschedule.requestButton")}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text size="sm" tone="muted">
+              {t("reschedule.noneOpen")}
             </Text>
-          </Pressable>
+          )
         ) : null}
-        {form === "request" && !open && (
+        {form === "request" && !open && viewer === "customer" && (
           <>
             <DateField label={t("reschedule.proposedTime")} value={date} onChange={setDate} />
             <BottomSheetSelect
@@ -112,12 +153,9 @@ export function RescheduleSection({
               }))}
               onChange={setTime}
             />
-            <Field
-              label={t("reschedule.durationHours")}
-              value={hours}
-              onChangeText={setHours}
-              keyboardType="number-pad"
-            />
+            <Text size="sm" tone="muted">
+              {t("reschedule.sameDuration", { duration: durationLabel })}
+            </Text>
             <Field label={t("reschedule.reasonOptional")} value={reason} onChangeText={setReason} />
             <Button
               label={t("reschedule.sendRequest")}
@@ -128,7 +166,40 @@ export function RescheduleSection({
                   perform({
                     type: "request",
                     start: start.toISOString(),
-                    end: new Date(+start + Number(hours) * 3600000).toISOString(),
+                    end: new Date(+start + sessionMs).toISOString(),
+                    reason,
+                  });
+              }}
+            />
+          </>
+        )}
+        {form === "counter" && open && viewer === "provider" && (
+          <>
+            <DateField label={t("reschedule.proposedTime")} value={date} onChange={setDate} />
+            <BottomSheetSelect
+              label={t("pro.schedule.start")}
+              value={time}
+              options={scheduleTimeChoices(time, false).map((value) => ({
+                value,
+                label: timeChoiceLabel(value, i18n.language),
+              }))}
+              onChange={setTime}
+            />
+            <Text size="sm" tone="muted">
+              {t("reschedule.sameDuration", { duration: durationLabel })}
+            </Text>
+            <Field label={t("reschedule.reasonOptional")} value={reason} onChangeText={setReason} />
+            <Button
+              label={t("reschedule.sendProposal")}
+              disabled={!valid}
+              loading={action.isPending}
+              onPress={() => {
+                if (valid)
+                  perform({
+                    type: "counter",
+                    requestId: open.id,
+                    start: start.toISOString(),
+                    end: new Date(+start + sessionMs).toISOString(),
                     reason,
                   });
               }}
@@ -186,6 +257,7 @@ export function RescheduleSection({
                       : "reschedule.byProvider",
                   ),
                   dateTime(row.proposed_start_at, i18n.language),
+                  dateTime(row.proposed_end_at, i18n.language),
                   t(`reschedule.status.${row.status}`),
                 ],
                 i18n.language,
@@ -195,7 +267,7 @@ export function RescheduleSection({
       </QueryState>
       {action.isError && (
         <Text tone="danger" accessibilityLiveRegion="polite">
-          {t("common.somethingWentWrong")}
+          {rescheduleErrorMessage(action.error, t)}
         </Text>
       )}
     </View>

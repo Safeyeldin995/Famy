@@ -7,6 +7,7 @@ import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
 import {
   providerPriceChangeDirty,
   providerPriceNeedsAdminReview,
+  providerServicePriceEditingBlocked,
 } from "@/lib/provider/providerPriceChangeRequest";
 import { useTranslation } from "react-i18next";
 
@@ -50,6 +51,7 @@ export function ProviderServicePricePanel({
   errorMessage,
 }: Props) {
   const { t } = useTranslation();
+  const priceLocked = providerServicePriceEditingBlocked(serviceStatus);
   const needsReview = providerPriceNeedsAdminReview(onboardingStatus, serviceStatus);
   const pickerValue = draft ?? pendingPrice ?? livePrice ?? null;
 
@@ -73,15 +75,20 @@ export function ProviderServicePricePanel({
           })}
         </p>
       ) : null}
+      {priceLocked ? (
+        <p className="rounded-xl bg-muted/50 p-2 text-xs font-semibold text-muted-foreground">
+          {t("pro.serviceLifecycle.priceResumeFirst")}
+        </p>
+      ) : null}
       <ServicePricePicker
         min={min}
         max={max}
         value={pickerValue}
         onChange={onDraftChange}
         unitLabel={unitLabel}
-        disabled={pendingPrice != null}
+        disabled={pendingPrice != null || priceLocked}
       />
-      {needsReview ? (
+      {!priceLocked && needsReview ? (
         <>
           {pendingPrice != null ? (
             <button
@@ -103,7 +110,7 @@ export function ProviderServicePricePanel({
             </button>
           ) : null}
         </>
-      ) : profilePriceDirty(draft ?? undefined, livePrice) ? (
+      ) : !priceLocked && profilePriceDirty(draft ?? undefined, livePrice) ? (
         <button
           type="button"
           onClick={onSaveDirect}
