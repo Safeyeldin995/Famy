@@ -1,7 +1,6 @@
 import type { SupabaseAdminClient } from "@/lib/paymob/paymobCheckout.server";
-import type { SessionBookingSnapshot } from "@/lib/livekit/sessionAccess";
+import { paymentCapturedForJoin, type SessionBookingSnapshot } from "@/lib/livekit/sessionAccess";
 
-const CAPTURED = new Set(["captured"]);
 const PENDING_REVIEW_MANUAL = "pending_review";
 
 export async function loadSessionBookingSnapshot(
@@ -33,9 +32,7 @@ export async function loadSessionBookingSnapshot(
   if (payErr) throw payErr;
 
   const payment_captured = (payments ?? []).some(
-    (p: { status: string; payment_method_type: string | null }) =>
-      CAPTURED.has(p.status) &&
-      (p.payment_method_type === "online" || p.payment_method_type === "manual_transfer"),
+    (p: { status: string; payment_method_type: string | null }) => paymentCapturedForJoin(p),
   );
 
   return {

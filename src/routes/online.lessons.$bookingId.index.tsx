@@ -10,7 +10,7 @@ import { useCancelBooking } from "@/lib/db/cancellation-queries";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
-import { authorizeSessionJoin, sessionJoinWindow } from "@/lib/livekit/sessionAccess";
+import { authorizeSessionJoin, paymentCapturedForJoin, sessionJoinWindow } from "@/lib/livekit/sessionAccess";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
@@ -82,6 +82,9 @@ function OnlineLessonDetail() {
     proofPath: paymentQ.data?.proof_path,
   });
 
+  // Joining needs a captured payment (server rule); a receipt in review only holds money.
+  const captured = paymentCapturedForJoin(paymentQ.data);
+
   const joinAuth =
     userQ.data && booking
       ? authorizeSessionJoin(
@@ -96,7 +99,7 @@ function OnlineLessonDetail() {
             ),
             start_at: String(booking.start_at),
             end_at: String(booking.end_at),
-            payment_captured: paid,
+            payment_captured: captured,
           },
           userQ.data,
         )
@@ -128,6 +131,10 @@ function OnlineLessonDetail() {
           total={totalDue}
           onPaid={() => void paymentQ.refetch()}
         />
+      ) : null}
+
+      {isCustomer && paid && !captured ? (
+        <p className="text-pro-14 font-bold text-muted-foreground">{t("payment.awaitingReview")}</p>
       ) : null}
 
       {joinAuth.ok && joinWindow.open ? (

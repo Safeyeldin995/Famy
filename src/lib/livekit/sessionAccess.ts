@@ -12,6 +12,18 @@ export type SessionBookingSnapshot = {
   payment_captured: boolean;
 };
 
+/**
+ * Same predicate the server uses before issuing a room token: only a captured
+ * online or manual-transfer payment lets a participant join. A receipt still in
+ * review holds money but does not unlock the room.
+ */
+export function paymentCapturedForJoin(
+  p: { status?: string | null; payment_method_type?: string | null } | null | undefined,
+): boolean {
+  if (!p || p.status !== "captured") return false;
+  return p.payment_method_type === "online" || p.payment_method_type === "manual_transfer";
+}
+
 const JOINABLE_STATUSES = new Set(["confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress"]);
 
 const PREJOIN_MS = 10 * 60 * 1000;
