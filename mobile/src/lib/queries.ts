@@ -408,7 +408,7 @@ export function useMyBookings() {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          `*, service:services(*), payments(status, payment_method_type, proof_path)`,
+          `*, service:services(*), payments(status, payment_method_type, proof_path, created_at)`,
         )
         .eq("customer_id", user.id)
         .order("start_at", { ascending: false });

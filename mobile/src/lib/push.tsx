@@ -16,6 +16,11 @@ import { navigatePushTarget } from "./pushNavigation";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
+import {
+  shouldShowMobileCustomerExplanationPushModal,
+  shouldShowMobileLaunchPushModal,
+  type MobileOsPermission,
+} from "@shared/push/mobilePromptPolicy";
 
 const PROMPT_SEEN_KEY = "famy.mobilePush.promptSeen";
 const ACTIVE_TOKEN_KEY = "famy.mobilePush.activeToken";
@@ -168,9 +173,9 @@ export function PushBridge() {
       void (async () => {
         if (!Device.isDevice || Platform.OS === "web" || !session) return;
         const { status: existing } = await Notifications.getPermissionsAsync();
-        if (existing === "granted" || existing === "denied") return;
-        const seen = await AsyncStorage.getItem(PROMPT_SEEN_KEY);
-        if (seen) return;
+        const permission = existing as MobileOsPermission;
+        const seen = (await AsyncStorage.getItem(PROMPT_SEEN_KEY)) === "1";
+        if (!shouldShowMobileCustomerExplanationPushModal(permission, seen)) return;
         setPromptOpen(true);
       })();
     };
@@ -180,19 +185,26 @@ export function PushBridge() {
   }, [session]);
 
   const runPromptFlow = useCallback(async () => {
-    if (!Device.isDevice || Platform.OS === "web" || !session) return;
+    if (!Device.isDevice || Platform.OS === "web" || !session || !workspace) return;
     try {
       const { status: existing } = await Notifications.getPermissionsAsync();
-      if (existing === "granted") await syncPushRegistration();
+      const permission = existing as MobileOsPermission;
+      if (permission === "granted") {
+        await syncPushRegistration();
+        return;
+      }
+      const seen = (await AsyncStorage.getItem(PROMPT_SEEN_KEY)) === "1";
+      const ws = workspace === "provider" ? "provider" : "customer";
+      if (shouldShowMobileLaunchPushModal(ws, permission, seen)) setPromptOpen(true);
     } catch {
       // Permission or token failures must not break the app shell.
     }
-  }, [session]);
+  }, [session, workspace]);
 
   useEffect(() => {
-    if (!ready || !session) return;
+    if (!ready || !session || !workspace) return;
     void runPromptFlow();
-  }, [ready, session, runPromptFlow]);
+  }, [ready, session, workspace, runPromptFlow]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;

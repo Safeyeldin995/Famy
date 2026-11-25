@@ -54,7 +54,7 @@ export function Discovery({ category: group }: { category?: string }) {
   const [serviceId, setServiceId] = useState("");
   const [serviceMode, setServiceMode] = useState<"in_person" | "online">("in_person");
   const [sort, setSort] = useState("top");
-  const [searchSort, setSearchSort] = useState<"default" | "price" | "next">("default");
+  const [searchSort, setSearchSort] = useState<"default" | "price">("default");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const onlineCaps = useOnlineSessionsAvailable();
   const addresses = useAddresses();
@@ -158,12 +158,6 @@ export function Discovery({ category: group }: { category?: string }) {
     if (verifiedOnly) list = list.filter((p) => p.is_verified);
     if (searchSort === "price") {
       list = [...list].sort((a, b) => Number(a.hourly_rate ?? 0) - Number(b.hourly_rate ?? 0));
-    } else if (searchSort === "next") {
-      list = [...list].sort((a, b) => {
-        const ar = a.response_time_min ?? 999_999;
-        const br = b.response_time_min ?? 999_999;
-        return ar - br;
-      });
     }
     return list;
   }, [items, searchSort, verifiedOnly]);

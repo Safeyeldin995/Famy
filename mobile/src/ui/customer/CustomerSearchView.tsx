@@ -32,8 +32,8 @@ type Props = {
   addresses: ReturnType<typeof useAddresses>;
   services: ReturnType<typeof useMarketplaceServices>;
   results: Provider[];
-  sort: "default" | "price" | "next";
-  setSort: (v: "default" | "price" | "next") => void;
+  sort: "default" | "price";
+  setSort: (v: "default" | "price") => void;
   verifiedOnly: boolean;
   setVerifiedOnly: (v: boolean) => void;
   capabilities: TeachingCapabilityOption[];
@@ -126,11 +126,10 @@ export function CustomerSearchView(p: Props) {
       />
       <CustomerChips
         value={p.sort}
-        onChange={(v) => p.setSort(v as "default" | "price" | "next")}
+        onChange={(v) => p.setSort(v as "default" | "price")}
         options={[
           { value: "default", label: t("category.sortTop") },
           { value: "price", label: t("category.sortPrice") },
-          { value: "next", label: t("customerSearch.sortNext") },
         ]}
       />
       <CustomerChips

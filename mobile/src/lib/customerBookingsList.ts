@@ -4,12 +4,12 @@ import {
 } from "@shared/home/activeHomeBookings";
 import { isPaymentEligibleBookingStatus } from "@/lib/bookingPure";
 import { moneyHeld } from "@shared/payments/refundOwed";
+import {
+  pickCurrentBookingPayment,
+  type BookingPaymentRow,
+} from "@shared/payments/currentBookingPayment";
 
-type PaymentRow = {
-  status?: string | null;
-  payment_method_type?: string | null;
-  proof_path?: string | null;
-};
+type PaymentRow = BookingPaymentRow;
 
 export type CustomerBookingListRow = {
   id: string;
@@ -21,9 +21,7 @@ export type CustomerBookingListRow = {
 };
 
 function latestPayment(booking: CustomerBookingListRow): PaymentRow | null {
-  if (!booking.payments) return null;
-  if (Array.isArray(booking.payments)) return booking.payments[0] ?? null;
-  return booking.payments;
+  return pickCurrentBookingPayment(booking.payments);
 }
 
 export function customerBookingListNeedsPayNow(booking: CustomerBookingListRow): boolean {
