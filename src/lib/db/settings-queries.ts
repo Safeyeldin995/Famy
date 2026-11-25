@@ -5,6 +5,11 @@
  * and are reused as-is.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  parseAppReleaseSettings,
+  validateAppReleaseSettings,
+  type AppReleaseSettings,
+} from "@/lib/appRelease";
 import { supabase } from "@/integrations/supabase/client";
 import {
   parseBookingExpirySettings,
@@ -405,6 +410,43 @@ export function useUpdateReleaseFeatureSettings() {
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "release_features"] }),
+  });
+}
+
+export function useAppReleaseSettingsAdmin() {
+  return useQuery({
+    queryKey: ["settings", "app_release"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "app_release")
+        .maybeSingle();
+      if (error) throw error;
+      return parseAppReleaseSettings((data?.value as Record<string, unknown>) ?? {});
+    },
+  });
+}
+
+export function useUpdateAppReleaseSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: AppReleaseSettings) => {
+      if (validateAppReleaseSettings(value).length > 0) {
+        throw new Error("App release settings are invalid.");
+      }
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "app_release", value }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseAppReleaseSettings(data.value as Record<string, unknown>);
+      if (JSON.stringify(stored) !== JSON.stringify(parseAppReleaseSettings(value))) {
+        throw new Error("App release settings did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "app_release"] }),
   });
 }
 

@@ -24,7 +24,15 @@ import {
   useUpdateProviderSettlementSettings,
   useReleaseFeatureSettingsAdmin,
   useUpdateReleaseFeatureSettings,
+  useAppReleaseSettingsAdmin,
+  useUpdateAppReleaseSettings,
 } from "@/lib/db/settings-queries";
+import {
+  DEFAULT_APP_RELEASE,
+  validateAppReleaseSettings,
+  type AppReleaseSettings,
+  type AppReleaseValidationError,
+} from "@/lib/appRelease";
 import {
   useAdminCategories,
   useSetCategoryActive,
@@ -134,8 +142,7 @@ function BillingSection() {
     vatNumber >= 0 &&
     vatNumber <= 100 &&
     feeNumber >= 0;
-  const onlineCommissionNumber =
-    onlineCommission.trim() === "" ? null : Number(onlineCommission);
+  const onlineCommissionNumber = onlineCommission.trim() === "" ? null : Number(onlineCommission);
   const onlineCommissionValid =
     onlineCommission.trim() === "" ||
     (Number.isFinite(onlineCommissionNumber) &&
@@ -973,6 +980,125 @@ function ReleaseFeaturesSection() {
   );
 }
 
+function AppReleaseSection() {
+  const { t } = useTranslation();
+  const q = useAppReleaseSettingsAdmin();
+  const update = useUpdateAppReleaseSettings();
+  const [form, setForm] = useState<AppReleaseSettings>(DEFAULT_APP_RELEASE);
+  useEffect(() => {
+    if (q.data) setForm(q.data);
+  }, [q.data]);
+  const saved = useSavedFlash(update.isPending, !update.isError);
+  const errors = validateAppReleaseSettings(form);
+  const errorFor = (field: keyof AppReleaseSettings) =>
+    errors.find((e: AppReleaseValidationError) => e.field === field);
+  const errorText = (e: AppReleaseValidationError | undefined) =>
+    !e
+      ? null
+      : e.code === "invalid_version"
+        ? t("admin.settings.appReleaseInvalidVersion")
+        : e.code === "min_above_latest"
+          ? t("admin.settings.appReleaseMinAboveLatest")
+          : t("admin.settings.appReleaseTooLong");
+
+  const versionField = (field: keyof AppReleaseSettings, labelKey: string) => {
+    const err = errorText(errorFor(field));
+    return (
+      <label className="block space-y-1">
+        <span className="text-pro-13 font-semibold">{t(labelKey)}</span>
+        <input
+          dir="ltr"
+          inputMode="decimal"
+          value={String(form[field])}
+          onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value.trim() }))}
+          aria-invalid={!!err}
+          className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+        />
+        {err ? <span className="block text-xs text-destructive">{err}</span> : null}
+      </label>
+    );
+  };
+
+  const messageField = (
+    field: "maintenance_message_ar" | "maintenance_message_en",
+    labelKey: string,
+  ) => {
+    const err = errorText(errorFor(field));
+    return (
+      <label className="block space-y-1">
+        <span className="text-pro-13 font-semibold">{t(labelKey)}</span>
+        <textarea
+          dir={field === "maintenance_message_ar" ? "rtl" : "ltr"}
+          rows={2}
+          value={form[field]}
+          onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+          aria-invalid={!!err}
+          className="w-full rounded-xl border bg-surface px-3 py-2 text-pro-14"
+        />
+        {err ? <span className="block text-xs text-destructive">{err}</span> : null}
+      </label>
+    );
+  };
+
+  return (
+    <SectionCard
+      title={t("admin.settings.appReleaseTitle")}
+      subtitle={t("admin.settings.appReleaseSubtitle")}
+    >
+      {q.isLoading ? (
+        <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError
+          message={t("admin.settings.appReleaseLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {versionField("min_version_android", "admin.settings.appReleaseMinAndroid")}
+            {versionField("latest_version_android", "admin.settings.appReleaseLatestAndroid")}
+            {versionField("min_version_ios", "admin.settings.appReleaseMinIos")}
+            {versionField("latest_version_ios", "admin.settings.appReleaseLatestIos")}
+          </div>
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/60 bg-surface-2 px-3 py-2">
+            <span>
+              <span className="block text-sm font-semibold">
+                {t("admin.settings.appReleaseMaintenance")}
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {t("admin.settings.appReleaseMaintenanceHint")}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={form.maintenance}
+              onChange={(e) => setForm((f) => ({ ...f, maintenance: e.target.checked }))}
+              className="h-5 w-5 rounded border-border"
+            />
+          </label>
+          {messageField("maintenance_message_ar", "admin.settings.appReleaseMessageAr")}
+          {messageField("maintenance_message_en", "admin.settings.appReleaseMessageEn")}
+        </div>
+      )}
+      <SaveButton
+        pending={update.isPending}
+        saved={saved}
+        onClick={() => {
+          if (errors.length > 0) {
+            toast.error(errorText(errors[0]) ?? t("admin.settings.appReleaseSaveError"));
+            return;
+          }
+          update.mutate(form, {
+            onSuccess: () => toast.success(t("admin.settings.appReleaseSaved")),
+            onError: () => toast.error(t("admin.settings.appReleaseSaveError")),
+          });
+        }}
+      />
+    </SectionCard>
+  );
+}
+
 function PlatformContentSection() {
   const { t, i18n } = useTranslation();
   return (
@@ -1000,6 +1126,7 @@ function AdminSettings() {
         <p className="text-xs text-muted-foreground">{t("admin.settings.subtitle")}</p>
       </div>
       <ReleaseFeaturesSection />
+      <AppReleaseSection />
       <BillingSection />
       <ProviderSettlementSettingsSection />
       <CancellationPolicySection />
