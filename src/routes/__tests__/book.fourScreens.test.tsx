@@ -213,6 +213,17 @@ vi.mock("@/lib/paymob/paymobRedirect", () => ({ redirectToPaymobCheckout: vi.fn(
 vi.mock("@/lib/push-prompt", () => ({ markCustomerPushPromptPending: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    rpc: async (name: string) => {
+      if (name === "provider_busy_ranges") {
+        return {
+          data: state.clash
+            ? [{ start_at: "2099-01-01T00:00:00.000Z", end_at: "2099-01-01T23:59:59.000Z" }]
+            : [],
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
     from: () => {
       const builder = {
         select: () => builder,

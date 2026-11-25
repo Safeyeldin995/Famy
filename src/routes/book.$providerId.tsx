@@ -785,22 +785,11 @@ function BookContentForm({
       // that constraint's 23P01 error regardless of what this check finds.
       // This exists only to give faster, more specific feedback in the
       // common (non-race) case.
-      const { data: clashes, error: clashErr } = await supabase
-        .from("bookings")
-        .select("id")
-        .eq("provider_id", p.id)
-        .in("status", [
-          "pending",
-          "confirmed",
-          "on_the_way",
-          "arrived",
-          "arrival_confirmed",
-          "in_progress",
-          "completion_requested",
-        ])
-        .lt("start_at", end.toISOString())
-        .gt("end_at", start.toISOString())
-        .limit(1);
+      const { data: clashes, error: clashErr } = await supabase.rpc("provider_busy_ranges", {
+        p_provider_id: p.id,
+        p_from: start.toISOString(),
+        p_to: end.toISOString(),
+      });
       if (clashErr) throw clashErr;
       if (clashes && clashes.length > 0) {
         toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));

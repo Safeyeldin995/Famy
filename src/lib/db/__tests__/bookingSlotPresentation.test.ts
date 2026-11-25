@@ -16,12 +16,17 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("@/lib/auth/useAuth", () => ({ useAuth: () => ({}) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    rpc: async () => ({
-      data: [
-        { vacation_mode: false, min_notice_hours: 2, max_advance_days: 30, buffer_minutes: 0 },
-      ],
-      error: null,
-    }),
+    rpc: async (name: string) => {
+      if (name === "provider_busy_ranges") {
+        return { data: state.data.bookings ?? [], error: null };
+      }
+      return {
+        data: [
+          { vacation_mode: false, min_notice_hours: 2, max_advance_days: 30, buffer_minutes: 0 },
+        ],
+        error: null,
+      };
+    },
     from: (table: string) => {
       const chain = {
         select: () => chain,

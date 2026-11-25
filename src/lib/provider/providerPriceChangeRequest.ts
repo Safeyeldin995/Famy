@@ -1,8 +1,16 @@
+/** Price cannot be edited while the service is paused (DB guard matches). */
+export function providerServicePriceEditingBlocked(
+  serviceStatus: string | null | undefined,
+): boolean {
+  return serviceStatus === "paused";
+}
+
 /** Whether the provider must use the price-change RPC instead of a direct update. */
 export function providerPriceNeedsAdminReview(
   onboardingStatus: string | null | undefined,
   serviceStatus: string | null | undefined,
 ): boolean {
+  if (providerServicePriceEditingBlocked(serviceStatus)) return false;
   return onboardingStatus === "APPROVED" && serviceStatus === "approved";
 }
 
