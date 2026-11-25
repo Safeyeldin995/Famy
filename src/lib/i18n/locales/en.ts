@@ -2934,6 +2934,7 @@ const en = {
     cannotOpenInstapay: "Couldn't open InstaPay. Copy the address and pay from the app.",
     title: "Payment",
     noneRecorded: "No payment recorded for this booking.",
+    closedBooking: "This booking is closed — no payment is needed.",
     fileTooLarge: "File too large (max 10MB).",
     receiptUploaded: "Receipt uploaded — Famy will review it shortly.",
     transferStarted: "Payment method saved. Transfer the amount, then upload your receipt below.",

@@ -2,11 +2,13 @@ import { readPaymobConfig, readOptionalPaymobIntegrationIdForChannel } from "./p
 import { createPaymobIntention, PaymobIntentionIndeterminateError } from "./paymobApi.server";
 import { buildPaymobBookingReturnUrl, buildPaymobOnlineWebLessonReturnUrl } from "./paymobConfig.server";
 import type { PaymobCheckoutChannel } from "./paymobChannels";
+import { isPaymentEligibleBookingStatus } from "@/lib/booking/post-create-payment";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 type BookingRow = {
   id: string;
   customer_id: string;
+  status: string;
   price_total: number | null;
   carried_fees_amount?: number | null;
   currency: string | null;
@@ -94,7 +96,7 @@ export async function createPaymobCheckoutForPayment(input: {
   const { data: booking, error: bookingErr } = await input.supabaseAdmin
     .from("bookings")
     .select(
-      "id, customer_id, price_total, carried_fees_amount, currency, service:services(name_en, name_ar)",
+      "id, customer_id, status, price_total, carried_fees_amount, currency, service:services(name_en, name_ar)",
     )
     .eq("id", input.bookingId)
     .single();
@@ -106,6 +108,9 @@ export async function createPaymobCheckoutForPayment(input: {
   const bookingRow = booking as BookingRow;
   if (bookingRow.customer_id !== input.userId) {
     throw new Error("You cannot pay for this booking.");
+  }
+  if (!isPaymentEligibleBookingStatus(bookingRow.status)) {
+    throw new Error("This booking is closed.");
   }
 
   const paymentSelect =
