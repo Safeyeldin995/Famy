@@ -123,6 +123,30 @@ describe("provider service pause and remove", () => {
     expect(row[0]?.status).toBe("removed");
   });
 
+  it("blocks direct price_override edits while a service is paused", async () => {
+    await asUser(db, IDS.providerUser, async () => {
+      await queryRows(db, `SELECT public.provider_set_service_active($1::uuid, false)`, [serviceId]);
+    });
+
+    const blocked = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `UPDATE public.provider_services SET price_override = 999 WHERE provider_id = $1 AND service_id = $2`,
+      [IDS.provider, serviceId],
+    );
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error ?? "").toMatch(/provider_request_price_change/i);
+
+    const blockedOnline = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `UPDATE public.provider_services SET online_price_override = 888 WHERE provider_id = $1 AND service_id = $2`,
+      [IDS.provider, serviceId],
+    );
+    expect(blockedOnline.ok).toBe(false);
+    expect(blockedOnline.error ?? "").toMatch(/online price changes reviewed/i);
+  });
+
   it("rejects provider direct status bump pending to approved", async () => {
     await asUser(db, IDS.adminUser, async () => {
       await queryRows(

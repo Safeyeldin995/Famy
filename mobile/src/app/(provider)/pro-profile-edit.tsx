@@ -162,6 +162,9 @@ export default function ProProfileEditScreen() {
   const approvedServiceRows = [...activeRows].sort(
     (a: { status?: string }, b: { status?: string }) => rankStatus(a.status) - rankStatus(b.status),
   );
+  const addableServices = isApprovedProvider
+    ? catalog.filter((s: { id: string }) => !selectedIds.has(String(s.id)))
+    : [];
 
   return (
     <Page
@@ -417,6 +420,35 @@ export default function ProProfileEditScreen() {
             </View>
           );
         })}
+        {isApprovedProvider && addableServices.length > 0 ? (
+          <View style={{ marginTop: space.md, gap: space.sm }}>
+            <Text weight="heavy">{t("pro.profile.addNewService")}</Text>
+            <Text tone="muted" size="sm">
+              {t("pro.profile.addNewServiceHint")}
+            </Text>
+            {addableServices.map((service: Record<string, unknown>) => {
+              const id = String(service.id);
+              return (
+                <View key={`add-${id}`} style={proCard.card}>
+                  <Text weight="bold">{localized(service, i18n.language)}</Text>
+                  <Text tone="muted" size="sm">
+                    {t("pro.serviceRequest.notAdded")}
+                  </Text>
+                  <Button
+                    variant="secondary"
+                    label={t("pro.serviceRequest.requestCta")}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/pro-request-service",
+                        params: { serviceId: id },
+                      })
+                    }
+                  />
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
         {isApprovedProvider && rejectedRows.length > 0 ? (
           <View style={proCard.card}>
             <Button
