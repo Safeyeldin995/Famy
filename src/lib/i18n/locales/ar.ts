@@ -2092,6 +2092,7 @@ const ar: Translation = {
     reportTitle: "ابلغ عن محتوى",
     reportThread: "ابلغ عن المحادثة",
     reportMessage: "ابلغ عن الرسالة",
+    reportMessageA11y: "ابلغ عن رسالة من {{name}}، اضغط مطولا للخيارات",
     reportReview: "ابلغ عن التقييم",
     reportSubmit: "إرسال البلاغ",
     reportSubmittedTitle: "تم إرسال البلاغ",

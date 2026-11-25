@@ -60,7 +60,12 @@ export function MessageBubble({
     <View style={[styles.row, mine ? styles.rowEnd : styles.rowStart]}>
       {!mine ? <Avatar raw={otherAvatar} size={28} round={customer} /> : null}
       {onReport && !mine ? (
-        <Pressable accessibilityRole="button" onLongPress={onReport} delayLongPress={400}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("ugc.reportMessageA11y", { name: otherName })}
+          onLongPress={onReport}
+          delayLongPress={400}
+        >
           {bubble}
         </Pressable>
       ) : (

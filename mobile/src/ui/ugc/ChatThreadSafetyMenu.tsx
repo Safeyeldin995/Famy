@@ -53,6 +53,8 @@ export function ChatThreadSafetyMenu({
       </Pressable>
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("common.close")}
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}
           onPress={() => setMenuOpen(false)}
         >
@@ -66,6 +68,8 @@ export function ChatThreadSafetyMenu({
             }}
           >
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("ugc.reportThread")}
               onPress={() => {
                 setMenuOpen(false);
                 setReportOpen(true);
@@ -74,7 +78,12 @@ export function ChatThreadSafetyMenu({
             >
               <Text weight="bold">{t("ugc.reportThread")}</Text>
             </Pressable>
-            <Pressable onPress={confirmBlock} style={{ paddingVertical: space.md }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("ugc.blockUser")}
+              onPress={confirmBlock}
+              style={{ paddingVertical: space.md }}
+            >
               <Text weight="bold" tone="danger">
                 {t("ugc.blockUser")}
               </Text>

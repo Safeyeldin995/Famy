@@ -2113,6 +2113,7 @@ const en = {
     reportTitle: "Report content",
     reportThread: "Report conversation",
     reportMessage: "Report message",
+    reportMessageA11y: "Report message from {{name}}. Long press for options.",
     reportReview: "Report review",
     reportSubmit: "Submit report",
     reportSubmittedTitle: "Report submitted",
