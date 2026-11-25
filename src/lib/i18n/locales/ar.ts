@@ -3889,6 +3889,8 @@ const ar: Translation = {
       cancellationFeePercent: "نسبة من قيمة الحجز",
       cancellationFeeValueFixed: "قيمة الرسوم (ج.م)",
       cancellationFeeValuePercent: "نسبة الرسوم (٪)",
+      cancellationInPersonTitle: "حجوزات في البيت",
+      cancellationOnlineTitle: "دروس أونلاين",
       cancellationFreeHours: "الإلغاء مجاني حتى عدد الساعات التالي قبل الموعد",
       cancellationRule1: "تطبق الرسوم إذا ألغى العميل قبل الموعد بأقل من {{hours}} ساعة",
       cancellationRule2: "تطبق الرسوم إذا ألغى العميل بعد تحرك مقدم الخدمة إليه",

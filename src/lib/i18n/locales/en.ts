@@ -3924,6 +3924,8 @@ const en = {
       cancellationFeePercent: "Percentage of the booking",
       cancellationFeeValueFixed: "Fee amount (EGP)",
       cancellationFeeValuePercent: "Fee percentage (%)",
+      cancellationInPersonTitle: "In-person bookings",
+      cancellationOnlineTitle: "Online lessons",
       cancellationFreeHours: "Free cancellation up to this many hours before the visit",
       cancellationRule1: "The fee applies if the customer cancels less than {{hours}} hours before the visit",
       cancellationRule2: "The fee applies if the customer cancels after the provider set off",
