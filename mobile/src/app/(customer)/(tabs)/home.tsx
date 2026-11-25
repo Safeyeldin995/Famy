@@ -43,6 +43,7 @@ import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useBookingParties } from "@/lib/queries";
 import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
 import { latestCompletedBookingWithoutReview } from "@/lib/customerBookingsList";
+import { dismissRatePrompt, loadDismissedRatePrompts } from "@/lib/ratePromptDismissals";
 import {
   bumpHomeFocusEffect,
   bumpHomeQueryFetch,
@@ -95,10 +96,29 @@ export default function Home() {
   const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
+  const [dismissedRatePrompts, setDismissedRatePrompts] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadDismissedRatePrompts().then((ids) => {
+      if (alive) setDismissedRatePrompts(ids);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const rateTarget = useMemo(
-    () => latestCompletedBookingWithoutReview(bookings.data ?? []),
-    [bookings.data],
+    () =>
+      dismissedRatePrompts
+        ? latestCompletedBookingWithoutReview(bookings.data ?? [], {
+            dismissedIds: dismissedRatePrompts,
+          })
+        : null,
+    [bookings.data, dismissedRatePrompts],
   );
+  const dismissRateTarget = (bookingId: string) => {
+    setDismissedRatePrompts((prev) => new Set([...(prev ?? []), bookingId]));
+    void dismissRatePrompt(bookingId);
+  };
   const activeIds = useMemo(
     () => customerHomeActiveBookings(bookings.data ?? []).map((b) => b.id),
     [bookings.data],
@@ -293,6 +313,7 @@ export default function Home() {
         <RatingPromptCard
           testID="home-rate-prompt"
           bookingId={rateTarget.id}
+          onDismiss={() => dismissRateTarget(rateTarget.id)}
           providerName={
             parties.data?.get(rateTarget.id)?.other_name ||
             rateTarget.provider?.profile.full_name ||

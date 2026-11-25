@@ -11,10 +11,11 @@ import { hapticLightImpact } from "@/ui/haptics";
 type Props = {
   bookingId: string;
   providerName: string;
+  onDismiss: () => void;
   testID?: string;
 };
 
-export function RatingPromptCard({ bookingId, providerName, testID }: Props) {
+export function RatingPromptCard({ bookingId, providerName, onDismiss, testID }: Props) {
   const { t } = useTranslation();
 
   const openReview = (rating?: StarRatingValue) => {
@@ -75,6 +76,16 @@ export function RatingPromptCard({ bookingId, providerName, testID }: Props) {
       >
         <Text size="sm" tone="brand" weight="bold" style={{ textAlign: "center" }}>
           {t("customerHome.openRateForm")}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("customerHome.ratePromptLater")}
+        onPress={onDismiss}
+        style={{ minHeight: 44, justifyContent: "center" }}
+      >
+        <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+          {t("customerHome.ratePromptLater")}
         </Text>
       </Pressable>
     </View>

@@ -297,6 +297,7 @@ const en = {
     },
     ratePrompt: "Rate {{provider}}",
     openRateForm: "Open review",
+    ratePromptLater: "Not now",
   },
   providerHome: {
     activeBookingTitle: "Your active job",

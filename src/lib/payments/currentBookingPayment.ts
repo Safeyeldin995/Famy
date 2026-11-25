@@ -1,3 +1,5 @@
+import { moneyHeld } from "./refundOwed";
+
 /** Matches `useBookingPayment` / payment-queries relevant statuses. */
 export const BOOKING_PAYMENT_QUERY_STATUSES = [
   "pending",
@@ -15,6 +17,21 @@ export type BookingPaymentRow = {
   created_at?: string | null;
 };
 
+/** The booking is already paid (or a transfer receipt is waiting for Famy's review). */
+function paidOrInReview(p: BookingPaymentRow): boolean {
+  if (p.status === "captured" || p.status === "partially_refunded") return true;
+  return moneyHeld({
+    paymentStatus: p.status,
+    methodType: p.payment_method_type,
+    proofPath: p.proof_path,
+  });
+}
+
+/**
+ * The payment that describes the booking now. A payment that already holds the
+ * customer's money wins over a newer pending attempt, so a paid booking never
+ * asks to be paid again; otherwise the newest relevant attempt.
+ */
 export function pickCurrentBookingPayment<T extends BookingPaymentRow>(
   payments: readonly T[] | T | null | undefined,
 ): T | null {
@@ -25,7 +42,8 @@ export function pickCurrentBookingPayment<T extends BookingPaymentRow>(
       (BOOKING_PAYMENT_QUERY_STATUSES as readonly string[]).includes(p.status),
   );
   if (!relevant.length) return null;
-  return [...relevant].sort(
+  const newestFirst = [...relevant].sort(
     (a, b) => +new Date(b.created_at ?? 0) - +new Date(a.created_at ?? 0),
-  )[0];
+  );
+  return newestFirst.find(paidOrInReview) ?? newestFirst[0];
 }

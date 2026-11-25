@@ -2,7 +2,7 @@ import { PaymentBlock } from "@/ui/PaymentBlock";
 import { bookingDurationUnitKey } from "@/lib/bookingDuration";
 import { BookingActions } from "@/ui/BookingActions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, Pressable, Share, View } from "react-native";
 import {
   Calendar,
   Clock,
@@ -38,7 +38,12 @@ import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { RescheduleSection } from "@/ui/RescheduleSection";
-import { receiptText, calendarText, type BookingFileInfo } from "@/lib/bookingFiles";
+import {
+  receiptText,
+  calendarText,
+  bookingShareMessage,
+  type BookingFileInfo,
+} from "@/lib/bookingFiles";
 import { shareBookingFile } from "@/lib/shareBookingFile";
 import { colors, radius, space } from "@/ui/theme";
 import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
@@ -163,6 +168,15 @@ export default function BookingDetail() {
         calendar ? calendarText(info) : receiptText(info),
         calendar ? "text/calendar" : "text/plain",
       );
+    } catch {
+      setFileError(true);
+    }
+  };
+  const shareSummary = async () => {
+    if (!info) return;
+    setFileError(false);
+    try {
+      await Share.share({ message: bookingShareMessage(info) });
     } catch {
       setFileError(true);
     }
@@ -541,7 +555,7 @@ export default function BookingDetail() {
             <View style={{ flexDirection: "row", gap: space.sm }}>
               {[
                 { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
-                { Icon: Share2, key: "shareBooking", onPress: () => void share(true) },
+                { Icon: Share2, key: "shareBooking", onPress: () => void shareSummary() },
               ].map(({ Icon, key, onPress }) => (
                 <Pressable
                   key={key}

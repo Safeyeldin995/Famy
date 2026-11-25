@@ -299,6 +299,7 @@ const ar: Translation = {
     },
     ratePrompt: "قيم {{provider}}",
     openRateForm: "افتح التقييم",
+    ratePromptLater: "مش دلوقتي",
   },
   providerHome: {
     activeBookingTitle: "مهمتك النشطة",

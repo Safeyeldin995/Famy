@@ -15,6 +15,8 @@ export type CustomerBookingListRow = {
   id: string;
   status: string;
   start_at: string;
+  end_at?: string | null;
+  completed_at?: string | null;
   hasReview?: boolean;
   price_total?: number | null;
   payments?: PaymentRow[] | PaymentRow | null;
@@ -30,6 +32,9 @@ export function customerBookingListNeedsPayNow(booking: CustomerBookingListRow):
   if (due <= 0) return false;
   const payment = latestPayment(booking);
   if (!payment) return true;
+  // Cash is paid to the provider at the visit: nothing to pay in the app.
+  if (payment.payment_method_type === "cash") return false;
+  if (payment.status === "captured" || payment.status === "partially_refunded") return false;
   return !moneyHeld({
     paymentStatus: payment.status ?? undefined,
     methodType: payment.payment_method_type ?? undefined,
@@ -70,8 +75,21 @@ export function sortUpcomingCustomerBookings<T extends CustomerBookingListRow>(r
   });
 }
 
+/** How long after a booking ends Home keeps asking for a rating. */
+export const RATE_PROMPT_WINDOW_DAYS = 14;
+
 export function latestCompletedBookingWithoutReview<T extends CustomerBookingListRow>(
   bookings: readonly T[],
+  options: { now?: Date; dismissedIds?: ReadonlySet<string> } = {},
 ): T | null {
-  return bookings.find((b) => b.status === "completed" && !b.hasReview) ?? null;
+  const now = +(options.now ?? new Date());
+  const windowMs = RATE_PROMPT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  return (
+    bookings.find((b) => {
+      if (b.status !== "completed" || b.hasReview) return false;
+      if (options.dismissedIds?.has(b.id)) return false;
+      const finished = +new Date(b.completed_at ?? b.end_at ?? b.start_at);
+      return Number.isFinite(finished) && now - finished <= windowMs;
+    }) ?? null
+  );
 }
