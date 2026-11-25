@@ -61,9 +61,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Famy lets you choose photos from your library for your profile picture, payment receipt uploads, and provider verification documents (such as ID). The app does not access your camera or microphone.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "photosPermission": "Famy lets you choose photos from your library for your profile picture, payment receipt uploads, and provider verification documents (such as ID).",
+          "cameraPermission": "Famy uses the camera during live online sessions so you can show video to the other participant.",
+          "microphonePermission": "Famy uses the microphone during live online sessions so you can speak with the other participant."
         }
       ],
       [
@@ -77,7 +77,13 @@
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@livekit/react-native-expo-plugin",
-      "@config-plugins/react-native-webrtc",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Famy uses the camera during live online sessions so you can show video to the other participant.",
+          "microphonePermission": "Famy uses the microphone during live online sessions so you can speak with the other participant."
+        }
+      ],
       [
         "expo-build-properties",
         {
