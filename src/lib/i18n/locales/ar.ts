@@ -2178,7 +2178,7 @@ const ar: Translation = {
     },
     booking: {
       tooEarly: "لسه بدري على الخطوة دي، انتظر لحد قرب معاد الحجز",
-      bookingTimePassed: "معاد الحجز فات. تواصل مع الدعم لو لسه محتاج مساعدة في المهمة دي",
+      bookingTimePassed: "معاد الحجز فات، تواصل مع الدعم لو لسه محتاج مساعدة في المهمة دي",
       messageCustomer: "راسل العميل",
       opensAt: "الزر ده هيفتح {{date}} الساعة {{time}}",
       opensAtToday: "الزر ده هيفتح النهارده الساعة {{time}}",
