@@ -15,6 +15,10 @@ import {
   useProviderWalletLedger,
 } from "@/lib/provider/settlementQueries";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
+import {
+  bookingRecordedInWallet,
+  providerMoneyBreakdown,
+} from "@shared/provider/providerWorkHelpers";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 
@@ -178,11 +182,16 @@ export default function ProviderEarnings() {
         </Text>
       ) : null}
       <Text weight="heavy">{t("pro.earnings.recentPayouts")}</Text>
+      <Text tone="muted" size="xs">
+        {t("pro.earnings.recentWorkHint")}
+      </Text>
       <QueryState query={bookingsQ} empty={!completed.length} emptyKey="pro.earnings.noPayoutsBody">
         {completed.map((booking) => {
           const customer = booking.customer as { full_name?: string } | undefined;
           const service = booking.service as { name_ar?: string; name_en?: string } | undefined;
           const snapshotted = isCommissionSnapshotted(booking);
+          const breakdown = providerMoneyBreakdown(booking);
+          const inWallet = bookingRecordedInWallet(String(booking.id), walletQ.data);
           return (
             <View
               key={String(booking.id)}
@@ -217,6 +226,27 @@ export default function ProviderEarnings() {
                 {!snapshotted ? (
                   <Text tone="muted" size="xs">
                     {t("pro.earnings.commissionUnrecorded")}
+                  </Text>
+                ) : null}
+                {breakdown ? (
+                  <Text tone="muted" size="xs" style={moneyTextStyle(i18n.language)}>
+                    {`${t("pro.earnings.breakdownBookingValue")} ${money(breakdown.bookingValue, i18n.language)} − ${t("pro.earnings.breakdownCommission")} ${money(breakdown.commission, i18n.language)}`}
+                  </Text>
+                ) : null}
+                {inWallet ? (
+                  <Text
+                    size="xs"
+                    weight="bold"
+                    tone="success"
+                    style={{
+                      alignSelf: "flex-start",
+                      backgroundColor: colors.successTint,
+                      borderRadius: radius.pill,
+                      paddingHorizontal: space.sm,
+                      paddingVertical: 2,
+                    }}
+                  >
+                    {t("pro.earnings.inWallet")}
                   </Text>
                 ) : null}
               </View>
