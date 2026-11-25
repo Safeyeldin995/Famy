@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { space } from "../theme";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
 import { useBookingPayment } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
@@ -27,6 +28,7 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
   const methods = useActivePaymentMethods();
   const wallet = useWalletBalances();
   const create = useCreatePayment();
+  const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const prepared = useRef(false);
@@ -125,6 +127,9 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
     } catch {
       setError(t("onlineLesson.payFailedNext"));
     } finally {
+      // A checkout may have spent wallet balance: never show a stale balance elsewhere.
+      void qc.invalidateQueries({ queryKey: ["customer-wallet-balances"] });
+      void qc.invalidateQueries({ queryKey: ["customer-wallet-entries"] });
       setBusy(false);
     }
   }
