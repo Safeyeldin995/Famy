@@ -1,4 +1,4 @@
--- Admin online lessons report (#421): volume, money, quality, issues — read-only aggregates.
+-- Admin online lessons report (#421): final definitions — volume, money, quality, issues.
 
 CREATE OR REPLACE FUNCTION public.admin_mask_phone(p_phone text)
 RETURNS text
@@ -14,7 +14,6 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_mask_phone(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_mask_phone(text) TO authenticated;
-
 CREATE OR REPLACE FUNCTION public.admin_online_lessons_report_metrics(
   p_from timestamptz,
   p_to timestamptz,
@@ -32,6 +31,7 @@ DECLARE
   v_confirmed bigint := 0;
   v_paid bigint := 0;
   v_joined bigint := 0;
+  v_funnel_completed bigint := 0;
   v_completed bigint := 0;
   v_gross numeric := 0;
   v_commission numeric := 0;
@@ -60,15 +60,25 @@ BEGIN
       AND (p_service_id IS NULL OR b.service_id = p_service_id)
       AND (p_provider_id IS NULL OR b.provider_id = p_provider_id)
   ),
+  confirmed_booking AS (
+    SELECT DISTINCT s.id AS booking_id
+    FROM scoped s
+    WHERE EXISTS (
+      SELECT 1
+      FROM public.booking_status_history h
+      WHERE h.booking_id = s.id
+        AND h.to_status = 'confirmed'
+    )
+  ),
   paid_booking AS (
-  SELECT DISTINCT s.id AS booking_id
-  FROM scoped s
-  WHERE EXISTS (
-    SELECT 1 FROM public.payments p
-    WHERE p.booking_id = s.id
-      AND p.status = 'captured'
-      AND COALESCE(p.payment_method_type, '') IN ('online', 'manual_transfer')
-  )
+    SELECT DISTINCT s.id AS booking_id
+    FROM scoped s
+    WHERE EXISTS (
+      SELECT 1 FROM public.payments p
+      WHERE p.booking_id = s.id
+        AND p.status = 'captured'
+        AND COALESCE(p.payment_method_type, '') IN ('online', 'manual_transfer')
+    )
   ),
   joined_booking AS (
     SELECT s.id AS booking_id
@@ -78,11 +88,13 @@ BEGIN
   )
   SELECT
     count(*)::bigint,
-    count(*) FILTER (WHERE s.status <> 'pending')::bigint,
+    count(*) FILTER (WHERE cb.booking_id IS NOT NULL)::bigint,
     count(*) FILTER (WHERE pb.booking_id IS NOT NULL)::bigint,
-    count(*) FILTER (WHERE jb.booking_id IS NOT NULL)::bigint
-  INTO v_requests, v_confirmed, v_paid, v_joined
+    count(*) FILTER (WHERE jb.booking_id IS NOT NULL)::bigint,
+    count(*) FILTER (WHERE s.status = 'completed')::bigint
+  INTO v_requests, v_confirmed, v_paid, v_joined, v_funnel_completed
   FROM scoped s
+  LEFT JOIN confirmed_booking cb ON cb.booking_id = s.id
   LEFT JOIN paid_booking pb ON pb.booking_id = s.id
   LEFT JOIN joined_booking jb ON jb.booking_id = s.id;
 
@@ -101,8 +113,7 @@ BEGIN
     AND (p_service_id IS NULL OR b.service_id = p_service_id)
     AND (p_provider_id IS NULL OR b.provider_id = p_provider_id);
 
-  SELECT
-    COALESCE(sum(e.amount), 0)
+  SELECT COALESCE(sum(e.amount), 0)
   INTO v_wallet_refund_credits
   FROM public.customer_wallet_entries e
   JOIN public.bookings b ON b.id = e.booking_id
@@ -114,13 +125,17 @@ BEGIN
     AND (p_service_id IS NULL OR b.service_id = p_service_id)
     AND (p_provider_id IS NULL OR b.provider_id = p_provider_id);
 
-  SELECT
-    COALESCE(sum(e.amount), 0)
+  SELECT COALESCE(sum(
+    CASE
+      WHEN e.direction = 'debit' AND e.reason = 'checkout_spend' THEN e.amount
+      WHEN e.direction = 'credit' AND e.reason = 'checkout_release' THEN -e.amount
+      ELSE 0
+    END
+  ), 0)
   INTO v_wallet_used
   FROM public.customer_wallet_entries e
   JOIN public.bookings b ON b.id = e.booking_id
-  WHERE e.direction = 'debit'
-    AND e.reason = 'checkout_spend'
+  WHERE e.reason IN ('checkout_spend', 'checkout_release')
     AND e.created_at >= p_from
     AND e.created_at < p_to
     AND b.service_mode = 'online'
@@ -146,21 +161,29 @@ BEGIN
     FROM lesson_window lw
   ),
   duration_stats AS (
-    SELECT
-      avg(
-        GREATEST(
-          EXTRACT(epoch FROM (COALESCE(se.left_at, LEAST(now(), b.end_at)) - se.joined_at)) / 60.0,
-          0
-        )
-      ) AS avg_min
-    FROM public.session_events se
-    JOIN public.bookings b ON b.id = se.booking_id
-    WHERE b.deleted_at IS NULL
-      AND b.service_mode = 'online'
-      AND b.start_at >= p_from
-      AND b.start_at < p_to
-      AND (p_service_id IS NULL OR b.service_id = p_service_id)
-      AND (p_provider_id IS NULL OR b.provider_id = p_provider_id)
+    SELECT avg(participant_minutes) AS avg_min
+    FROM (
+      SELECT
+        SUM(
+          GREATEST(
+            EXTRACT(
+              epoch FROM (
+                COALESCE(se.left_at, LEAST(now(), b.end_at)) - se.joined_at
+              )
+            ),
+            0
+          )
+        ) / 60.0 AS participant_minutes
+      FROM public.session_events se
+      JOIN public.bookings b ON b.id = se.booking_id
+      WHERE b.deleted_at IS NULL
+        AND b.service_mode = 'online'
+        AND b.start_at >= p_from
+        AND b.start_at < p_to
+        AND (p_service_id IS NULL OR b.service_id = p_service_id)
+        AND (p_provider_id IS NULL OR b.provider_id = p_provider_id)
+      GROUP BY se.booking_id, se.participant
+    ) per_participant
   )
   SELECT
     CASE WHEN count(*) = 0 THEN 0
@@ -199,6 +222,7 @@ BEGIN
     'confirmed', v_confirmed,
     'paid', v_paid,
     'joined', v_joined,
+    'funnel_completed', v_funnel_completed,
     'completed', v_completed,
     'gross_lesson_value', v_gross,
     'famy_commission', v_commission,
@@ -214,10 +238,8 @@ BEGIN
   );
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.admin_online_lessons_report_metrics(timestamptz, timestamptz, uuid, uuid)
   FROM PUBLIC, anon, authenticated;
-
 CREATE OR REPLACE FUNCTION public.admin_online_lessons_report(
   p_from timestamptz,
   p_to timestamptz,
@@ -248,6 +270,7 @@ DECLARE
   v_cur numeric;
   v_prev numeric;
   v_delta jsonb := '{}'::jsonb;
+  v_has_activity boolean := false;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
@@ -292,12 +315,15 @@ BEGIN
     'confirmed', (v_current ->> 'confirmed')::bigint,
     'paid', (v_current ->> 'paid')::bigint,
     'joined', (v_current ->> 'joined')::bigint,
-    'completed', (v_current ->> 'completed')::bigint,
+    'completed', COALESCE((v_current ->> 'funnel_completed')::bigint, 0),
     'drop_off', jsonb_build_object(
       'request_to_confirmed', GREATEST((v_current ->> 'requests')::bigint - (v_current ->> 'confirmed')::bigint, 0),
       'confirmed_to_paid', GREATEST((v_current ->> 'confirmed')::bigint - (v_current ->> 'paid')::bigint, 0),
       'paid_to_joined', GREATEST((v_current ->> 'paid')::bigint - (v_current ->> 'joined')::bigint, 0),
-      'joined_to_completed', GREATEST((v_current ->> 'joined')::bigint - (v_current ->> 'completed')::bigint, 0)
+      'joined_to_completed', GREATEST(
+        (v_current ->> 'joined')::bigint - COALESCE((v_current ->> 'funnel_completed')::bigint, 0),
+        0
+      )
     )
   );
 
@@ -338,14 +364,24 @@ BEGIN
       'count', count(*) FILTER (WHERE cancelled_by_role = 'provider'),
       'amount', COALESCE(sum(COALESCE(cancellation_fee, 0)) FILTER (WHERE cancelled_by_role = 'provider'), 0)
     ),
+    'admin', jsonb_build_object(
+      'count', count(*) FILTER (WHERE cancelled_by_role = 'admin'),
+      'amount', COALESCE(sum(COALESCE(cancellation_fee, 0)) FILTER (WHERE cancelled_by_role = 'admin'), 0)
+    ),
     'system', jsonb_build_object(
       'count', count(*) FILTER (
-        WHERE cancelled_by_role IS NULL
+        WHERE (
+          cancelled_by_role IS NULL
           OR (status_changed_by IS NULL AND COALESCE(cancellation_reason, '') ILIKE '%payment deadline%')
+        )
+        AND cancelled_by_role IS DISTINCT FROM 'admin'
       ),
       'amount', COALESCE(sum(COALESCE(cancellation_fee, 0)) FILTER (
-        WHERE cancelled_by_role IS NULL
+        WHERE (
+          cancelled_by_role IS NULL
           OR (status_changed_by IS NULL AND COALESCE(cancellation_reason, '') ILIKE '%payment deadline%')
+        )
+        AND cancelled_by_role IS DISTINCT FROM 'admin'
       ), 0)
     )
   )
@@ -365,23 +401,22 @@ BEGIN
     SELECT jsonb_build_object(
       'provider_id', p.id,
       'provider_name', pr.full_name,
-      'lessons', count(*) FILTER (WHERE b.status = 'completed'),
-      'completion_rate', CASE WHEN count(*) = 0 THEN NULL
-        ELSE round((count(*) FILTER (WHERE b.status = 'completed'))::numeric / count(*)::numeric, 4)
-      END,
-      'earnings', COALESCE(sum(b.price_provider_net) FILTER (WHERE b.status = 'completed'), 0),
+      'lessons', count(*)::bigint,
+      'completion_rate', NULL,
+      'earnings', COALESCE(sum(b.price_provider_net), 0),
       'rating_avg', COALESCE(rs.rating_avg, 0)
     ) AS row,
-    count(*) FILTER (WHERE b.status = 'completed') AS lessons,
-    COALESCE(sum(b.price_provider_net) FILTER (WHERE b.status = 'completed'), 0) AS earnings
+    count(*)::bigint AS lessons,
+    COALESCE(sum(b.price_provider_net), 0) AS earnings
     FROM public.bookings b
     JOIN public.providers p ON p.id = b.provider_id
     JOIN public.profiles pr ON pr.id = p.profile_id
     LEFT JOIN public.ratings_summary rs ON rs.provider_id = p.id
     WHERE b.deleted_at IS NULL
       AND b.service_mode = 'online'
-      AND b.created_at >= p_from
-      AND b.created_at < p_to
+      AND b.status = 'completed'
+      AND b.completed_at >= p_from
+      AND b.completed_at < p_to
       AND (p_subject IS NULL OR b.service_id = p_subject)
       AND (p_provider IS NULL OR b.provider_id = p_provider)
     GROUP BY p.id, pr.full_name, rs.rating_avg
@@ -396,16 +431,17 @@ BEGIN
       'service_id', s.id,
       'subject_name_en', s.name_en,
       'subject_name_ar', s.name_ar,
-      'lessons', count(*) FILTER (WHERE b.status = 'completed'),
-      'revenue', COALESCE(sum(b.price_total) FILTER (WHERE b.status = 'completed'), 0)
+      'lessons', count(*)::bigint,
+      'revenue', COALESCE(sum(b.price_total), 0)
     ) AS row,
-    count(*) FILTER (WHERE b.status = 'completed') AS lessons
+    count(*)::bigint AS lessons
     FROM public.bookings b
     JOIN public.services s ON s.id = b.service_id
     WHERE b.deleted_at IS NULL
       AND b.service_mode = 'online'
-      AND b.created_at >= p_from
-      AND b.created_at < p_to
+      AND b.status = 'completed'
+      AND b.completed_at >= p_from
+      AND b.completed_at < p_to
       AND (p_subject IS NULL OR b.service_id = p_subject)
       AND (p_provider IS NULL OR b.provider_id = p_provider)
     GROUP BY s.id, s.name_en, s.name_ar
@@ -472,6 +508,21 @@ BEGIN
     LIMIT 5000
   ) x;
 
+  v_has_activity :=
+    (v_current ->> 'requests')::bigint > 0
+    OR (v_current ->> 'completed')::bigint > 0
+    OR COALESCE((v_current ->> 'wallet_refund_credits')::numeric, 0) > 0
+    OR COALESCE((v_current ->> 'wallet_credit_used')::numeric, 0) > 0
+    OR COALESCE((v_current ->> 'gross_lesson_value')::numeric, 0) > 0
+    OR COALESCE((v_current ->> 'no_show_reports')::bigint, 0) > 0
+    OR COALESCE((v_cancellations -> 'student_free' ->> 'count')::bigint, 0) > 0
+    OR COALESCE((v_cancellations -> 'student_late' ->> 'count')::bigint, 0) > 0
+    OR COALESCE((v_cancellations -> 'teacher' ->> 'count')::bigint, 0) > 0
+    OR COALESCE((v_cancellations -> 'system' ->> 'count')::bigint, 0) > 0
+    OR COALESCE((v_cancellations -> 'admin' ->> 'count')::bigint, 0) > 0
+    OR jsonb_array_length(v_export) > 0
+    OR jsonb_array_length(v_top_teachers) > 0;
+
   RETURN jsonb_build_object(
     'period_from', p_from,
     'period_to', p_to,
@@ -479,6 +530,7 @@ BEGIN
     'previous_to', v_prev_to,
     'filters', jsonb_build_object('subject_id', p_subject, 'provider_id', p_provider),
     'timezone', 'Africa/Cairo',
+    'has_activity', v_has_activity,
     'kpis', v_kpis,
     'funnel', v_funnel,
     'cancellations', v_cancellations,
