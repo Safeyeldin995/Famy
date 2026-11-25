@@ -24,6 +24,7 @@ import {
   signInWithAppleNative,
   signInWithMobileOAuthBrowser,
 } from "@/lib/auth/oauth";
+import { showGoogleSignInOnMobile } from "@/lib/auth/mobileAppleSignIn";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import {
   consumePendingLoginNoticeKey,
@@ -58,8 +59,16 @@ export default function Login() {
   const oauthProviders = enabledMobileOAuthProviders();
   const appleOAuth = oauthProviders.includes("apple");
   const appleSignInReady = mobileAppleSignInConfigured();
-  const showOAuth =
-    role === "customer" && step === "phone" && oauthProviders.length > 0;
+  const googleOAuth = showGoogleSignInOnMobile({
+    platform: Platform.OS,
+    googleEnabled: oauthProviders.includes("google"),
+    appleShownOnIos: appleOAuth && showAppleSignInOnMobile(),
+  });
+  const anyOAuthButton =
+    googleOAuth ||
+    (appleOAuth && showAppleSignInOnMobile()) ||
+    (appleOAuth && appleSignInReady && Platform.OS === "android");
+  const showOAuth = role === "customer" && step === "phone" && anyOAuthButton;
 
   useEffect(() => {
     const noticeKey = consumePendingLoginNoticeKey();
@@ -317,7 +326,7 @@ export default function Login() {
             </Text>
             <View style={styles.dividerLine} />
           </View>
-          {oauthProviders.includes("google") ? (
+          {googleOAuth ? (
             <Pressable
               accessibilityRole="button"
               disabled={loading || oauthLoading !== null}
@@ -405,7 +414,7 @@ export default function Login() {
               size="xs"
               weight="heavy"
               tone="brand"
-              onPress={() => router.push("/content/terms")}
+              onPress={() => router.push({ pathname: "/content/[key]", params: { key: "terms" } })}
             >
               {t("auth.termsLink")}
             </Text>{" "}
@@ -414,7 +423,7 @@ export default function Login() {
               size="xs"
               weight="heavy"
               tone="brand"
-              onPress={() => router.push("/content/privacy")}
+              onPress={() => router.push({ pathname: "/content/[key]", params: { key: "privacy" } })}
             >
               {t("auth.privacyLink")}
             </Text>

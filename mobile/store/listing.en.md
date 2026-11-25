@@ -31,7 +31,7 @@ Famy connects families in Egypt with vetted babysitters and home tutors. Browse 
 - Separate provider mode with onboarding and document upload (including ID verification)
 - Manage schedule, jobs, earnings, and customer chat
 
-Famy does not use your camera or microphone. Location is used only while you choose an address on the map.
+Camera and microphone are used only while you are in a live online lesson, and lessons are not recorded. Location is used only while you choose an address on the map.
 
 **Links**
 

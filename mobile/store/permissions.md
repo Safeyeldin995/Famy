@@ -7,11 +7,11 @@ Based on Expo config (`app.json`, `app.config.js`) and code review (SDK 58).
 | Permission | Status | Why |
 | --- | --- | --- |
 | `ACCESS_COARSE_LOCATION` / `ACCESS_FINE_LOCATION` | **Requested** (foreground) | `expo-location` — pin service address (`LocationPicker.tsx`) |
-| `READ_MEDIA_IMAGES` / legacy storage reads | **Via image picker** | Photo library picks only; no camera capture |
+| `READ_MEDIA_IMAGES` / legacy storage reads | **Via image picker** | Photo library picks only; the image picker never opens the camera |
 | `POST_NOTIFICATIONS` | **Via expo-notifications** | Push notification opt-in |
 | `INTERNET` | **Implicit** | API, auth, maps tiles |
-| `CAMERA` | **Blocked** | `blockedPermissions` + `cameraPermission: false` on image picker |
-| `RECORD_AUDIO` | **Blocked** | No microphone features |
+| `CAMERA` | **Requested** (only when joining a live online lesson) | LiveKit video in online lessons (`@config-plugins/react-native-webrtc`) |
+| `RECORD_AUDIO` / `MODIFY_AUDIO_SETTINGS` / `BLUETOOTH` | **Requested** (only when joining a live online lesson) | LiveKit audio in online lessons, including Bluetooth headsets |
 | `SYSTEM_ALERT_WINDOW` | **Blocked** | Not needed |
 | Background location | **Not requested** | No `ACCESS_BACKGROUND_LOCATION` |
 
@@ -21,8 +21,8 @@ Based on Expo config (`app.json`, `app.config.js`) and code review (SDK 58).
 | --- | --- | --- |
 | `NSLocationWhenInUseUsageDescription` | **Yes** | Foreground map pin only — `app.json` + `mobile/locales/en.json` / `ar.json` |
 | `NSPhotoLibraryUsageDescription` | **Yes** | Library picks for profile, receipts, provider ID docs |
-| `NSCameraUsageDescription` | **No** | Camera not used |
-| `NSMicrophoneUsageDescription` | **No** | Microphone not used |
+| `NSCameraUsageDescription` | **Yes** | Live online lessons only — `app.json` + `mobile/locales/en.json` / `ar.json` |
+| `NSMicrophoneUsageDescription` | **Yes** | Live online lessons only — `app.json` + `mobile/locales/en.json` / `ar.json` |
 
 ## Libraries that do not add extra store permissions
 

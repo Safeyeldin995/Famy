@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { usePlatformContent } from "@/lib/queries";
 import { Page, QueryState } from "@/ui/Page";
@@ -17,7 +17,13 @@ export default function Content() {
     <Page
       title={t(`profile.${contentKey}`)}
       queries={[q]}
-      header={<CustomerPageHeader title={t(`profile.${contentKey}`)} backTo="/profile" />}
+      header={
+        <CustomerPageHeader
+          title={t(`profile.${contentKey}`)}
+          // Public route (App Review opens it signed out): go back to wherever it was opened from.
+          onBack={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+        />
+      }
       contentStyle={{ paddingTop: space.sm }}
     >
       <View style={[customerStyle.card, { padding: space.xl, borderRadius: radius.xl, ...shadow.card }]}>

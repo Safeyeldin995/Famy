@@ -1,4 +1,5 @@
 import { appConfig, supabase } from "./supabase";
+import { readJsonBody } from "./onlineSessionUi";
 
 export type SessionTokenResponse =
   | { ok: true; token: string; url: string; room: string }
@@ -32,15 +33,15 @@ export async function fetchOnlineSessionToken(input: {
       ...(input.displayName ? { displayName: input.displayName } : {}),
     }),
   });
-  const body = (await response.json()) as {
+  const body = await readJsonBody<{
     ok?: boolean;
     token?: string;
     url?: string;
     room?: string;
     error?: string;
-  };
-  if (!response.ok || !body.ok || !body.token || !body.url) {
-    return { ok: false, error: body.error ?? "server_error" };
+  }>(response);
+  if (!response.ok || !body?.ok || !body.token || !body.url) {
+    return { ok: false, error: body?.error ?? "server_error" };
   }
   return { ok: true, token: body.token, url: body.url, room: (body as { room?: string }).room ?? "" };
 }
@@ -51,12 +52,16 @@ export async function reportOnlineSessionAndLeave(input: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const headers = await sessionAuthHeaders();
   if (!headers) return { ok: false, error: "unauthorized" };
-  const response = await fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/session/report`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ bookingId: input.bookingId, note: input.note }),
-  });
-  const body = (await response.json()) as { ok?: boolean; error?: string };
-  if (!response.ok || !body.ok) return { ok: false, error: body.error ?? "server_error" };
-  return { ok: true };
+  try {
+    const response = await fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/session/report`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ bookingId: input.bookingId, note: input.note }),
+    });
+    const body = await readJsonBody<{ ok?: boolean; error?: string }>(response);
+    if (!response.ok || !body?.ok) return { ok: false, error: body?.error ?? "server_error" };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "network_error" };
+  }
 }
