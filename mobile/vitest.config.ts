@@ -51,6 +51,7 @@ export default defineConfig({
       "src/lib/provider/__tests__/gates.test.ts",
       "src/lib/provider/__tests__/onboardingErrors.test.ts",
       "src/lib/provider/__tests__/providerAccountBack.test.ts",
+      "src/lib/provider/__tests__/providerHeaderBack.test.ts",
       "src/lib/provider/__tests__/pendingHomeTerminal.test.ts",
       "src/ui/__tests__/providerGatingAccountMenu.test.ts",
     ],

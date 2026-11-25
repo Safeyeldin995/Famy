@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
+import { providerHeaderShowsBack } from "@/lib/provider/providerHeaderBack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { defaultWorkingHours } from "@shared/provider/setupHelpers";
@@ -205,7 +206,11 @@ export default function ProApplyScreen() {
       title={t("providerApply.checklist")}
       queries={queries}
       header={
-        <ProviderHeader title={t("providerApply.checklist")} action={<ProviderAccountMenu />} />
+        <ProviderHeader
+          title={t("providerApply.checklist")}
+          action={<ProviderAccountMenu />}
+          hideBack={!providerHeaderShowsBack(router.canGoBack())}
+        />
       }
     >
       <QueryState query={gateQuery}>{dataReady ? flow : null}</QueryState>

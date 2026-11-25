@@ -22,6 +22,7 @@ import {
   providerStatusTitleKey,
 } from "@/lib/provider/gates";
 import { onboardingMutationErrorMessage } from "@/lib/provider/onboardingErrors";
+import { providerHeaderShowsBack } from "@/lib/provider/providerHeaderBack";
 import {
   useOnboardingSnapshot,
   useMyReferences,
@@ -385,7 +386,7 @@ export function PendingHomeScreen({
         <ProviderHeader
           title={t("providerApply.checklist")}
           action={<ProviderAccountMenu />}
-          onBack={() => router.back()}
+          hideBack={!providerHeaderShowsBack(router.canGoBack())}
         />
       }
       queries={queries}
