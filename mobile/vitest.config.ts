@@ -49,6 +49,7 @@ export default defineConfig({
       "src/lib/__tests__/onlineSessionUi.test.ts",
       "src/lib/__tests__/adminAccountRouting.test.ts",
       "src/lib/__tests__/redirectSystemPath.test.ts",
+      "src/lib/__tests__/resolveOnlineLessonLink.test.ts",
     ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },

@@ -11,9 +11,9 @@ describe("rewriteIncomingAppLinkPath", () => {
 
   it("rewrites online lesson links to booking routes", () => {
     expect(rewriteIncomingAppLinkPath("/online/lessons/b1")).toBe("/booking/b1");
-    expect(rewriteIncomingAppLinkPath("/online/lessons/b1/room")).toBe("/booking/b1/session");
+    expect(rewriteIncomingAppLinkPath("/online/lessons/b1/room")).toBe("/lesson-link/b1");
     expect(rewriteIncomingAppLinkPath("https://famy-chi.vercel.app/online/lessons/b1/room")).toBe(
-      "/booking/b1/session",
+      "/lesson-link/b1",
     );
   });
 

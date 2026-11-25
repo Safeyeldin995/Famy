@@ -52,7 +52,7 @@ export function rewriteIncomingAppLinkPath(rawPath: string): string {
   if (segments[0] === "online" && segments[1] === "lessons" && segments[2]) {
     const bookingId = segments[2];
     if (segments[3] === "room") {
-      return `/booking/${bookingId}/session${search}`;
+      return `/lesson-link/${bookingId}${search}`;
     }
     return `/booking/${bookingId}${search}`;
   }
