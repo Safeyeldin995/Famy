@@ -425,10 +425,18 @@ export function useMyBookings() {
   });
 }
 
+const LIVE_BOOKING_STATUSES = new Set(["pending", "confirmed", "on_the_way", "arrived"]);
+
 export function useBooking(id: string | undefined) {
   return useQuery({
     enabled: !!id,
     queryKey: ["booking", id],
+    // While the booking is moving (accepted, provider on the way, arrived) keep
+    // the status live even if a push notification is missed.
+    refetchInterval: (query) =>
+      LIVE_BOOKING_STATUSES.has(String((query.state.data as { status?: string } | null)?.status))
+        ? 20_000
+        : false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")

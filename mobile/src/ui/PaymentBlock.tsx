@@ -22,10 +22,18 @@ import { Button } from "./Button";
 import { Text } from "./Text";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { money } from "@/lib/presentation";
+import { useWalletBalances } from "@/lib/walletQueries";
+import { walletCheckoutSplit } from "@/lib/customerCasesPure";
 import {
   paymobChannelForPaymentBlock,
   resolvePaymobCheckoutChannelForPayment,
 } from "@/lib/paymobPaymentChannel";
+
+/** True once customer_apply_wallet_at_checkout ran for this payment (amount is then the card part). */
+function walletAlreadyApplied(metadata: unknown): boolean {
+  const m = metadata as { wallet_checkout?: { applied?: unknown } } | null | undefined;
+  return m?.wallet_checkout?.applied === true;
+}
 
 export function PaymentBlock({
   bookingId,
@@ -42,6 +50,7 @@ export function PaymentBlock({
   const q = useBookingPayment(bookingId);
   const methods = useActivePaymentMethods();
   const create = useCreatePayment();
+  const wallet = useWalletBalances();
   const recoveryStarted = useRef(false);
   const [selection, setSelection] = useState<PendingPaymentSelection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -105,6 +114,14 @@ export function PaymentBlock({
   });
   const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
   const paymobChannel = paymobChannelForPaymentBlock({ payment: p, selection });
+  // The Paymob checkout route spends the wallet balance first (server side);
+  // show the customer that split before they pay.
+  const split = walletCheckoutSplit(
+    p?.amount ?? total,
+    type === "online" && p?.status === "pending" && !walletAlreadyApplied(p?.metadata)
+      ? wallet.data?.available_amount
+      : 0,
+  );
   async function checkout() {
     setBusy(true);
     setError("");
@@ -316,9 +333,21 @@ export function PaymentBlock({
           {type === "online" && (
             <>
               <PaymentLogos />
+              {p.status === "pending" && split.walletPart > 0 && (
+                <Text weight="bold" style={moneyTextStyle(i18n.language)}>
+                  {split.walletOnly
+                    ? t("payment.walletCoversAll", {
+                        wallet: money(split.walletPart, i18n.language),
+                      })
+                    : t("payment.walletWillCover", {
+                        wallet: money(split.walletPart, i18n.language),
+                        card: money(split.cardPart, i18n.language),
+                      })}
+                </Text>
+              )}
               {p.status === "pending" && (
                 <Button
-                  label={t("mobileBooking.payOnline")}
+                  label={t(split.walletOnly ? "payment.payWithWallet" : "mobileBooking.payOnline")}
                   loading={busy}
                   onPress={() => void checkout()}
                 />
