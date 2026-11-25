@@ -480,4 +480,12 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.process_due_reminders() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.process_due_reminders() TO service_role;
 
+-- Default reminder lead times (24h, 60m, 10m) for fresh databases.
+INSERT INTO public.booking_reminder_rules (lead_minutes, is_active)
+SELECT v, true
+FROM (VALUES (1440), (60), (10)) AS t(v)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.booking_reminder_rules r WHERE r.lead_minutes = t.v
+);
+
 NOTIFY pgrst, 'reload schema';

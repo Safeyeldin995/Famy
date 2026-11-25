@@ -9,7 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { useBookingPayment } from "@/lib/queries";
 import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
-import { logFamyEvent } from "@/lib/analytics";
+import { logPaymentSuccessOnce } from "@/lib/analyticsPaymentSuccess";
 import {
   clearPayment,
   peekPayment,
@@ -77,13 +77,11 @@ export function PaymentBlock({
   const type = p?.payment_method_type ?? legacy?.method_type;
   const statusRef = useRef<string | undefined>(undefined);
   statusRef.current = p?.status;
-  const paymentLogged = useRef(false);
   useEffect(() => {
-    if (p?.status === "captured" && !paymentLogged.current) {
-      paymentLogged.current = true;
-      void logFamyEvent("payment_success");
+    if (p?.status === "captured" && p?.id) {
+      void logPaymentSuccessOnce(p.id);
     }
-  }, [p?.status]);
+  }, [p?.status, p?.id]);
   useEffect(
     () =>
       runPaymobReturnPolling({

@@ -121,6 +121,35 @@ describe("launch gaps notifications", () => {
     expect(notes[0]?.count).toBe("1");
   });
 
+  it("seeds default reminder rules and schedules the 10-minute lead time", async () => {
+    const ruleRows = await queryRows<{ lead_minutes: number }>(
+      db,
+      `SELECT lead_minutes FROM public.booking_reminder_rules WHERE is_active ORDER BY lead_minutes`,
+    );
+    expect(ruleRows.map((r) => r.lead_minutes)).toEqual(expect.arrayContaining([10, 60, 1440]));
+
+    const { bookingId } = await seedLifecycleBooking(db, { status: "pending" });
+    await asServiceRole(db, () =>
+      db.exec(`
+        UPDATE public.bookings
+        SET status = 'confirmed',
+            start_at = now() + interval '30 minutes',
+            end_at = now() + interval '90 minutes'
+        WHERE id = '${bookingId}';
+      `),
+    );
+
+    const reminders = await queryRows<{ lead_minutes: number }>(
+      db,
+      `SELECT r.lead_minutes
+       FROM public.booking_reminders br
+       JOIN public.booking_reminder_rules r ON r.id = br.rule_id
+       WHERE br.booking_id = $1 AND r.lead_minutes = 10`,
+      [bookingId],
+    );
+    expect(reminders.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("process_due_reminders uses booking deep links for in-person confirmed bookings", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     await asServiceRole(db, () =>
@@ -132,19 +161,18 @@ describe("launch gaps notifications", () => {
       `),
     );
 
-    const rule = await queryRows<{ id: string }>(
-      db,
-      `INSERT INTO public.booking_reminder_rules (lead_minutes, is_active)
-       VALUES (60, true) RETURNING id`,
-    );
-
     await asServiceRole(db, () =>
-      db.query(
-        `INSERT INTO public.booking_reminders (
-          booking_id, rule_id, recipient_user_id, scheduled_for, status
-        ) VALUES ($1, $2, $3, now() - interval '1 minute', 'pending')`,
-        [bookingId, rule[0]!.id, IDS.customer],
-      ),
+      db.exec(`
+        UPDATE public.booking_reminders
+        SET scheduled_for = now() - interval '1 minute',
+            status = 'pending',
+            notification_id = NULL
+        WHERE booking_id = '${bookingId}'
+          AND recipient_user_id = '${IDS.customer}'
+          AND rule_id = (
+            SELECT id FROM public.booking_reminder_rules WHERE lead_minutes = 60 LIMIT 1
+          );
+      `),
     );
 
     await asServiceRole(db, () => db.query(`SELECT public.process_due_reminders()`));
