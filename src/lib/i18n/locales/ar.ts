@@ -3927,11 +3927,11 @@ const ar: Translation = {
       appReleaseLoadError: "تعذر تحميل إعدادات إصدار التطبيق",
       storeLinksTitle: "روابط تحميل المتجر",
       storeLinksSubtitle:
-        "روابط https اللي بتظهر في الموقع العام وفي شاشة تحديث التطبيق. سيبها فاضية لعرض شارة «قريب».",
+        "روابط التحميل اللي بتظهر في الموقع العام وفي شاشة تحديث التطبيق، سيبها فاضية لعرض شارة قريب",
       storeLinksPlay: "رابط Google Play",
       storeLinksApple: "رابط App Store",
       storeLinksInvalidUrl:
-        "استخدم رابط https كامل على play.google.com أو apps.apple.com، أو سيب الحقل فاضي.",
+        "استخدم رابط https صحيح لمتجر جوجل بلاي أو آب ستور، أو سيب الحقل فاضي",
       storeLinksSaved: "اتحفظت روابط المتجر",
       storeLinksSaveError: "تعذر حفظ روابط المتجر",
       storeLinksLoadError: "تعذر تحميل روابط المتجر",
