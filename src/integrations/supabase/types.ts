@@ -4658,6 +4658,15 @@ export type Database = {
         Args: { p_from: string; p_to: string; p_group: string }
         Returns: Json
       }
+      admin_online_lessons_report: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_subject?: string | null
+          p_provider?: string | null
+        }
+        Returns: Json
+      }
       provider_net_as_of: {
         Args: { p_provider_id: string; p_as_of: string }
         Returns: number

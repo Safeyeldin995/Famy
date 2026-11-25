@@ -119,6 +119,7 @@ import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-change.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as AdminReportsOnlineRouteImport } from './routes/admin.reports.online'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
@@ -190,6 +191,7 @@ import { Route as OnlineTutorsProviderIdIndexRouteImport } from './routes/online
 import { Route as OnlineTutorsProviderIdRequestRouteImport } from './routes/online.tutors.$providerId.request'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as PreviewAdminReportsOnlineRouteImport } from './routes/preview.admin.reports.online'
 import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
 import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
 import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
@@ -750,6 +752,11 @@ const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReportsOnlineRoute = AdminReportsOnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
+  getParentRoute: () => AdminReportsRoute,
+} as any)
 const AdminServiceRequestIdRoute = AdminServiceRequestIdRouteImport.update({
   id: '/service-request/$id',
   path: '/service-request/$id',
@@ -1118,6 +1125,12 @@ const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminReportsOnlineRoute =
+  PreviewAdminReportsOnlineRouteImport.update({
+    id: '/online',
+    path: '/online',
+    getParentRoute: () => PreviewAdminReportsRoute,
+  } as any)
 const PreviewProAccountDeleteRoute = PreviewProAccountDeleteRouteImport.update({
   id: '/account/delete',
   path: '/account/delete',
@@ -1194,7 +1207,7 @@ export interface FileRoutesByFullPath {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
+  '/admin/reports': typeof AdminReportsRouteWithChildren
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1257,6 +1270,7 @@ export interface FileRoutesByFullPath {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
@@ -1287,7 +1301,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1326,6 +1340,7 @@ export interface FileRoutesByFullPath {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
@@ -1376,7 +1391,7 @@ export interface FileRoutesByTo {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
+  '/admin/reports': typeof AdminReportsRouteWithChildren
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1434,6 +1449,7 @@ export interface FileRoutesByTo {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
@@ -1462,7 +1478,7 @@ export interface FileRoutesByTo {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1501,6 +1517,7 @@ export interface FileRoutesByTo {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
@@ -1558,7 +1575,7 @@ export interface FileRoutesById {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
+  '/admin/reports': typeof AdminReportsRouteWithChildren
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1621,6 +1638,7 @@ export interface FileRoutesById {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
@@ -1651,7 +1669,7 @@ export interface FileRoutesById {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1690,6 +1708,7 @@ export interface FileRoutesById {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
@@ -1811,6 +1830,7 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
@@ -1880,6 +1900,7 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
@@ -1988,6 +2009,7 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
@@ -2055,6 +2077,7 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
@@ -2174,6 +2197,7 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
@@ -2243,6 +2267,7 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
@@ -3080,6 +3105,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProviderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports/online': {
+      id: '/admin/reports/online'
+      path: '/online'
+      fullPath: '/admin/reports/online'
+      preLoaderRoute: typeof AdminReportsOnlineRouteImport
+      parentRoute: typeof AdminReportsRoute
+    }
     '/admin/service-request/$id': {
       id: '/admin/service-request/$id'
       path: '/service-request/$id'
@@ -3577,6 +3609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminProviderIdRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/reports/online': {
+      id: '/preview/admin/reports/online'
+      path: '/online'
+      fullPath: '/preview/admin/reports/online'
+      preLoaderRoute: typeof PreviewAdminReportsOnlineRouteImport
+      parentRoute: typeof PreviewAdminReportsRoute
+    }
     '/preview/pro/account/delete': {
       id: '/preview/pro/account/delete'
       path: '/account/delete'
@@ -3631,6 +3670,18 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
   AddressesRouteChildren,
 )
 
+interface AdminReportsRouteChildren {
+  AdminReportsOnlineRoute: typeof AdminReportsOnlineRoute
+}
+
+const AdminReportsRouteChildren: AdminReportsRouteChildren = {
+  AdminReportsOnlineRoute: AdminReportsOnlineRoute,
+}
+
+const AdminReportsRouteWithChildren = AdminReportsRoute._addFileChildren(
+  AdminReportsRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminAreaRequestsRoute: typeof AdminAreaRequestsRoute
   AdminAuditLogRoute: typeof AdminAuditLogRoute
@@ -3649,7 +3700,7 @@ interface AdminRouteChildren {
   AdminPriceChangeRequestsRoute: typeof AdminPriceChangeRequestsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
-  AdminReportsRoute: typeof AdminReportsRoute
+  AdminReportsRoute: typeof AdminReportsRouteWithChildren
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -3680,7 +3731,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPriceChangeRequestsRoute: AdminPriceChangeRequestsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
-  AdminReportsRoute: AdminReportsRoute,
+  AdminReportsRoute: AdminReportsRouteWithChildren,
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
@@ -3825,6 +3876,17 @@ const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
 const PreviewAddressesRouteWithChildren =
   PreviewAddressesRoute._addFileChildren(PreviewAddressesRouteChildren)
 
+interface PreviewAdminReportsRouteChildren {
+  PreviewAdminReportsOnlineRoute: typeof PreviewAdminReportsOnlineRoute
+}
+
+const PreviewAdminReportsRouteChildren: PreviewAdminReportsRouteChildren = {
+  PreviewAdminReportsOnlineRoute: PreviewAdminReportsOnlineRoute,
+}
+
+const PreviewAdminReportsRouteWithChildren =
+  PreviewAdminReportsRoute._addFileChildren(PreviewAdminReportsRouteChildren)
+
 interface PreviewAdminRouteChildren {
   PreviewAdminAuditLogRoute: typeof PreviewAdminAuditLogRoute
   PreviewAdminBookingsRoute: typeof PreviewAdminBookingsRoute
@@ -3840,7 +3902,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminPerformanceRoute: typeof PreviewAdminPerformanceRoute
   PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
   PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
-  PreviewAdminReportsRoute: typeof PreviewAdminReportsRoute
+  PreviewAdminReportsRoute: typeof PreviewAdminReportsRouteWithChildren
   PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
   PreviewAdminSettingsRoute: typeof PreviewAdminSettingsRoute
   PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
@@ -3865,7 +3927,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminPerformanceRoute: PreviewAdminPerformanceRoute,
   PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
   PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
-  PreviewAdminReportsRoute: PreviewAdminReportsRoute,
+  PreviewAdminReportsRoute: PreviewAdminReportsRouteWithChildren,
   PreviewAdminServicesRoute: PreviewAdminServicesRoute,
   PreviewAdminSettingsRoute: PreviewAdminSettingsRoute,
   PreviewAdminZonesRoute: PreviewAdminZonesRoute,
