@@ -9,10 +9,17 @@ import { shortBookingCode } from "@/lib/provider/constants";
 import {
   isBookingTooEarlyError,
   isProviderCompletionTooEarly,
-  isProviderStepTooEarly,
   providerCompletionMinutesRemaining,
   providerStepOpensAt,
+  providerStepWindowState,
 } from "@/lib/provider/timeWindow";
+import { formatBookingDurationLabel } from "@/lib/bookingDuration";
+import { paymentCapturedForJoin } from "@shared/livekit/sessionAccess";
+import { useConversationByBooking } from "@/lib/chatQueries";
+import { chatPhaseForStatus } from "@/lib/chatPure";
+import { useSupportContact } from "@/lib/queries";
+import { RescheduleSection } from "@/ui/RescheduleSection";
+import { OnlineLessonTimeline } from "@/ui/online/OnlineLessonTimeline";
 import { useBookingParty } from "@/lib/provider/parties";
 import { useBookingPayment } from "@/lib/queries";
 import { useSession } from "@/lib/session";
@@ -49,10 +56,14 @@ export default function ProBookingDetail() {
   const q = useProviderBooking(id);
   const partyQ = useBookingParty(id);
   const paymentQ = useBookingPayment(id);
+  const supportQ = useSupportContact();
+  const bookingStatus = String((q.data as { status?: string } | undefined)?.status ?? "");
+  const conversation = useConversationByBooking(id, bookingStatus);
   const mut = useProviderUpdateBookingStatus();
   const expiryQ = useBookingExpirySettings();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [dialog, setDialog] = useState<"" | "decline" | "cancel">("");
+  const [chatFeedback, setChatFeedback] = useState<"" | "unavailable" | "error">("");
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 30_000);
@@ -63,8 +74,9 @@ export default function ProBookingDetail() {
   const party = partyQ.data;
   const customer = (b?.customer ?? {}) as { full_name?: string; phone?: string | null };
   const name = party?.other_name || customer.full_name || t("pro.common.customer");
-  const isOnline = String((b as { service_mode?: string } | undefined)?.service_mode ?? "") === "online";
-  const phone = isOnline ? null : party?.other_phone ?? customer.phone ?? null;
+  const isOnline =
+    String((b as { service_mode?: string } | undefined)?.service_mode ?? "") === "online";
+  const phone = isOnline ? null : (party?.other_phone ?? customer.phone ?? null);
   const service = b?.service as { name_ar?: string; name_en?: string } | undefined;
   const loc = Array.isArray(b?.location) ? b?.location[0] : b?.location;
   const addr = loc as Record<string, string | null> | undefined;
@@ -76,13 +88,19 @@ export default function ProBookingDetail() {
       ? requestCountdown(String(b.created_at), String(b.start_at), expiryQ.data, new Date(nowMs))
       : null;
   const breakdown = b ? providerMoneyBreakdown(b as Parameters<typeof providerMoneyBreakdown>[0]) : null;
-  // Address coordinates are only visible to the provider once the booking is confirmed.
   const mapUrl =
     !isOnline && status !== "pending" && addr ? directionsUrl(addr.lat, addr.lng) : null;
-  const tooEarly =
+  const stepWindow =
     b?.start_at && b?.end_at && status
-      ? isProviderStepTooEarly(status, String(b.start_at), String(b.end_at), new Date(nowMs))
-      : false;
+      ? providerStepWindowState(status, String(b.start_at), String(b.end_at), new Date(nowMs))
+      : "not_applicable";
+  const tooEarly = stepWindow === "early";
+  const stepWindowClosed = stepWindow === "closed";
+  const chatOpen = b ? chatPhaseForStatus(status) !== "unavailable" : false;
+  const paymentCaptured = paymentCapturedForJoin({
+    status: paymentQ.data?.status,
+    payment_method_type: paymentQ.data?.payment_method_type,
+  });
   const stepOpensAt =
     b?.start_at && b?.end_at && status
       ? providerStepOpensAt(status, String(b.start_at), String(b.end_at))
@@ -112,6 +130,30 @@ export default function ProBookingDetail() {
         )
       : 0;
 
+  const openSupport = () => {
+    const digits = supportQ.data?.whatsapp?.replace(/\D/g, "");
+    if (!digits) {
+      router.push("/pro-help");
+      return;
+    }
+    const text = encodeURIComponent(
+      t("pro.support.bookingHelpSubject") + ` #${shortBookingCode(String(b?.id ?? ""))}`,
+    );
+    void Linking.openURL(`https://wa.me/${digits}?text=${text}`).catch(() => router.push("/pro-help"));
+  };
+
+  const openBookingChat = async () => {
+    setChatFeedback("");
+    if (!chatOpen) {
+      setChatFeedback("unavailable");
+      return;
+    }
+    const result = await conversation.refetch();
+    if (result.isError) setChatFeedback("error");
+    else if (!result.data) setChatFeedback("unavailable");
+    else router.push({ pathname: "/pro-chat/[id]", params: { id: result.data } });
+  };
+
   const run = (nextStatus: string, onSuccess?: () => void) => {
     mut.mutate(
       { id: id!, status: nextStatus },
@@ -138,7 +180,9 @@ export default function ProBookingDetail() {
       <QueryState query={q} skeleton="detail">
         {b ? (
           <>
-            <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: space.md }]}>
+            <View
+              style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: space.md }]}
+            >
               <View
                 style={{
                   width: 44,
@@ -161,7 +205,33 @@ export default function ProBookingDetail() {
                   {t("proWork.bookingLabel")} #{shortBookingCode(String(b.id))}
                 </Text>
               </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("pro.booking.messageCustomer")}
+                accessibilityState={{ busy: conversation.isFetching }}
+                disabled={conversation.isFetching}
+                onPress={() => void openBookingChat()}
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text size="sm" tone="brand" weight="bold">
+                  {t("pro.booking.messageCustomer")}
+                </Text>
+              </Pressable>
             </View>
+            {!!chatFeedback && (
+              <Text size="sm" tone="muted" accessibilityLiveRegion="polite">
+                {t(
+                  chatFeedback === "error"
+                    ? "bookingChat.loadFailed"
+                    : "bookingChat.unavailableBody",
+                )}
+              </Text>
+            )}
             <BookingStatusCard
               bookingId={id!}
               status={status}
@@ -198,13 +268,12 @@ export default function ProBookingDetail() {
                   {t("pro.booking.time")}
                 </Text>
                 <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                  {Math.max(
-                    1,
-                    Math.round(
-                      (+new Date(String(b.end_at)) - +new Date(String(b.start_at))) / 36e5,
-                    ),
-                  )}{" "}
-                  {t("scheduleUi.hoursUnit")}
+                  {formatBookingDurationLabel(
+                    String(b.start_at),
+                    String(b.end_at),
+                    i18n.language,
+                    t,
+                  )}
                 </Text>
               </View>
               {party?.member_first_name ? (
@@ -248,31 +317,37 @@ export default function ProBookingDetail() {
                   </Text>
                 </View>
               ) : null}
-              <View style={proCard.row}>
-                <MapPin size={16} color={colors.brand} />
-                <Text tone="muted" size="sm" style={{ flex: 1 }}>
-                  {t("pro.booking.address")}
-                </Text>
-                <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                  {status !== "pending" && addr
-                    ? [addr.street, addr.building, addr.area, addr.city].filter(Boolean).join("، ")
-                    : zoneName
-                      ? t("pro.booking.areaOnly", { area: zoneName })
-                      : t("pro.booking.addressMissing")}
-                </Text>
-              </View>
-              {mapUrl && !["completed", "cancelled", "no_show"].includes(status) ? (
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel={t("pro.booking.openMap")}
-                  onPress={() => void Linking.openURL(mapUrl).catch(() => undefined)}
-                  style={[proCard.row, { justifyContent: "flex-start", minHeight: 44 }]}
-                >
-                  <Navigation size={18} color={colors.brand} />
-                  <Text weight="bold" tone="brand">
-                    {t("pro.booking.openMap")}
-                  </Text>
-                </Pressable>
+              {!isOnline ? (
+                <>
+                  <View style={proCard.row}>
+                    <MapPin size={16} color={colors.brand} />
+                    <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                      {t("pro.booking.address")}
+                    </Text>
+                    <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                      {status !== "pending" && addr
+                        ? [addr.street, addr.building, addr.area, addr.city]
+                            .filter(Boolean)
+                            .join("، ")
+                        : zoneName
+                          ? t("pro.booking.areaOnly", { area: zoneName })
+                          : t("pro.booking.addressMissing")}
+                    </Text>
+                  </View>
+                  {mapUrl && !["completed", "cancelled", "no_show"].includes(status) ? (
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={t("pro.booking.openMap")}
+                      onPress={() => void Linking.openURL(mapUrl).catch(() => undefined)}
+                      style={[proCard.row, { justifyContent: "flex-start", minHeight: 44 }]}
+                    >
+                      <Navigation size={18} color={colors.brand} />
+                      <Text weight="bold" tone="brand">
+                        {t("pro.booking.openMap")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </>
               ) : null}
               {phone ? (
                 <Pressable
@@ -327,6 +402,28 @@ export default function ProBookingDetail() {
                 {t("pro.booking.carriedFeesNote", { amount: money(carriedFees(b), i18n.language) })}
               </Text>
             ) : null}
+            {isOnline ? (
+              <OnlineLessonTimeline
+                status={status}
+                startAt={String(b.start_at)}
+                endAt={String(b.end_at)}
+                paymentCaptured={paymentCaptured}
+                statusChangedAt={(b.status_changed_at as string | null) ?? null}
+                amountDue={bookingAmountDue(b)}
+              />
+            ) : null}
+            {typeof b.customer_id === "string" ? (
+              <RescheduleSection
+                viewer="provider"
+                booking={{
+                  id: String(b.id),
+                  customer_id: String(b.customer_id),
+                  status,
+                  start_at: String(b.start_at),
+                  end_at: String(b.end_at),
+                }}
+              />
+            ) : null}
             {b && typeof b.id === "string" ? (
               <OnlineSessionJoinButton
                 booking={{
@@ -341,10 +438,12 @@ export default function ProBookingDetail() {
                 viewerUserId={session?.user.id}
                 paymentStatus={paymentQ.data?.status}
                 paymentMethodType={paymentQ.data?.payment_method_type}
-                proofPath={paymentQ.data?.proof_path}
                 party="provider"
                 onJoin={() =>
-                  router.push({ pathname: "/pro-booking/[id]/session", params: { id: String(b.id) } })
+                  router.push({
+                    pathname: "/pro-booking/[id]/session",
+                    params: { id: String(b.id) },
+                  })
                 }
               />
             ) : null}
@@ -389,18 +488,35 @@ export default function ProBookingDetail() {
               />
             </View>
           ) : null}
-          {status === "confirmed" ? (
+          {status === "confirmed" && !isOnline ? (
             <>
               <View style={{ gap: space.xs }}>
                 <Button
                   label={t("pro.booking.onTheWay")}
-                  disabled={tooEarly || mut.isPending}
+                  disabled={tooEarly || stepWindowClosed || mut.isPending}
                   onPress={() => run("on_the_way")}
                 />
                 {tooEarly && stepOpensAt ? (
                   <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
                     {t("pro.booking.tooEarly")}
                   </Text>
+                ) : null}
+                {stepWindowClosed ? (
+                  <View style={{ gap: space.sm, alignItems: "center" }}>
+                    <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                      {t("pro.booking.bookingTimePassed")}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={t("pro.booking.openSupportTicket")}
+                      onPress={openSupport}
+                      style={{ minHeight: 44, justifyContent: "center" }}
+                    >
+                      <Text tone="brand" weight="bold">
+                        {t("pro.booking.openSupportTicket")}
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : null}
               </View>
               <Button
@@ -411,23 +527,31 @@ export default function ProBookingDetail() {
               />
             </>
           ) : null}
-          {status === "on_the_way" ? (
-            <Button
-              label={t("pro.booking.iHaveArrived")}
-              loading={mut.isPending}
-              onPress={() => run("arrived")}
-            />
+          {status === "on_the_way" && !isOnline ? (
+            <View style={{ gap: space.xs }}>
+              <Button
+                label={t("pro.booking.iHaveArrived")}
+                loading={mut.isPending}
+                disabled={stepWindowClosed}
+                onPress={() => run("arrived")}
+              />
+              {stepWindowClosed ? (
+                <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                  {t("pro.booking.bookingTimePassed")}
+                </Text>
+              ) : null}
+            </View>
           ) : null}
-          {status === "arrived" ? (
+          {status === "arrived" && !isOnline ? (
             <Text tone="muted" style={{ textAlign: "center" }}>
               {t("pro.booking.waitingArrivalConfirm")}
             </Text>
           ) : null}
-          {status === "arrival_confirmed" ? (
+          {status === "arrival_confirmed" && !isOnline ? (
             <View style={{ gap: space.xs }}>
               <Button
                 label={t("pro.booking.startService")}
-                disabled={tooEarly || mut.isPending}
+                disabled={tooEarly || stepWindowClosed || mut.isPending}
                 onPress={() => run("in_progress")}
               />
               {tooEarly && stepOpensAt ? (

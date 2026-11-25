@@ -83,6 +83,24 @@ describe("reschedule server contract", () => {
       p_reason: "reason",
     });
   });
+  it("passes counter-proposal times to respond_reschedule", async () => {
+    backend.rpc.mockResolvedValueOnce({ error: null });
+    await action().mutationFn({
+      type: "counter",
+      requestId: "request",
+      start: "counter-start",
+      end: "counter-end",
+      reason: "other time",
+    });
+    expect(backend.rpc).toHaveBeenLastCalledWith("respond_reschedule", {
+      p_request_id: "request",
+      p_action: "counter",
+      p_reason: "other time",
+      p_counter_start: "counter-start",
+      p_counter_end: "counter-end",
+    });
+  });
+
   it("uses guarded respond/withdraw RPCs and propagates server rejection", async () => {
     backend.rpc.mockResolvedValueOnce({ error: null });
     await action().mutationFn({ type: "withdraw", requestId: "request" });
