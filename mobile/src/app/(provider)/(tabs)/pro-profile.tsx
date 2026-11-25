@@ -33,7 +33,12 @@ export default function ProviderProfile() {
   };
 
   return (
-    <Page tab title={t("pro.nav.profile")} queries={[p, servicesQ]} contentStyle={{ gap: space.lg }}>
+    <Page
+      tab
+      title={t("pro.nav.profile")}
+      queries={[p, servicesQ]}
+      contentStyle={{ gap: space.lg }}
+    >
       <QueryState query={p}>
         <View
           style={[
@@ -124,7 +129,10 @@ export default function ProviderProfile() {
         </View>
       </QueryState>
       <Row label={t("scheduleUi.hours")} onPress={() => router.push("/schedule")} />
-      <Row label={t("pro.profile.onlineLessonsLink")} onPress={() => router.push("/pro-online-lessons")} />
+      <Row
+        label={t("pro.profile.onlineLessonsLink")}
+        onPress={() => router.push("/pro-online-lessons")}
+      />
       <Text weight="bold" tone="muted" size="sm">
         {t("pro.profile.about")}
       </Text>
@@ -189,7 +197,7 @@ export default function ProviderProfile() {
         label={t("mobilePro.notificationPrefs")}
         onPress={() => router.push("/pro-notification-preferences")}
       />
-      <Row label={t("profile.help")} onPress={() => router.push("/help")} />
+      <Row label={t("profile.help")} onPress={() => router.push("/pro-help")} />
       <Row
         label={t("profile.terms")}
         onPress={() => router.push({ pathname: "/content/[key]", params: { key: "terms" } })}

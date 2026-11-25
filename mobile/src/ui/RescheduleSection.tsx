@@ -11,14 +11,11 @@ import { Button } from "./Button";
 import { DateField } from "./DateField";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 import { scheduleTimeChoices, timeChoiceLabel } from "@shared/provider/scheduleDate";
+import { formatBookingDurationLabel } from "@/lib/bookingDuration";
+import { rescheduleErrorKey } from "@/lib/serverErrorMessages";
 
 function rescheduleErrorMessage(error: unknown, t: (key: string) => string) {
-  const message =
-    error && typeof error === "object" && "message" in error
-      ? String((error as { message?: unknown }).message ?? "")
-      : "";
-  if (message.trim()) return message.trim();
-  return t("common.somethingWentWrong");
+  return t(rescheduleErrorKey(error));
 }
 
 export function RescheduleSection({
@@ -31,15 +28,14 @@ export function RescheduleSection({
   const { t, i18n } = useTranslation();
   const requests = useRescheduleRequests(booking.id);
   const action = useRescheduleAction(booking.id);
+  // The server refuses any change in session length: a reschedule only moves the start.
+  const sessionMs = +new Date(booking.end_at) - +new Date(booking.start_at);
   const initial = new Date(booking.start_at);
   const [date, setDate] = useState(
     `${initial.getFullYear()}-${String(initial.getMonth() + 1).padStart(2, "0")}-${String(initial.getDate()).padStart(2, "0")}`,
   );
   const [time, setTime] = useState(
     `${String(initial.getHours()).padStart(2, "0")}:${String(initial.getMinutes()).padStart(2, "0")}`,
-  );
-  const [hours, setHours] = useState(
-    String(Math.max(1, Math.round((+new Date(booking.end_at) - +initial) / 3600000))),
   );
   const [reason, setReason] = useState("");
   const [form, setForm] = useState<"" | "request" | "reject" | "withdraw" | "counter">("");
@@ -54,7 +50,8 @@ export function RescheduleSection({
   const isMine = open ? !awaitingMe : false;
   const eligible = ["pending", "confirmed"].includes(booking.status);
   const start = new Date(`${date}T${time}:00`);
-  const valid = Number.isFinite(+start) && Number.isInteger(Number(hours)) && Number(hours) >= 1;
+  const valid = Number.isFinite(+start) && sessionMs > 0;
+  const durationLabel = formatBookingDurationLabel(booking.start_at, booking.end_at, i18n.language, t);
   if (!eligible && !requests.data?.length && !requests.isError) return null;
   const perform = (input: Parameters<typeof action.mutate>[0]) =>
     action.mutate(input, {
@@ -69,7 +66,12 @@ export function RescheduleSection({
       <QueryState query={requests}>
         {open ? (
           <>
-            <Text>{dateTime(open.proposed_start_at, i18n.language)}</Text>
+            <Text>
+              {joinUiParts(
+                [dateTime(open.proposed_start_at, i18n.language), dateTime(open.proposed_end_at, i18n.language)],
+                i18n.language,
+              )}
+            </Text>
             {!!open.request_reason && (
               <Text size="sm" tone="muted">
                 {open.request_reason}
@@ -151,12 +153,9 @@ export function RescheduleSection({
               }))}
               onChange={setTime}
             />
-            <Field
-              label={t("reschedule.durationHours")}
-              value={hours}
-              onChangeText={setHours}
-              keyboardType="number-pad"
-            />
+            <Text size="sm" tone="muted">
+              {t("reschedule.sameDuration", { duration: durationLabel })}
+            </Text>
             <Field label={t("reschedule.reasonOptional")} value={reason} onChangeText={setReason} />
             <Button
               label={t("reschedule.sendRequest")}
@@ -167,7 +166,7 @@ export function RescheduleSection({
                   perform({
                     type: "request",
                     start: start.toISOString(),
-                    end: new Date(+start + Number(hours) * 3600000).toISOString(),
+                    end: new Date(+start + sessionMs).toISOString(),
                     reason,
                   });
               }}
@@ -186,12 +185,9 @@ export function RescheduleSection({
               }))}
               onChange={setTime}
             />
-            <Field
-              label={t("reschedule.durationHours")}
-              value={hours}
-              onChangeText={setHours}
-              keyboardType="number-pad"
-            />
+            <Text size="sm" tone="muted">
+              {t("reschedule.sameDuration", { duration: durationLabel })}
+            </Text>
             <Field label={t("reschedule.reasonOptional")} value={reason} onChangeText={setReason} />
             <Button
               label={t("reschedule.sendProposal")}
@@ -203,7 +199,7 @@ export function RescheduleSection({
                     type: "counter",
                     requestId: open.id,
                     start: start.toISOString(),
-                    end: new Date(+start + Number(hours) * 3600000).toISOString(),
+                    end: new Date(+start + sessionMs).toISOString(),
                     reason,
                   });
               }}
@@ -261,6 +257,7 @@ export function RescheduleSection({
                       : "reschedule.byProvider",
                   ),
                   dateTime(row.proposed_start_at, i18n.language),
+                  dateTime(row.proposed_end_at, i18n.language),
                   t(`reschedule.status.${row.status}`),
                 ],
                 i18n.language,

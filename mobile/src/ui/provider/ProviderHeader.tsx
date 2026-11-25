@@ -10,10 +10,13 @@ export function ProviderHeader({
   title,
   action,
   onBack,
+  hideBack = false,
 }: {
   title: string;
   action?: ReactNode;
   onBack?: () => void;
+  /** Hide back when the screen is a gated stack root (no history). */
+  hideBack?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const Arrow = i18n.language.startsWith("ar") ? ArrowRight : ArrowLeft;
@@ -28,14 +31,18 @@ export function ProviderHeader({
         gap: space.md,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("common.back")}
-        onPress={onBack ?? (() => router.back())}
-        style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
-      >
-        <Arrow size={22} color={colors.foreground} />
-      </Pressable>
+      {hideBack ? (
+        <View style={{ width: 44, height: 44 }} />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
+          onPress={onBack ?? (() => router.back())}
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+        >
+          <Arrow size={22} color={colors.foreground} />
+        </Pressable>
+      )}
       <Text weight="heavy" size="title" style={{ flex: 1 }} numberOfLines={1}>
         {title}
       </Text>

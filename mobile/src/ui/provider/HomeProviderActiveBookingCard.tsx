@@ -25,6 +25,7 @@ import { customerBookingListWhen, localized } from "@/lib/presentation";
 import { customerNumber } from "@/lib/customerFormat";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
+import { ActionError } from "@/ui/Page";
 import { colors, radius, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
 
@@ -49,6 +50,7 @@ export function HomeProviderActiveBookingCard({
 }) {
   const { t, i18n } = useTranslation();
   const mut = useProviderUpdateBookingStatus();
+  const [actionError, setActionError] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 30_000);
@@ -93,15 +95,13 @@ export function HomeProviderActiveBookingCard({
   const nextStepKey = providerHomeActiveBookingNextStepKey(status);
   const ctaKey = providerHomeActiveBookingCtaKey(status);
   const nextStatus = providerHomeActiveBookingTargetStatus(status);
-  const fullName =
-    focus.party?.other_name || focus.customer?.full_name || t("pro.common.customer");
+  const fullName = focus.party?.other_name || focus.customer?.full_name || t("pro.common.customer");
   const firstName = fullName.trim().split(/\s+/)[0] || fullName;
   const service = localized(focus.service, i18n.language);
   const when = customerBookingListWhen(focus.start_at, i18n.language);
   const area =
-    (i18n.language.startsWith("ar")
-      ? focus.party?.zone_name_ar
-      : focus.party?.zone_name_en) || focus.party?.area;
+    (i18n.language.startsWith("ar") ? focus.party?.zone_name_ar : focus.party?.zone_name_en) ||
+    focus.party?.area;
   const now = new Date(nowMs);
   const endAt = focus.end_at ?? focus.start_at;
   const stepWindow = providerStepWindowState(status, focus.start_at, endAt, now);
@@ -137,9 +137,15 @@ export function HomeProviderActiveBookingCard({
 
   const runStatus = () => {
     if (!nextStatus) return;
+    setActionError(false);
     mut.mutate(
       { id: focus.id, status: nextStatus },
-      { onError: (e: Error) => isBookingTooEarlyError(e) && mut.reset() },
+      {
+        onError: (e: Error) => {
+          if (isBookingTooEarlyError(e)) mut.reset();
+          else setActionError(true);
+        },
+      },
     );
   };
 
@@ -193,6 +199,7 @@ export function HomeProviderActiveBookingCard({
         </View>
         {ctaKey ? (
           <View style={{ gap: space.xs }}>
+            <ActionError error={actionError} />
             <Button
               label={t(ctaKey)}
               loading={mut.isPending}
@@ -218,9 +225,7 @@ export function HomeProviderActiveBookingCard({
         ) : (
           <Button
             label={t("providerHome.openBooking")}
-            onPress={() =>
-              router.push({ pathname: "/pro-booking/[id]", params: { id: focus.id } })
-            }
+            onPress={() => router.push({ pathname: "/pro-booking/[id]", params: { id: focus.id } })}
           />
         )}
         {activeCount > 1 ? (
@@ -231,8 +236,7 @@ export function HomeProviderActiveBookingCard({
             style={{ minHeight: 44, justifyContent: "center" }}
           >
             <Text size="sm" tone="brand" weight="bold">
-              {t("providerHome.viewAllBookings")} (
-              {customerNumber(activeCount, i18n.language)})
+              {t("providerHome.viewAllBookings")} ({customerNumber(activeCount, i18n.language)})
             </Text>
           </Pressable>
         ) : null}
