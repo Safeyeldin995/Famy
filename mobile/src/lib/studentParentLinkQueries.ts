@@ -7,41 +7,65 @@ export function useStudentParentLinkStatus() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("student_parent_link_status");
       if (error) throw error;
-      if (!data) return null;
-      return data as {
-        link_id: string;
-        status: string;
-        parent_id: string | null;
-        requested_parent_phone: string;
-        requested_at: string;
-        decided_at: string | null;
-        expires_at: string;
-      };
+      if (!data || data === null) return null;
+      return data;
     },
   });
 }
 
-export function useRequestParentLink() {
+export function useRegisterParentGuardianContact() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (parentPhone: string) => {
-      const { data, error } = await supabase.rpc("request_parent_link", {
-        p_parent_phone: parentPhone,
+    mutationFn: async (input: { parentPhone: string; parentEmail: string }) => {
+      const { data, error } = await supabase.rpc("register_parent_guardian_contact", {
+        p_parent_phone: input.parentPhone,
+        p_parent_email: input.parentEmail,
       });
       if (error) throw error;
-      return data as { outcome: "sent" | "not_on_famy"; link_id: string };
+      return data;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["student-parent-link"] }),
   });
 }
 
-export function useRespondParentLink() {
+export function useUpdateParentGuardianContact() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { linkId: string; approve: boolean }) => {
-      const { data, error } = await supabase.rpc("respond_parent_link", {
-        p_link_id: input.linkId,
-        p_approve: input.approve,
+    mutationFn: async (input: { parentPhone: string; parentEmail: string }) => {
+      const { data, error } = await supabase.rpc("update_parent_guardian_contact", {
+        p_parent_phone: input.parentPhone,
+        p_parent_email: input.parentEmail,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["student-parent-link"] }),
+  });
+}
+
+export function useParentAcknowledgeStudentLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      const { data, error } = await supabase.rpc("parent_acknowledge_student_link", {
+        p_link_id: linkId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["student-parent-link"] });
+      void qc.invalidateQueries({ queryKey: ["parent-linked-students"] });
+    },
+  });
+}
+
+export function useParentFlagNotMyChild() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      const { data, error } = await supabase.rpc("parent_flag_not_my_child", {
+        p_link_id: linkId,
       });
       if (error) throw error;
       return data;

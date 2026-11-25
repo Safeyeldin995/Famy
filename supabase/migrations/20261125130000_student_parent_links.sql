@@ -1,20 +1,25 @@
--- Student (12-17) parent account link for online lessons (issue #417).
+-- Student (12-17) parent guardian contact for online lessons (issue #417).
+-- Transparency layer only: never blocks booking or payment.
 
 CREATE TABLE IF NOT EXISTS public.student_parent_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   parent_id uuid NULL REFERENCES public.profiles(id) ON DELETE SET NULL,
   requested_parent_phone text NOT NULL,
-  status text NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'revoked')),
+  parent_email text NOT NULL,
+  status text NOT NULL CHECK (status IN ('notified', 'linked', 'flagged_not_my_child', 'revoked')),
+  flag_token uuid NOT NULL DEFAULT gen_random_uuid(),
   requested_at timestamptz NOT NULL DEFAULT now(),
   decided_at timestamptz NULL,
-  expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   CONSTRAINT student_parent_links_distinct CHECK (student_id IS DISTINCT FROM parent_id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS student_parent_links_one_active_per_student
   ON public.student_parent_links (student_id)
-  WHERE status IN ('pending', 'approved');
+  WHERE status IN ('notified', 'linked', 'flagged_not_my_child');
+
+CREATE UNIQUE INDEX IF NOT EXISTS student_parent_links_flag_token_idx
+  ON public.student_parent_links (flag_token);
 
 CREATE INDEX IF NOT EXISTS student_parent_links_parent_id_idx
   ON public.student_parent_links (parent_id)
@@ -48,7 +53,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.student_has_approved_parent_link(p_student_id uuid)
+CREATE OR REPLACE FUNCTION public.student_has_linked_parent(p_student_id uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE
@@ -58,12 +63,28 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.student_parent_links l
     WHERE l.student_id = p_student_id
-      AND l.status = 'approved'
+      AND l.status = 'linked'
       AND l.parent_id IS NOT NULL
   );
 $$;
-REVOKE ALL ON FUNCTION public.student_has_approved_parent_link(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.student_has_approved_parent_link(uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.student_has_linked_parent(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.student_has_linked_parent(uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.famy_normalize_parent_email(p_email text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT lower(btrim(COALESCE(p_email, '')));
+$$;
+
+CREATE OR REPLACE FUNCTION public.famy_valid_parent_email(p_email text)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT COALESCE(p_email, '') ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$';
+$$;
 
 CREATE OR REPLACE FUNCTION public.parent_may_pay_student_booking(p_parent_id uuid, p_booking_id uuid)
 RETURNS boolean
@@ -77,7 +98,7 @@ AS $$
     JOIN public.student_parent_links l
       ON l.student_id = b.customer_id
      AND l.parent_id = p_parent_id
-     AND l.status = 'approved'
+     AND l.status = 'linked'
     WHERE b.id = p_booking_id AND b.service_mode = 'online'
   );
 $$;
@@ -85,7 +106,41 @@ REVOKE ALL ON FUNCTION public.parent_may_pay_student_booking(uuid, uuid) FROM PU
 GRANT EXECUTE ON FUNCTION public.parent_may_pay_student_booking(uuid, uuid) TO authenticated, service_role;
 
 
-CREATE OR REPLACE FUNCTION public.request_parent_link(p_parent_phone text)
+CREATE OR REPLACE FUNCTION public._student_parent_link_resolve_parent(p_digits text, p_student_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_parent_id uuid;
+  v_parent_age integer;
+BEGIN
+  SELECT pr.id INTO v_parent_id
+  FROM public.profiles pr
+  WHERE public.famy_profile_phone_digits(pr.phone) = p_digits
+    AND pr.deleted_at IS NULL
+  LIMIT 1;
+  IF v_parent_id IS NULL OR v_parent_id = p_student_id THEN
+    RETURN NULL;
+  END IF;
+  IF public.is_admin_account(v_parent_id) OR NOT public.has_role(v_parent_id, 'customer') THEN
+    RETURN NULL;
+  END IF;
+  v_parent_age := public.booking_online_age_years(v_parent_id, NULL);
+  IF v_parent_age IS NULL OR v_parent_age < 18 THEN
+    RETURN NULL;
+  END IF;
+  RETURN v_parent_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public._student_parent_link_resolve_parent(text, uuid) FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.register_parent_guardian_contact(
+  p_parent_phone text,
+  p_parent_email text
+)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -94,11 +149,13 @@ AS $$
 DECLARE
   v_uid uuid := auth.uid();
   v_digits text;
+  v_email text;
   v_age integer;
   v_parent_id uuid;
-  v_parent_age integer;
   v_student_name text;
   v_link_id uuid;
+  v_flag_token uuid;
+  v_status text;
   v_recent integer;
 BEGIN
   IF v_uid IS NULL THEN
@@ -109,10 +166,10 @@ BEGIN
   END IF;
   v_age := public.booking_online_age_years(v_uid, NULL);
   IF v_age IS NULL OR v_age < 12 THEN
-    RAISE EXCEPTION 'Online parent link is only for students aged 12 and above.' USING ERRCODE = '23514';
+    RAISE EXCEPTION 'Parent guardian contact is only for students aged 12 and above.' USING ERRCODE = '23514';
   END IF;
   IF v_age >= 18 THEN
-    RAISE EXCEPTION 'Parent link is not required for adults.' USING ERRCODE = '23514';
+    RAISE EXCEPTION 'Parent guardian contact is not required for adults.' USING ERRCODE = '23514';
   END IF;
 
   SELECT count(*)::integer INTO v_recent
@@ -126,71 +183,92 @@ BEGIN
   IF v_digits IS NULL OR v_digits !~ '^201[0125][0-9]{8}$' THEN
     RAISE EXCEPTION 'INVALID_PHONE' USING ERRCODE = 'P0001';
   END IF;
-
-  SELECT pr.id INTO v_parent_id
-  FROM public.profiles pr
-  WHERE public.famy_profile_phone_digits(pr.phone) = v_digits
-    AND pr.deleted_at IS NULL
-  LIMIT 1;
-
-  IF v_parent_id IS NOT NULL THEN
-    IF v_parent_id = v_uid THEN
-      RAISE EXCEPTION 'INVALID_PHONE' USING ERRCODE = 'P0001';
-    END IF;
-    IF public.is_admin_account(v_parent_id) OR NOT public.has_role(v_parent_id, 'customer') THEN
-      v_parent_id := NULL;
-    ELSE
-      v_parent_age := public.booking_online_age_years(v_parent_id, NULL);
-      IF v_parent_age IS NULL OR v_parent_age < 18 THEN
-        v_parent_id := NULL;
-      END IF;
-    END IF;
+  v_email := public.famy_normalize_parent_email(p_parent_email);
+  IF NOT public.famy_valid_parent_email(v_email) THEN
+    RAISE EXCEPTION 'INVALID_EMAIL' USING ERRCODE = 'P0001';
   END IF;
+
+  v_parent_id := public._student_parent_link_resolve_parent(v_digits, v_uid);
+  v_status := CASE WHEN v_parent_id IS NOT NULL THEN 'linked' ELSE 'notified' END;
 
   UPDATE public.student_parent_links
   SET status = 'revoked', decided_at = now()
-  WHERE student_id = v_uid AND status IN ('pending', 'rejected');
+  WHERE student_id = v_uid AND status IN ('notified', 'flagged_not_my_child');
 
   INSERT INTO public.student_parent_links (
-    student_id, parent_id, requested_parent_phone, status, expires_at
+    student_id, parent_id, requested_parent_phone, parent_email, status
   ) VALUES (
     v_uid,
     v_parent_id,
     v_digits,
-    'pending',
-    now() + interval '7 days'
+    v_email,
+    v_status
   )
-  RETURNING id INTO v_link_id;
+  RETURNING id, flag_token INTO v_link_id, v_flag_token;
+
+  SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_uid;
 
   IF v_parent_id IS NOT NULL THEN
-    SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_uid;
     INSERT INTO public.notifications (
       user_id, type, category, title, body, title_en, title_ar, body_en, body_ar,
       payload, deep_link
     ) VALUES (
       v_parent_id,
-      'student_parent_link_request',
+      'student_parent_linked',
       'system',
-      v_student_name || ' wants to link accounts',
-      'Approve or decline linking this student account to yours',
-      v_student_name || ' wants to link accounts',
-      v_student_name || ' عايز يربط حسابه بحسابك',
-      'Approve or decline linking this student account to yours',
-      'وافق أو ارفض ربط حساب الطالب بحسابك',
+      v_student_name || ' added you as guardian on Famy',
+      'Acknowledge or flag if this is not your child',
+      v_student_name || ' added you as guardian on Famy',
+      v_student_name || ' ضافك كولي أمر على فامي',
+      'Acknowledge or flag if this is not your child',
+      'تمام أو اختار «ده مش ابني» لو الطالب مش ابنك',
       jsonb_build_object('link_id', v_link_id, 'student_id', v_uid, 'student_name', v_student_name),
       '/student-parent-link?linkId=' || v_link_id::text
     );
-    RETURN jsonb_build_object('outcome', 'sent', 'link_id', v_link_id);
   END IF;
 
-  RETURN jsonb_build_object('outcome', 'not_on_famy', 'link_id', v_link_id);
+  RETURN jsonb_build_object(
+    'link_id', v_link_id,
+    'status', v_status,
+    'flag_token', v_flag_token,
+    'parent_on_famy', v_parent_id IS NOT NULL,
+    'parent_email', v_email,
+    'student_name', v_student_name
+  );
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.request_parent_link(text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.request_parent_link(text) TO authenticated;
+REVOKE ALL ON FUNCTION public.register_parent_guardian_contact(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.register_parent_guardian_contact(text, text) TO authenticated;
 
-CREATE OR REPLACE FUNCTION public.respond_parent_link(p_link_id uuid, p_approve boolean)
+CREATE OR REPLACE FUNCTION public.update_parent_guardian_contact(
+  p_parent_phone text,
+  p_parent_email text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_age integer;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+  v_age := public.booking_online_age_years(v_uid, NULL);
+  IF v_age IS NULL OR v_age >= 18 THEN
+    RAISE EXCEPTION 'Only students under 18 may update guardian contact.' USING ERRCODE = '23514';
+  END IF;
+  RETURN public.register_parent_guardian_contact(p_parent_phone, p_parent_email);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_parent_guardian_contact(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.update_parent_guardian_contact(text, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.parent_acknowledge_student_link(p_link_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -199,31 +277,76 @@ AS $$
 DECLARE
   v_uid uuid := auth.uid();
   v_link public.student_parent_links%ROWTYPE;
-  v_new_status text;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
   END IF;
-  IF public.is_admin_account(v_uid) THEN
-    RAISE EXCEPTION 'admin_account_restricted' USING ERRCODE = 'P0001';
-  END IF;
   SELECT * INTO v_link FROM public.student_parent_links WHERE id = p_link_id FOR UPDATE;
-  IF NOT FOUND OR v_link.parent_id IS DISTINCT FROM v_uid OR v_link.status <> 'pending' THEN
-    RAISE EXCEPTION 'Link request not found.' USING ERRCODE = 'P0002';
+  IF NOT FOUND OR v_link.parent_id IS DISTINCT FROM v_uid OR v_link.status <> 'linked' THEN
+    RAISE EXCEPTION 'Link not found.' USING ERRCODE = 'P0002';
   END IF;
-  IF v_link.expires_at < now() THEN
-    RAISE EXCEPTION 'Link request expired.' USING ERRCODE = '23514';
-  END IF;
-  v_new_status := CASE WHEN p_approve THEN 'approved' ELSE 'rejected' END;
   UPDATE public.student_parent_links
-  SET status = v_new_status, decided_at = now()
+  SET decided_at = COALESCE(decided_at, now())
   WHERE id = p_link_id;
-  RETURN jsonb_build_object('link_id', p_link_id, 'status', v_new_status);
+  RETURN jsonb_build_object('link_id', p_link_id, 'status', 'linked');
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.respond_parent_link(uuid, boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.respond_parent_link(uuid, boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.parent_acknowledge_student_link(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.parent_acknowledge_student_link(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.parent_flag_not_my_child(p_link_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_link public.student_parent_links%ROWTYPE;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_link FROM public.student_parent_links WHERE id = p_link_id FOR UPDATE;
+  IF NOT FOUND OR v_link.parent_id IS DISTINCT FROM v_uid OR v_link.status NOT IN ('linked', 'notified') THEN
+    RAISE EXCEPTION 'Link not found.' USING ERRCODE = 'P0002';
+  END IF;
+  UPDATE public.student_parent_links
+  SET status = 'flagged_not_my_child', decided_at = now()
+  WHERE id = p_link_id;
+  RETURN jsonb_build_object('link_id', p_link_id, 'status', 'flagged_not_my_child');
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.parent_flag_not_my_child(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.parent_flag_not_my_child(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.flag_parent_link_by_token(p_flag_token uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_link public.student_parent_links%ROWTYPE;
+BEGIN
+  IF p_flag_token IS NULL THEN
+    RAISE EXCEPTION 'Invalid token.' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO v_link FROM public.student_parent_links WHERE flag_token = p_flag_token FOR UPDATE;
+  IF NOT FOUND OR v_link.status NOT IN ('notified', 'linked') THEN
+    RAISE EXCEPTION 'Link not found.' USING ERRCODE = 'P0002';
+  END IF;
+  UPDATE public.student_parent_links
+  SET status = 'flagged_not_my_child', decided_at = now()
+  WHERE id = v_link.id;
+  RETURN jsonb_build_object('link_id', v_link.id, 'status', 'flagged_not_my_child');
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.flag_parent_link_by_token(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.flag_parent_link_by_token(uuid) TO anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.revoke_parent_link(p_link_id uuid)
 RETURNS jsonb
@@ -239,7 +362,7 @@ BEGIN
     RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
   END IF;
   SELECT * INTO v_link FROM public.student_parent_links WHERE id = p_link_id FOR UPDATE;
-  IF NOT FOUND OR v_link.status NOT IN ('pending', 'approved') THEN
+  IF NOT FOUND OR v_link.status NOT IN ('notified', 'linked', 'flagged_not_my_child') THEN
     RAISE EXCEPTION 'Link not found.' USING ERRCODE = 'P0002';
   END IF;
   IF v_uid <> v_link.student_id AND v_uid <> v_link.parent_id THEN
@@ -279,7 +402,7 @@ AS $$
   FROM public.student_parent_links l
   JOIN public.profiles p ON p.id = l.student_id
   WHERE l.parent_id = auth.uid()
-    AND l.status IN ('approved', 'pending', 'rejected', 'revoked')
+    AND l.status IN ('notified', 'linked', 'flagged_not_my_child', 'revoked')
   ORDER BY l.requested_at DESC;
 $$;
 
@@ -301,7 +424,7 @@ AS $$
       SELECT 1 FROM public.student_parent_links l
       WHERE l.parent_id = auth.uid()
         AND l.student_id = p_student_id
-        AND l.status = 'approved'
+        AND l.status = 'linked'
     )
   ORDER BY b.start_at DESC
   LIMIT 100;
@@ -324,13 +447,13 @@ AS $$
         'status', l.status,
         'parent_id', l.parent_id,
         'requested_parent_phone', l.requested_parent_phone,
+        'parent_email', l.parent_email,
         'requested_at', l.requested_at,
-        'decided_at', l.decided_at,
-        'expires_at', l.expires_at
+        'decided_at', l.decided_at
       )
       FROM public.student_parent_links l
       WHERE l.student_id = auth.uid()
-        AND l.status IN ('pending', 'approved')
+        AND l.status IN ('notified', 'linked', 'flagged_not_my_child')
       ORDER BY l.requested_at DESC
       LIMIT 1
     ),
@@ -359,7 +482,12 @@ BEGIN
         'status', l.status,
         'parent_id', l.parent_id,
         'parent_name', pp.full_name,
-        'parent_phone', pp.phone,
+        'parent_phone_masked', right(COALESCE(l.requested_parent_phone, ''), 3),
+        'parent_email_masked', CASE
+          WHEN position('@' in l.parent_email) > 1 THEN
+            left(split_part(l.parent_email, '@', 1), 1) || '***@' || split_part(l.parent_email, '@', 2)
+          ELSE '***'
+        END,
         'requested_at', l.requested_at,
         'decided_at', l.decided_at
       )
@@ -376,6 +504,180 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_customer_parent_link(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_customer_parent_link(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_parent_linked_students(p_parent_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin access required.' USING ERRCODE = '42501';
+  END IF;
+  RETURN COALESCE(
+    (
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'link_id', l.id,
+          'student_id', l.student_id,
+          'student_name', p.full_name,
+          'status', l.status,
+          'requested_at', l.requested_at
+        )
+        ORDER BY l.requested_at DESC
+      )
+      FROM public.student_parent_links l
+      JOIN public.profiles p ON p.id = l.student_id
+      WHERE l.parent_id = p_parent_id
+    ),
+    '[]'::jsonb
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_parent_linked_students(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_parent_linked_students(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_list_student_links(
+  p_status text DEFAULT NULL,
+  p_search text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_search text := NULLIF(btrim(p_search), '');
+BEGIN
+  IF NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin access required.' USING ERRCODE = '42501';
+  END IF;
+  RETURN COALESCE(
+    (
+      SELECT jsonb_agg(row_to_json(x) ORDER BY x.requested_at DESC)
+      FROM (
+        SELECT
+          l.id AS link_id,
+          l.student_id,
+          sp.full_name AS student_name,
+          l.parent_id,
+          pp.full_name AS parent_name,
+          l.status,
+          right(l.requested_parent_phone, 3) AS parent_phone_masked,
+          CASE
+            WHEN position('@' in l.parent_email) > 1 THEN
+              left(split_part(l.parent_email, '@', 1), 1) || '***@' || split_part(l.parent_email, '@', 2)
+            ELSE '***'
+          END AS parent_email_masked,
+          l.requested_at,
+          l.decided_at
+        FROM public.student_parent_links l
+        JOIN public.profiles sp ON sp.id = l.student_id
+        LEFT JOIN public.profiles pp ON pp.id = l.parent_id
+        WHERE (p_status IS NULL OR l.status = p_status)
+          AND (
+            v_search IS NULL
+            OR sp.full_name ILIKE '%' || v_search || '%'
+            OR COALESCE(pp.full_name, '') ILIKE '%' || v_search || '%'
+          )
+        ORDER BY l.requested_at DESC
+        LIMIT 200
+      ) x
+    ),
+    '[]'::jsonb
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_list_student_links(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_list_student_links(text, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_student_parent_flag_count()
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT count(*)::integer
+  FROM public.student_parent_links l
+  WHERE l.status = 'flagged_not_my_child'
+    AND COALESCE(l.decided_at, l.requested_at) > now() - interval '30 days';
+$$;
+REVOKE ALL ON FUNCTION public.admin_student_parent_flag_count() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_student_parent_flag_count() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_revoke_student_link(p_link_id uuid, p_reason text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_link public.student_parent_links%ROWTYPE;
+  v_student_name text;
+BEGIN
+  IF NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin access required.' USING ERRCODE = '42501';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+    RAISE EXCEPTION 'A reason is required.' USING ERRCODE = '23514';
+  END IF;
+  SELECT * INTO v_link FROM public.student_parent_links WHERE id = p_link_id FOR UPDATE;
+  IF NOT FOUND OR v_link.status = 'revoked' THEN
+    RAISE EXCEPTION 'Link not found.' USING ERRCODE = 'P0002';
+  END IF;
+  PERFORM set_config('app.audit_reason', btrim(p_reason), true);
+  UPDATE public.student_parent_links
+  SET status = 'revoked', decided_at = now()
+  WHERE id = p_link_id;
+  SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_link.student_id;
+  IF v_link.parent_id IS NOT NULL THEN
+    INSERT INTO public.notifications (
+      user_id, type, category, title, body, title_en, title_ar, body_en, body_ar,
+      payload, deep_link
+    ) VALUES (
+      v_link.parent_id,
+      'student_parent_link_revoked',
+      'system',
+      'Guardian link revoked',
+      'An admin revoked the guardian link for ' || v_student_name,
+      'Guardian link revoked',
+      'اتلغى ربط ولي الأمر',
+      'An admin revoked the guardian link for ' || v_student_name,
+      'الإدارة لغت ربط ولي الأمر للطالب ' || v_student_name,
+      jsonb_build_object('link_id', p_link_id, 'student_id', v_link.student_id),
+      '/student-parent-link'
+    );
+  END IF;
+  INSERT INTO public.notifications (
+    user_id, type, category, title, body, title_en, title_ar, body_en, body_ar,
+    payload, deep_link
+  ) VALUES (
+    v_link.student_id,
+    'student_parent_link_revoked',
+    'system',
+    'Guardian link revoked',
+    'An admin revoked your guardian contact',
+    'Guardian link revoked',
+    'اتلغى ربط ولي الأمر',
+    'An admin revoked your guardian contact',
+    'الإدارة لغت بيانات ولي الأمر في حسابك',
+    jsonb_build_object('link_id', p_link_id),
+    '/student-parent-link'
+  );
+  RETURN jsonb_build_object('link_id', p_link_id, 'status', 'revoked');
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_revoke_student_link(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_revoke_student_link(uuid, text) TO authenticated;
+
+DROP TRIGGER IF EXISTS trg_audit_student_parent_links ON public.student_parent_links;
+CREATE TRIGGER trg_audit_student_parent_links
+  AFTER INSERT OR UPDATE OR DELETE ON public.student_parent_links
+  FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
 
 DROP POLICY IF EXISTS payments_customer_insert ON public.payments;
 CREATE POLICY payments_customer_insert ON public.payments
@@ -496,12 +798,6 @@ BEGIN
       RAISE EXCEPTION
         'BOOKING_ONLINE_AGE_MINIMUM: Online lessons are available from age 12.'
         USING ERRCODE = '23514';
-    ELSIF v_age < 18 AND p_family_member_id IS NULL THEN
-      IF NOT public.student_has_approved_parent_link(v_uid) THEN
-        RAISE EXCEPTION
-          'STUDENT_PARENT_LINK_REQUIRED: Link a parent account before requesting online lessons.'
-          USING ERRCODE = '23514';
-      END IF;
     END IF;
   END IF;
 

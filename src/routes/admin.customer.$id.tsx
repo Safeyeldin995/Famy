@@ -88,11 +88,34 @@ export function AdminCustomer({ id }: { id: string }) {
               })}
             </p>
             {parentLink && parentLink !== null && typeof parentLink === "object" ? (
-              <p className="mt-2 text-xs font-semibold text-muted-foreground">
-                {t("admin.customer.parentLinkStatus", {
-                  status: String((parentLink as { status?: string }).status ?? "—"),
-                })}
-              </p>
+              <div className="mt-3 rounded-xl border border-border/60 bg-surface-2 p-3 text-xs">
+                <p className="font-extrabold">{t("admin.customer.guardianCardTitle")}</p>
+                <p>
+                  {t("admin.customer.parentLinkStatus", {
+                    status: String((parentLink as { status?: string }).status ?? "—"),
+                  })}
+                </p>
+                {(parentLink as { parent_name?: string }).parent_name ? (
+                  <p>{String((parentLink as { parent_name?: string }).parent_name)}</p>
+                ) : null}
+                <p dir="ltr" className="text-muted-foreground">
+                  {t("admin.customer.guardianMaskedContact", {
+                    phone: String((parentLink as { parent_phone_masked?: string }).parent_phone_masked ?? "—"),
+                    email: String(
+                      (parentLink as { parent_email_masked?: string }).parent_email_masked ?? "—",
+                    ),
+                  })}
+                </p>
+                {(parentLink as { parent_id?: string }).parent_id ? (
+                  <Link
+                    to={"/admin/customer/$id"}
+                    params={{ id: String((parentLink as { parent_id?: string }).parent_id) }}
+                    className="mt-1 inline-block font-semibold text-brand underline"
+                  >
+                    {t("admin.customer.openParentProfile")}
+                  </Link>
+                ) : null}
+              </div>
             ) : null}
           </div>
           <span

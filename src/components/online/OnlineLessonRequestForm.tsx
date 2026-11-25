@@ -15,7 +15,12 @@ import { buildBookingRequest } from "@/lib/booking/bookingRequest";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
-import { OnlineWebParentLinkGate } from "@/components/online/OnlineWebParentLinkGate";
+import {
+  OnlineWebParentContactFields,
+  useOnlineStudentNeedsGuardianContact,
+} from "@/components/online/OnlineWebParentLinkGate";
+import { useRegisterParentGuardianContact } from "@/lib/db/student-parent-link-queries";
+import { sendParentGuardianEmailFn } from "@/lib/email/parentGuardianEmail.functions";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import type { CapabilityPickValue } from "@/lib/tutoring/providerCapabilityCascade";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
@@ -44,6 +49,10 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   });
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const guardian = useOnlineStudentNeedsGuardianContact();
+  const registerGuardian = useRegisterParentGuardianContact();
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -121,7 +130,30 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
 
   const submit = async () => {
     if (!resolvedServiceId || !selectedSlot || !selectedCapability || create.isPending) return;
+  if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
+      if (!parentPhone.trim() || !parentEmail.trim()) {
+        toast.error(t("studentParentLink.contactRequired"));
+        return;
+      }
+    }
     try {
+      if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim())) {
+        const registered = await registerGuardian.mutateAsync({
+          parentPhone: parentPhone.trim(),
+          parentEmail: parentEmail.trim(),
+        });
+        try {
+          await sendParentGuardianEmailFn({
+            data: {
+              parentEmail: registered.parent_email,
+              studentName: registered.student_name,
+              flagToken: registered.flag_token,
+            },
+          });
+        } catch {
+          /* booking must not be blocked if email provider is unavailable */
+        }
+      }
       const payload = buildBookingRequest({
         providerId,
         serviceId: resolvedServiceId,
@@ -155,7 +187,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     }
   };
 
-  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading;
+  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading || guardian.loading;
   if (loading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
   }
@@ -165,8 +197,16 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
 
   return (
     <OnlineWebCustomerDobGate>
-      <OnlineWebParentLinkGate>
       <div className="space-y-5">
+        {guardian.isMinorStudent && guardian.needsNewContact ? (
+          <OnlineWebParentContactFields
+            parentPhone={parentPhone}
+            parentEmail={parentEmail}
+            onParentPhoneChange={setParentPhone}
+            onParentEmailChange={setParentEmail}
+            disabled={registerGuardian.isPending || create.isPending}
+          />
+        ) : null}
         {tutoringServices.length > 1 ? (
           <label className="block">
             <span className="text-pro-13 font-bold text-muted-foreground">{t("bookingUx.chooseService")}</span>
@@ -266,7 +306,6 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
           {t("onlineWeb.walkthrough.requestLesson")}
         </PrimaryButton>
       </div>
-      </OnlineWebParentLinkGate>
     </OnlineWebCustomerDobGate>
   );
 }

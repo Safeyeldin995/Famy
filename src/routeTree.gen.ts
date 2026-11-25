@@ -62,6 +62,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminStudentLinksRouteImport } from './routes/admin.student-links'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -81,6 +82,7 @@ import { Route as OnlineOtpRouteImport } from './routes/online.otp'
 import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
 import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
 import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
+import { Route as ParentGuardianFlagRouteImport } from './routes/parent-guardian.flag'
 import { Route as PayFeesReturnRouteImport } from './routes/pay.fees-return'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
@@ -463,6 +465,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStudentLinksRoute = AdminStudentLinksRouteImport.update({
+  id: '/student-links',
+  path: '/student-links',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
@@ -557,6 +564,11 @@ const OnlineWalletRoute = OnlineWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
   getParentRoute: () => OnlineRoute,
+} as any)
+const ParentGuardianFlagRoute = ParentGuardianFlagRouteImport.update({
+  id: '/parent-guardian/flag',
+  path: '/parent-guardian/flag',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PayFeesReturnRoute = PayFeesReturnRouteImport.update({
   id: '/pay/fees-return',
@@ -1198,6 +1210,7 @@ export interface FileRoutesByFullPath {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1215,6 +1228,7 @@ export interface FileRoutesByFullPath {
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1380,6 +1394,7 @@ export interface FileRoutesByTo {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1395,6 +1410,7 @@ export interface FileRoutesByTo {
   '/online/otp': typeof OnlineOtpRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/wallet': typeof OnlineWalletRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
@@ -1562,6 +1578,7 @@ export interface FileRoutesById {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1579,6 +1596,7 @@ export interface FileRoutesById {
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1752,6 +1770,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1769,6 +1788,7 @@ export interface FileRouteTypes {
     | '/online/set-password'
     | '/online/tutors'
     | '/online/wallet'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1934,6 +1954,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1949,6 +1970,7 @@ export interface FileRouteTypes {
     | '/online/otp'
     | '/online/set-password'
     | '/online/wallet'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/bookings'
     | '/preview/family-members'
@@ -2115,6 +2137,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2132,6 +2155,7 @@ export interface FileRouteTypes {
     | '/online/set-password'
     | '/online/tutors'
     | '/online/wallet'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -2288,6 +2312,7 @@ export interface RootRouteChildren {
   BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
+  ParentGuardianFlagRoute: typeof ParentGuardianFlagRoute
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
@@ -2681,6 +2706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/student-links': {
+      id: '/admin/student-links'
+      path: '/student-links'
+      fullPath: '/admin/student-links'
+      preLoaderRoute: typeof AdminStudentLinksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/zones': {
       id: '/admin/zones'
       path: '/zones'
@@ -2813,6 +2845,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/online/wallet'
       preLoaderRoute: typeof OnlineWalletRouteImport
       parentRoute: typeof OnlineRoute
+    }
+    '/parent-guardian/flag': {
+      id: '/parent-guardian/flag'
+      path: '/parent-guardian/flag'
+      fullPath: '/parent-guardian/flag'
+      preLoaderRoute: typeof ParentGuardianFlagRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pay/fees-return': {
       id: '/pay/fees-return'
@@ -3653,6 +3692,7 @@ interface AdminRouteChildren {
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStudentLinksRoute: typeof AdminStudentLinksRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -3684,6 +3724,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminStudentLinksRoute: AdminStudentLinksRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
@@ -4066,6 +4107,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
+  ParentGuardianFlagRoute: ParentGuardianFlagRoute,
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,

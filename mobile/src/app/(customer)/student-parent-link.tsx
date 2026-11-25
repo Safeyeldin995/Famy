@@ -9,9 +9,12 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import {
-  useRequestParentLink,
-  useRespondParentLink,
+  useParentAcknowledgeStudentLink,
+  useParentFlagNotMyChild,
+  useParentLinkedStudents,
+  useRegisterParentGuardianContact,
   useStudentParentLinkStatus,
+  useUpdateParentGuardianContact,
 } from "@/lib/studentParentLinkQueries";
 
 export default function StudentParentLinkScreen() {
@@ -19,64 +22,72 @@ export default function StudentParentLinkScreen() {
   const toast = useToast();
   const { linkId } = useLocalSearchParams<{ linkId?: string }>();
   const statusQ = useStudentParentLinkStatus();
-  const request = useRequestParentLink();
-  const respond = useRespondParentLink();
+  const linkedStudentsQ = useParentLinkedStudents();
+  const register = useRegisterParentGuardianContact();
+  const update = useUpdateParentGuardianContact();
+  const acknowledge = useParentAcknowledgeStudentLink();
+  const flag = useParentFlagNotMyChild();
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
 
-  const isParentApproval = !!linkId;
+  const parentCard = linkedStudentsQ.data?.find(
+    (row: { link_id: string; status: string }) =>
+      linkId ? row.link_id === linkId : row.status === "linked",
+  );
+
+  const isParentCard = !!linkId || !!parentCard;
 
   return (
     <Page
       title={t("studentParentLink.title")}
-      queries={[statusQ]}
+      queries={[statusQ, linkedStudentsQ]}
       header={
         <CustomerPageHeader
           title={t("studentParentLink.title")}
-          backTo={isParentApproval ? "/notifications" : "/profile"}
+          backTo={isParentCard ? "/notifications" : "/profile"}
         />
       }
     >
       <View style={{ gap: space.md }}>
-        <ActionError error={request.error || respond.error} />
-        {isParentApproval ? (
+        <ActionError
+          error={register.error || update.error || acknowledge.error || flag.error}
+        />
+        {isParentCard && parentCard ? (
           <>
-            <Text>{t("studentParentLink.parentApprovalBody")}</Text>
+            <Text>{parentCard.student_name}</Text>
+            <Text tone="muted">{t("studentParentLink.parentCardBody")}</Text>
             <Button
-              label={t("studentParentLink.approve")}
-              loading={respond.isPending}
+              label={t("studentParentLink.acknowledge")}
+              loading={acknowledge.isPending}
               onPress={() =>
-                respond.mutate(
-                  { linkId: String(linkId), approve: true },
-                  {
-                    onSuccess: () => {
-                      toast.show(t("studentParentLink.approvedToast"));
-                      router.replace("/family-members");
-                    },
+                acknowledge.mutate(parentCard.link_id, {
+                  onSuccess: () => {
+                    toast.show(t("studentParentLink.acknowledgedToast"));
+                    router.replace("/family-members");
                   },
-                )
+                })
               }
             />
             <Button
               variant="secondary"
-              label={t("studentParentLink.decline")}
-              loading={respond.isPending}
+              label={t("studentParentLink.notMyChild")}
+              loading={flag.isPending}
               onPress={() =>
-                respond.mutate(
-                  { linkId: String(linkId), approve: false },
-                  {
-                    onSuccess: () => {
-                      toast.show(t("studentParentLink.declinedToast"));
-                      router.back();
-                    },
+                flag.mutate(parentCard.link_id, {
+                  onSuccess: () => {
+                    toast.show(t("studentParentLink.flaggedToast"));
+                    router.back();
                   },
-                )
+                })
               }
             />
           </>
-        ) : statusQ.data?.status === "pending" ? (
-          <Text tone="muted">{t("studentParentLink.pending")}</Text>
-        ) : statusQ.data?.status === "approved" ? (
-          <Text tone="muted">{t("studentParentLink.approvedState")}</Text>
+        ) : statusQ.data?.status === "linked" ? (
+          <Text tone="muted">{t("studentParentLink.linkedState")}</Text>
+        ) : statusQ.data?.status === "notified" ? (
+          <Text tone="muted">{t("studentParentLink.notifiedState")}</Text>
+        ) : statusQ.data?.status === "flagged_not_my_child" ? (
+          <Text tone="muted">{t("studentParentLink.flaggedState")}</Text>
         ) : (
           <>
             <Text tone="muted">{t("studentParentLink.lead")}</Text>
@@ -93,23 +104,33 @@ export default function StudentParentLinkScreen() {
                 fontSize: 16,
               }}
             />
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder={t("studentParentLink.parentEmail")}
+              style={{
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 12,
+                padding: 12,
+                fontSize: 16,
+              }}
+            />
             <Button
               label={t("studentParentLink.sendRequest")}
-              loading={request.isPending}
-              disabled={!phone.trim()}
-              onPress={() =>
-                request.mutate(phone.trim(), {
-                  onSuccess: (result) => {
-                    toast.show(
-                      t(
-                        result.outcome === "not_on_famy"
-                          ? "studentParentLink.notOnFamy"
-                          : "studentParentLink.requestSent",
-                      ),
-                    );
+              loading={register.isPending || update.isPending}
+              disabled={!phone.trim() || !email.trim()}
+              onPress={() => {
+                const mutation = statusQ.data ? update : register;
+                mutation.mutate(
+                  { parentPhone: phone.trim(), parentEmail: email.trim() },
+                  {
+                    onSuccess: () => toast.show(t("studentParentLink.requestSent")),
                   },
-                })
-              }
+                );
+              }}
             />
           </>
         )}

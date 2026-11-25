@@ -42,6 +42,7 @@ import {
 } from "@/lib/db/admin-finance-queries";
 import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
+import { useAdminStudentParentFlagCount } from "@/lib/db/student-parent-link-queries";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
@@ -88,7 +89,14 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
     titleKey: "admin.layout.group.customers",
     titleFallback: "Customers",
-    items: [{ to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound }],
+    items: [
+      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
+      {
+        to: "/admin/student-links",
+        labelKey: "admin.layout.nav.studentLinks",
+        icon: UserRound,
+      },
+    ],
   },
   {
     titleKey: "admin.layout.group.finance",
@@ -154,9 +162,11 @@ export function AdminShell({
   );
   const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
   const financeProviders = useAdminFinanceProviders();
+  const studentParentFlags = useAdminStudentParentFlagCount();
   const navBadgeExtras = {
     pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,
     providersAtCashLimit: (financeProviders.data ?? []).filter((row) => row.at_limit).length,
+    studentParentFlags: studentParentFlags.data ?? 0,
   };
   const mobileTabs = useRef<HTMLElement>(null);
   useEffect(() => {

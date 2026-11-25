@@ -51,7 +51,20 @@ afterAll(async () => {
 });
 
 describe("student_parent_links", () => {
-  it("request_parent_link returns not_on_famy for unknown phone", async () => {
+  it("register_parent_guardian_contact creates notified row for unknown parent phone", async () => {
+    const result = await tryAsUser(
+      db,
+      STUDENT_ID,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01099998888", "guardian@example.com"],
+    );
+    expect(result.error).toBeUndefined();
+    const payload = result.rows?.[0]?.payload as { status?: string; parent_on_famy?: boolean };
+    expect(payload?.status).toBe("notified");
+    expect(payload?.parent_on_famy).toBe(false);
+  });
+
+  it("register_parent_guardian_contact auto-links when parent exists on Famy", async () => {
     const orphan = "00000000-0000-0000-0000-00000000c199";
     await db.exec(`
       INSERT INTO auth.users (id) VALUES ('${orphan}') ON CONFLICT DO NOTHING;
@@ -61,50 +74,16 @@ describe("student_parent_links", () => {
     const result = await tryAsUser(
       db,
       orphan,
-      `SELECT public.request_parent_link($1) AS payload`,
-      ["01099998888"],
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01022222222", "parent.adult@example.com"],
     );
     expect(result.error).toBeUndefined();
-    const payload = result.rows?.[0]?.payload as { outcome?: string };
-    expect(payload?.outcome).toBe("not_on_famy");
+    const payload = result.rows?.[0]?.payload as { status?: string; parent_on_famy?: boolean };
+    expect(payload?.status).toBe("linked");
+    expect(payload?.parent_on_famy).toBe(true);
   });
 
-  it("request_parent_link returns sent when parent exists on Famy", async () => {
-    const result = await tryAsUser(
-      db,
-      STUDENT_ID,
-      `SELECT public.request_parent_link($1) AS payload`,
-      ["01022222222"],
-    );
-    expect(result.error).toBeUndefined();
-    const payload = result.rows?.[0]?.payload as { outcome?: string };
-    expect(payload?.outcome).toBe("sent");
-  });
-
-  it("respond_parent_link approves the pending request", async () => {
-    const link = await queryRows<{ id: string }>(
-      db,
-      `SELECT id FROM public.student_parent_links WHERE student_id = $1 AND status = 'pending' ORDER BY requested_at DESC LIMIT 1`,
-      [STUDENT_ID],
-    );
-    const linkId = link[0]?.id;
-    expect(linkId).toBeTruthy();
-    const approve = await tryAsUser(
-      db,
-      PARENT_ID,
-      `SELECT public.respond_parent_link($1::uuid, true)`,
-      [linkId],
-    );
-    expect(approve.error).toBeUndefined();
-    const approved = await queryRows<{ ok: boolean }>(
-      db,
-      `SELECT public.student_has_approved_parent_link($1::uuid) AS ok`,
-      [STUDENT_ID],
-    );
-    expect(approved[0]?.ok).toBe(true);
-  });
-
-  it("blocks create_booking without approved parent link", async () => {
+  it("create_booking succeeds for minor without prior parent link", async () => {
     const anotherStudent = "00000000-0000-0000-0000-00000000c104";
     await db.exec(`
       INSERT INTO auth.users (id) VALUES ('${anotherStudent}') ON CONFLICT DO NOTHING;
@@ -127,22 +106,28 @@ describe("student_parent_links", () => {
       )`,
       [IDS.provider, service[0]!.id, randomUUID()],
     );
-    expect(booking.error).toMatch(/STUDENT_PARENT_LINK_REQUIRED/);
+    expect(booking.error ?? "").not.toMatch(/STUDENT_PARENT_LINK/);
   });
 
-  it("RLS hides links from unrelated users", async () => {
-    const rows = await tryAsUser(
+  it("parent_may_pay_student_booking after linked parent", async () => {
+    const payStudent = "00000000-0000-0000-0000-00000000c105";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${payStudent}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${payStudent}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET
+        date_of_birth = (CURRENT_DATE - interval '15 years')::date
+      WHERE id = '${payStudent}';
+    `);
+    const reg = await tryAsUser(
       db,
-      STRANGER_ID,
-      `SELECT count(*)::text AS c FROM public.student_parent_links`,
+      payStudent,
+      `SELECT public.register_parent_guardian_contact($1, $2)`,
+      ["01022222222", "linked.parent@example.com"],
     );
-    expect(rows.error).toBeUndefined();
-    expect(rows.rows?.[0]?.c).toBe("0");
-  });
+    expect(reg.error).toBeUndefined();
 
-  it("parent_may_pay_student_booking after approval", async () => {
     const { bookingId } = await seedLifecycleBooking(db, {
-      customerId: STUDENT_ID,
+      customerId: payStudent,
       status: "confirmed",
     });
     const onlineBookingId = randomUUID();
@@ -164,5 +149,46 @@ describe("student_parent_links", () => {
       [PARENT_ID, onlineBookingId],
     );
     expect(ok[0]?.ok).toBe(true);
+  });
+
+  it("RLS hides links from unrelated users", async () => {
+    const rows = await tryAsUser(
+      db,
+      STRANGER_ID,
+      `SELECT count(*)::text AS c FROM public.student_parent_links`,
+    );
+    expect(rows.error).toBeUndefined();
+    expect(rows.rows?.[0]?.c).toBe("0");
+  });
+
+  it("flag_parent_link_by_token flags the link without auth", async () => {
+    const flagStudent = "00000000-0000-0000-0000-00000000c106";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${flagStudent}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${flagStudent}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '14 years')::date WHERE id = '${flagStudent}';
+    `);
+    const reg = await tryAsUser(
+      db,
+      flagStudent,
+      `SELECT public.register_parent_guardian_contact($1, $2)`,
+      ["01088887777", "flag.parent@example.com"],
+    );
+    expect(reg.error).toBeUndefined();
+    const link = await queryRows<{ flag_token: string }>(
+      db,
+      `SELECT flag_token FROM public.student_parent_links WHERE student_id = $1 ORDER BY requested_at DESC LIMIT 1`,
+      [flagStudent],
+    );
+    const token = link[0]?.flag_token;
+    expect(token).toBeTruthy();
+    await db.exec("SET LOCAL ROLE anon");
+    await db.query(`SELECT public.flag_parent_link_by_token($1::uuid)`, [token]);
+    const row = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.student_parent_links WHERE flag_token = $1`,
+      [token],
+    );
+    expect(row[0]?.status).toBe("flagged_not_my_child");
   });
 });
