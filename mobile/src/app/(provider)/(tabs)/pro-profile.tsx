@@ -135,7 +135,7 @@ export default function ProviderProfile() {
           nativeID="warnings"
           style={[proCard.card, { borderColor: colors.destructive, backgroundColor: colors.destructiveTint }]}
         >
-          <Text weight="heavy" tone="destructive">
+          <Text weight="heavy" style={{ color: colors.destructive }}>
             {t("proWarnings.title")}
           </Text>
           {warningsQ.data.map((w) => (

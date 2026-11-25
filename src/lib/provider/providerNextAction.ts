@@ -2,7 +2,7 @@ import {
   DEFAULT_BOOKING_EXPIRY_SETTINGS,
   pendingResponseDeadline,
   type BookingExpirySettings,
-} from "@/lib/booking/pending-expiry";
+} from "../booking/pending-expiry";
 
 export type ProviderNextActionKind = "pending_request" | "start_job" | "setup_issue";
 
