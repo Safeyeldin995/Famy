@@ -4064,7 +4064,10 @@ const ar: Translation = {
     identityConflictTypes: {
       dual_normal_roles: "الحساب مسجل كعميل ومقدم خدمة معا",
       provider_row_missing_role: "بيانات مقدم الخدمة موجودة، لكن صلاحية مقدم الخدمة غير مفعلة",
-      admin_normal_role_count: "يجب أن يكون لحساب المشرف دور عادي واحد فقط",
+      admin_has_customer_role: "حساب المشرف ما زال يحمل دور عميل.",
+      admin_has_provider_role: "حساب المشرف ما زال يحمل دور مقدم خدمة.",
+      admin_has_provider_row: "حساب المشرف ما زال مرتبطاً بسجل مقدم خدمة.",
+      admin_has_booking: "حساب المشرف ما زال لديه حجوزات كعميل.",
       unknown: "بيانات الحساب تحتاج إلى مراجعة قبل اتخاذ القرار",
     },
     locationNames: {

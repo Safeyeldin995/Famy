@@ -923,4 +923,55 @@ REVOKE ALL ON FUNCTION public.customer_apply_wallet_at_checkout(uuid, uuid) FROM
 GRANT EXECUTE ON FUNCTION public.customer_apply_wallet_at_checkout(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.customer_apply_wallet_at_checkout(uuid, uuid) TO service_role;
 
+-- Admin-only policy: report marketplace identity on admins, not compliant admin-only accounts.
+DROP VIEW IF EXISTS public.admin_identity_conflicts;
+CREATE OR REPLACE VIEW public.admin_identity_conflicts
+WITH (security_invoker = true) AS
+SELECT p.id AS user_id, pr.id AS provider_id, p.full_name, p.phone, p.email,
+       'dual_normal_roles'::text AS issue_code,
+       'BLOCKED BY BUSINESS DATA — both Customer and Provider roles are assigned'::text AS details
+FROM public.profiles p
+LEFT JOIN public.providers pr ON pr.profile_id = p.id
+WHERE EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'customer')
+  AND EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'provider')
+UNION ALL
+SELECT p.id, pr.id, p.full_name, p.phone, p.email,
+       'provider_row_missing_role',
+       'BLOCKED BY BUSINESS DATA — Provider business row exists but Provider role is missing'
+FROM public.providers pr
+JOIN public.profiles p ON p.id = pr.profile_id
+WHERE NOT EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'provider')
+UNION ALL
+SELECT p.id, pr.id, p.full_name, p.phone, p.email,
+       'admin_has_customer_role',
+       'BLOCKED BY BUSINESS DATA — Admin account must not have a customer role'
+FROM public.profiles p
+LEFT JOIN public.providers pr ON pr.profile_id = p.id
+WHERE EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'admin')
+  AND EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'customer')
+UNION ALL
+SELECT p.id, pr.id, p.full_name, p.phone, p.email,
+       'admin_has_provider_role',
+       'BLOCKED BY BUSINESS DATA — Admin account must not have a provider role'
+FROM public.profiles p
+LEFT JOIN public.providers pr ON pr.profile_id = p.id
+WHERE EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'admin')
+  AND EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'provider')
+UNION ALL
+SELECT p.id, pr.id, p.full_name, p.phone, p.email,
+       'admin_has_provider_row',
+       'BLOCKED BY BUSINESS DATA — Admin account must not have a provider business row'
+FROM public.providers pr
+JOIN public.profiles p ON p.id = pr.profile_id
+WHERE EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'admin')
+UNION ALL
+SELECT DISTINCT p.id, pr.id, p.full_name, p.phone, p.email,
+       'admin_has_booking',
+       'BLOCKED BY BUSINESS DATA — Admin account must not have customer bookings'
+FROM public.bookings b
+JOIN public.profiles p ON p.id = b.customer_id
+LEFT JOIN public.providers pr ON pr.profile_id = p.id
+WHERE EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'admin');
+GRANT SELECT ON public.admin_identity_conflicts TO authenticated;
+
 NOTIFY pgrst, 'reload schema';

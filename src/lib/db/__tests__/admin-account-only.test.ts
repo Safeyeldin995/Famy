@@ -6,6 +6,7 @@ const adminId = "00000000-0000-0000-0000-00000000b901";
 const customerId = "00000000-0000-0000-0000-00000000b902";
 const providerUserId = "00000000-0000-0000-0000-00000000b903";
 const identityRaceUserId = "00000000-0000-0000-0000-00000000b904";
+const legacyAdminConflictUserId = "00000000-0000-0000-0000-00000000b905";
 
 let db: PGlite;
 
@@ -144,5 +145,45 @@ describe("admin account database guards", () => {
     ).rejects.toMatchObject({
       message: expect.stringMatching(/admin_account_restricted/i),
     });
+  });
+
+  it("admin_identity_conflicts ignores compliant admin-only accounts", async () => {
+    const { rows } = await db.query<{ user_id: string }>(
+      "SELECT user_id FROM public.admin_identity_conflicts WHERE user_id = $1",
+      [adminId],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("admin_identity_conflicts flags legacy admin plus customer role", async () => {
+    await db.exec(`
+      INSERT INTO auth.users (id, raw_user_meta_data) VALUES
+        ('${legacyAdminConflictUserId}', '{}'::jsonb)
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    await db.exec(`
+      ALTER TABLE public.user_roles DISABLE TRIGGER enforce_role_exclusivity_trigger;
+    `);
+    try {
+      await db.query(`DELETE FROM public.user_roles WHERE user_id = $1::uuid`, [
+        legacyAdminConflictUserId,
+      ]);
+      await db.query(
+        `INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'admin'), ($1, 'customer')`,
+        [legacyAdminConflictUserId],
+      );
+      const { rows } = await db.query<{ issue_code: string }>(
+        `SELECT issue_code FROM public.admin_identity_conflicts WHERE user_id = $1`,
+        [legacyAdminConflictUserId],
+      );
+      expect(rows.map((row) => row.issue_code)).toContain("admin_has_customer_role");
+    } finally {
+      await db.exec(`
+        ALTER TABLE public.user_roles ENABLE TRIGGER enforce_role_exclusivity_trigger;
+      `);
+      await db.query(`DELETE FROM public.user_roles WHERE user_id = $1::uuid`, [
+        legacyAdminConflictUserId,
+      ]);
+    }
   });
 });
