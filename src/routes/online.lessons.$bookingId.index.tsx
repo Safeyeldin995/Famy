@@ -49,14 +49,23 @@ function OnlineLessonDetail() {
   usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
   // Join eligibility is computed from the clock at render; tick so the Join button appears when the window opens.
   useNowTick(30_000);
-  // While the tutor hasn't confirmed yet, refresh so checkout unlocks without a reload.
+  // Keep both sides current without a reload: the student waits for the tutor to
+  // confirm (booking status), the tutor waits for the student to pay (payment
+  // capture). Poll every 15s only while one of those is still outstanding.
   const bookingStatus = bookingQ.data ? String(bookingQ.data.status) : null;
+  const awaitingCapture = !paymentCapturedForJoin(paymentQ.data);
   const refetchBooking = bookingQ.refetch;
+  const refetchPayment = paymentQ.refetch;
   useEffect(() => {
-    if (bookingStatus !== "pending") return;
-    const id = setInterval(() => void refetchBooking(), 15_000);
+    const waitingConfirm = bookingStatus === "pending";
+    const waitingPayment = bookingStatus === "confirmed" && awaitingCapture;
+    if (!waitingConfirm && !waitingPayment) return;
+    const id = setInterval(() => {
+      void refetchBooking();
+      void refetchPayment();
+    }, 15_000);
     return () => clearInterval(id);
-  }, [bookingStatus, refetchBooking]);
+  }, [bookingStatus, awaitingCapture, refetchBooking, refetchPayment]);
 
   if (bookingQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
