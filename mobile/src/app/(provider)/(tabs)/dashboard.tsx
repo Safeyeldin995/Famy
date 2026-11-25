@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/ui/ProviderCard";
 import { Bell, CalendarDays, CalendarRange, Star } from "lucide-react-native";
-import { BOOKING_ACTIVE_STATUSES } from "@/lib/provider/constants";
+import { dashboardUpcomingBookings } from "@shared/provider/providerWorkHelpers";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
 import {
   useMyProvider,
@@ -34,14 +34,8 @@ export default function ProviderDashboard() {
   const firstName = name.trim().split(/\s+/)[0];
   const all = (bookingsQ.data ?? []) as ProviderCardBooking[];
   const pending = all.filter((booking) => booking.status === "pending");
-  const upcoming = all
-    .filter(
-      (booking) =>
-        BOOKING_ACTIVE_STATUSES.includes(booking.status as never) &&
-        new Date(booking.start_at).getTime() >= new Date(new Date().toDateString()).getTime(),
-    )
-    .sort((a, b) => +new Date(a.start_at) - +new Date(b.start_at))
-    .slice(0, 3);
+  // Cairo calendar day (not the phone's), and jobs already under way always stay.
+  const upcoming = dashboardUpcomingBookings(all);
   const mtdNet = earningsQ.data?.mtd.net ?? 0;
   const mtdBookingValue = earningsQ.data?.mtd.bookingValue ?? 0;
   const mtdKind = earningsHeadlineKind(mtdNet > 0, mtdBookingValue > 0);
