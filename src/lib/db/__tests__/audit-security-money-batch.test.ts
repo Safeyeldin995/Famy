@@ -39,6 +39,9 @@ describe("audit security money batch", { concurrent: false }, () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
     await asServiceRole(db, () =>
+      db.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2`, [bookingId, paymobId]),
+    );
+    await asServiceRole(db, () =>
       db.query(
         `UPDATE public.payments
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
@@ -375,58 +378,12 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(reconciled[0]?.needs_review).toBe(false);
   });
 
-  it("anonymize_account deletes provider payout methods", async () => {
-    const { bookingId } = await seedLifecycleBooking(db, { status: "completed" });
-    await setBookingStatusAsSystem(db, bookingId, "completed");
-    await asServiceRole(db, () =>
-      db.exec(`
-        UPDATE public.bookings
-        SET status = 'completed'
-        WHERE provider_id = '${IDS.provider}'
-          AND status NOT IN ('completed', 'cancelled', 'no_show');
-      `),
-    );
-
-    const inserted = await tryAsUser(
-      db,
-      IDS.providerUser,
-      `INSERT INTO public.provider_payout_methods (
-         provider_id, method, holder_name, wallet_phone
-       ) VALUES (
-         '${IDS.provider}', 'vodafone_cash', 'Mona Ali', '01012345678'
-       ) RETURNING id`,
-    );
-    expect(inserted.error).toBeUndefined();
-
-    const before = await queryRows<{ n: string }>(
-      db,
-      `SELECT count(*)::text AS n FROM public.provider_payout_methods WHERE provider_id = $1`,
-      [IDS.provider],
-    );
-    expect(Number(before[0]?.n)).toBeGreaterThan(0);
-
-    await asServiceRole(db, () =>
-      db.query(`SELECT public.anonymize_account($1::uuid, false)`, [IDS.providerUser]),
-    );
-
-    const after = await queryRows<{ n: string }>(
-      db,
-      `SELECT count(*)::text AS n FROM public.provider_payout_methods WHERE provider_id = $1`,
-      [IDS.provider],
-    );
-    expect(after[0]?.n).toBe("0");
-  });
-
-  it("provider sees captured online Paymob payment via provider_booking_payment (join gate)", async () => {
+  it("provider sees captured Paymob payment via provider_booking_payment (online lesson join gate)", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
-  await asServiceRole(db, () =>
-      db.exec(`
-        ALTER TABLE public.bookings DISABLE TRIGGER trg_lock_booking_service_mode;
-        UPDATE public.bookings SET service_mode = 'online' WHERE id = '${bookingId}';
-        ALTER TABLE public.bookings ENABLE TRIGGER trg_lock_booking_service_mode;
-      `),
-    );
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await asServiceRole(db, () =>
+      db.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2`, [bookingId, paymobId]),
+    );
     const amountRows = await queryRows<{ amount: string }>(
       db,
       "SELECT amount::text AS amount FROM public.payments WHERE id = $1",
@@ -538,25 +495,15 @@ describe("audit security money batch", { concurrent: false }, () => {
     );
     expect(retry.rows?.[0]?.entry_id).toBe(firstId);
 
-    const otherCustomer = "00000000-0000-0000-0000-000000000002";
-    await asServiceRole(db, () =>
-      db.exec(`
-        INSERT INTO auth.users (id, raw_user_meta_data) VALUES
-          ('${otherCustomer}', '{"full_name":"Other Customer"}')
-        ON CONFLICT (id) DO NOTHING;
-        INSERT INTO public.profiles (id, full_name, phone)
-        VALUES ('${otherCustomer}', 'Other', '01098765432')
-        ON CONFLICT (id) DO UPDATE SET phone = EXCLUDED.phone;
-      `),
-    );
-    const other = await tryAsUser(
+    const otherKey = `${key}-other`;
+    const different = await tryAsUser(
       db,
       IDS.adminUser,
-      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'other customer', NULL, $2) AS entry_id`,
-      [otherCustomer, key],
+      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'different key', NULL, $2) AS entry_id`,
+      [IDS.customer, otherKey],
     );
-    expect(other.error).toBeUndefined();
-    expect(other.rows?.[0]?.entry_id).not.toBe(firstId);
+    expect(different.error).toBeUndefined();
+    expect(different.rows?.[0]?.entry_id).not.toBe(firstId);
 
     const stored = await queryRows<{ idempotency_key: string }>(
       db,
@@ -564,10 +511,26 @@ describe("audit security money batch", { concurrent: false }, () => {
       [IDS.customer, `admin_wallet:${IDS.customer}:${key}`],
     );
     expect(stored[0]?.idempotency_key).toBe(`admin_wallet:${IDS.customer}:${key}`);
+
+    const otherCustomer = IDS.otherProviderUser;
+    const cross = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'cross customer', NULL, $2) AS entry_id`,
+      [otherCustomer, key],
+    );
+    expect(cross.error).toBeUndefined();
+    expect(cross.rows?.[0]?.entry_id).not.toBe(firstId);
   });
 
   it("backfill moves pending Paymob checkout secrets to payment_paymob_checkout", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const dueRows = await queryRows<{ due: string }>(
+      db,
+      `SELECT (price_total + COALESCE(carried_fees_amount, 0))::text AS due FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    const amount = dueRows[0]?.due ?? "200";
     const payId = randomUUID();
     await asServiceRole(db, () =>
       db.query(
@@ -575,13 +538,13 @@ describe("audit security money batch", { concurrent: false }, () => {
            id, booking_id, customer_id, amount, status,
            payment_method_id, payment_method_type, payment_method_code, method, metadata
          )
-         SELECT $1, $2, $3, 100, 'pending', pm.id, 'online', 'paymob', 'paymob',
+         SELECT $1, $2, $3, $4::numeric, 'pending', pm.id, 'online', 'paymob', 'paymob',
            jsonb_build_object(
              'paymob_client_secret', 'legacy-secret',
              'paymob_checkout_url', 'https://paymob.test/checkout'
            )
          FROM public.payment_methods pm WHERE pm.code = 'paymob' LIMIT 1`,
-        [payId, bookingId, IDS.customer],
+        [payId, bookingId, IDS.customer, amount],
       ),
     );
 
@@ -621,5 +584,47 @@ describe("audit security money batch", { concurrent: false }, () => {
       [payId],
     );
     expect(meta[0]?.has_secret).toBe(false);
+  });
+
+  it("anonymize_account deletes provider payout methods", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "completed" });
+    await setBookingStatusAsSystem(db, bookingId, "completed");
+    await asServiceRole(db, () =>
+      db.exec(`
+        UPDATE public.bookings
+        SET status = 'completed'
+        WHERE provider_id = '${IDS.provider}'
+          AND status NOT IN ('completed', 'cancelled', 'no_show');
+      `),
+    );
+
+    const inserted = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `INSERT INTO public.provider_payout_methods (
+         provider_id, method, holder_name, wallet_phone
+       ) VALUES (
+         '${IDS.provider}', 'vodafone_cash', 'Mona Ali', '01012345678'
+       ) RETURNING id`,
+    );
+    expect(inserted.error).toBeUndefined();
+
+    const before = await queryRows<{ n: string }>(
+      db,
+      `SELECT count(*)::text AS n FROM public.provider_payout_methods WHERE provider_id = $1`,
+      [IDS.provider],
+    );
+    expect(Number(before[0]?.n)).toBeGreaterThan(0);
+
+    await asServiceRole(db, () =>
+      db.query(`SELECT public.anonymize_account($1::uuid, false)`, [IDS.providerUser]),
+    );
+
+    const after = await queryRows<{ n: string }>(
+      db,
+      `SELECT count(*)::text AS n FROM public.provider_payout_methods WHERE provider_id = $1`,
+      [IDS.provider],
+    );
+    expect(after[0]?.n).toBe("0");
   });
 });

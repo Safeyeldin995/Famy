@@ -1591,6 +1591,7 @@ BEGIN
     IF NOT FOUND THEN
       RAISE EXCEPTION 'Payment not found.' USING ERRCODE = 'P0002';
     END IF;
+    PERFORM set_config('app.ledger_internal_capture', 'on', true);
     UPDATE public.payments
     SET metadata = (
       COALESCE(metadata, '{}'::jsonb)
@@ -1598,6 +1599,7 @@ BEGIN
       - 'capture_shortfall_recorded_at'
     ) || v_resolved
     WHERE id = p_payment_id;
+    PERFORM set_config('app.ledger_internal_capture', 'off', true);
   END IF;
 
   IF p_unmapped_transaction_id IS NOT NULL AND p_unmapped_transaction_id > 0 THEN
