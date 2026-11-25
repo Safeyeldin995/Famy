@@ -41,6 +41,8 @@ import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useBookingParties } from "@/lib/queries";
 import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
+import { useSession } from "@/lib/session";
+import { maybePromptForStoreReview } from "@/lib/storeReviewPrompt";
 import {
   bumpHomeFocusEffect,
   bumpHomeQueryFetch,
@@ -81,6 +83,7 @@ const SERVICE_TILES = {
 } as const;
 
 export default function Home() {
+  const { session } = useSession();
   const { t, i18n } = useTranslation();
   const cache = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -153,6 +156,7 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
+      void maybePromptForStoreReview(session?.user?.id);
       bumpHomeFocusEffect();
       if (legacyFreeze) {
         bumpHomeQueryFetch("bookingsFocusRefetch");
@@ -162,7 +166,7 @@ export default function Home() {
       }
       void cache.invalidateQueries({ queryKey: ["my-bookings"] });
       void cache.invalidateQueries({ queryKey: ["customer-fee-debts"] });
-    }, [cache, legacyFreeze, bookings.refetch]),
+    }, [cache, legacyFreeze, bookings.refetch, session?.user?.id]),
   );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;

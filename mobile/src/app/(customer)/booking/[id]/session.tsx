@@ -3,6 +3,7 @@ import { space } from "@/ui/theme";
 import { View, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { logFamyEvent } from "@/lib/analytics";
 import { fetchOnlineSessionToken } from "@/lib/onlineSessionApi";
 import { OnlineSessionPreJoin } from "@/ui/OnlineSessionPreJoin";
 import { OnlineSessionRoom } from "@/ui/OnlineSessionRoom";
@@ -27,7 +28,10 @@ export default function CustomerOnlineSessionScreen() {
       .then((result) => {
         if (cancelled) return;
         if (!result.ok) setState({ status: "error", code: result.error });
-        else setState({ status: "prejoin", token: result.token, url: result.url });
+        else {
+          void logFamyEvent("online_join");
+          setState({ status: "prejoin", token: result.token, url: result.url });
+        }
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error", code: "server_error" });

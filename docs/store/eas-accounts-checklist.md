@@ -4,10 +4,10 @@ Use this once Apple Developer / Google Play accounts exist. Do not commit secret
 
 ## English
 
-1. **Google Play Console** — Create the Famy app (`com.famy.app`), complete Play Console account verification, and enable internal testing.
+1. **Google Play Console** — Create the Famy app (`com.famy.app`), complete Play Console account verification, and enable internal testing. Set `ANDROID_APP_LINK_SHA256` on the web deploy to the release signing cert SHA-256 (see `/.well-known/assetlinks.json`).
 2. **Play service account** — In Google Cloud, create a service account with Play Console API access; download the JSON key and store it outside the repo (for example `mobile/credentials/google-play-submit.json`, gitignored).
 3. **EAS Submit (Android)** — Set `submit.production.android.serviceAccountKeyPath` in [eas.json](../../mobile/eas.json) to that JSON path (or use EAS secrets / env vars documented in [Expo submit](https://docs.expo.dev/submit/eas-json/)).
-4. **App Store Connect** — Create the Famy iOS app (`com.famy.app`), complete agreements, tax, and banking as required.
+4. **App Store Connect** — Create the Famy iOS app (`com.famy.app`), complete agreements, tax, and banking as required. Set `APPLE_APP_LINK_TEAM_ID` on the web deploy for Universal Links (`/.well-known/apple-app-site-association`).
 5. **App Store Connect API key** — Create an API key in App Store Connect; save the `.p8` file outside git and note **Issuer ID** and **Key ID**.
 6. **EAS Submit (iOS)** — Point `submit.production.ios.ascAppId`, `ascApiKeyPath`, `ascApiKeyIssuerId`, and `ascApiKeyId` in [eas.json](../../mobile/eas.json) to the real values (placeholders are intentional until then).
 7. **Firebase native files** — Add `google-services.json` and `GoogleService-Info.plist` locally (see [mobile/NATIVE_AUTH.md](../../mobile/NATIVE_AUTH.md)); never commit production Firebase config.

@@ -81,6 +81,7 @@ import { Route as OnlineOtpRouteImport } from './routes/online.otp'
 import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
 import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
 import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
+import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as PayFeesReturnRouteImport } from './routes/pay.fees-return'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
@@ -557,6 +558,11 @@ const OnlineWalletRoute = OnlineWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
   getParentRoute: () => OnlineRoute,
+} as any)
+const PIdRoute = PIdRouteImport.update({
+  id: '/p/$id',
+  path: '/p/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PayFeesReturnRoute = PayFeesReturnRouteImport.update({
   id: '/pay/fees-return',
@@ -1215,6 +1221,7 @@ export interface FileRoutesByFullPath {
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1395,6 +1402,7 @@ export interface FileRoutesByTo {
   '/online/otp': typeof OnlineOtpRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
@@ -1579,6 +1587,7 @@ export interface FileRoutesById {
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1769,6 +1778,7 @@ export interface FileRouteTypes {
     | '/online/set-password'
     | '/online/tutors'
     | '/online/wallet'
+    | '/p/$id'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1949,6 +1959,7 @@ export interface FileRouteTypes {
     | '/online/otp'
     | '/online/set-password'
     | '/online/wallet'
+    | '/p/$id'
     | '/pay/fees-return'
     | '/preview/bookings'
     | '/preview/family-members'
@@ -2132,6 +2143,7 @@ export interface FileRouteTypes {
     | '/online/set-password'
     | '/online/tutors'
     | '/online/wallet'
+    | '/p/$id'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -2288,6 +2300,7 @@ export interface RootRouteChildren {
   BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
+  PIdRoute: typeof PIdRoute
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
@@ -2813,6 +2826,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/online/wallet'
       preLoaderRoute: typeof OnlineWalletRouteImport
       parentRoute: typeof OnlineRoute
+    }
+    '/p/$id': {
+      id: '/p/$id'
+      path: '/p/$id'
+      fullPath: '/p/$id'
+      preLoaderRoute: typeof PIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pay/fees-return': {
       id: '/pay/fees-return'
@@ -4066,6 +4086,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
+  PIdRoute: PIdRoute,
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,

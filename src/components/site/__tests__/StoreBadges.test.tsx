@@ -4,17 +4,23 @@ import { StoreBadges } from "../StoreBadges";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => (key === "site.download.comingSoon" ? "Coming soon on" : key),
+    t: (key: string) => (key === "site.download.downloadOn" ? "Download on" : key),
+  }),
+}));
+
+vi.mock("@/lib/db/settings-queries", () => ({
+  useStoreLinksSettings: () => ({
+    data: { play_url: "https://play.google.com/store/apps/details?id=com.famy.app", app_store_url: "" },
   }),
 }));
 
 describe("StoreBadges", () => {
-  it("renders coming-soon labels without store links", () => {
-    vi.stubEnv("VITE_APP_STORE_URL", "https://apps.apple.com/famy");
-    vi.stubEnv("VITE_PLAY_STORE_URL", "https://play.google.com/store/apps/famy");
+  it("renders store links when configured and hides empty badges", () => {
     render(<StoreBadges />);
-    expect(screen.getByLabelText("App Store — Coming soon on")).toBeTruthy();
-    expect(screen.getByLabelText("Google Play — Coming soon on")).toBeTruthy();
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByLabelText("Google Play — Download on")).toBeTruthy();
+    expect(screen.queryByLabelText(/App Store/)).toBeNull();
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toContain("play.google.com");
   });
+
 });

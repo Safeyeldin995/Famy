@@ -6,6 +6,15 @@ const applePayMerchantId =
   process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID?.trim() ||
   undefined;
 
+const APP_LINK_HOST = "famy-chi.vercel.app";
+
+const universalLinkData = [
+  { scheme: "https", host: APP_LINK_HOST, pathPrefix: "/booking" },
+  { scheme: "https", host: APP_LINK_HOST, pathPrefix: "/online/lessons" },
+  { scheme: "https", host: APP_LINK_HOST, pathPrefix: "/p" },
+  { scheme: "https", host: APP_LINK_HOST, pathPrefix: "/provider" },
+];
+
 module.exports = ({ config }) => ({
   ...config,
   plugins: [
@@ -22,11 +31,20 @@ module.exports = ({ config }) => ({
   },
   ios: {
     ...config.ios,
+    associatedDomains: [`applinks:${APP_LINK_HOST}`],
     googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
   },
   android: {
     ...config.android,
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: universalLinkData,
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
     blockedPermissions: [
       ...(config.android?.blockedPermissions ?? []),
       "android.permission.SYSTEM_ALERT_WINDOW",
