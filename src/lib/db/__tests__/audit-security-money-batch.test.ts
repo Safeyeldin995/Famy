@@ -430,6 +430,16 @@ describe("audit security money batch", { concurrent: false }, () => {
   });
 
   it("admin_resolve_paymob_flag clears paymobNeedsAction for payment metadata flags", async () => {
+    const baselineCounts = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_queue_counts() AS payload`,
+    );
+    expect(baselineCounts.error).toBeUndefined();
+    const baselineNeeds = Number(
+      (baselineCounts.rows?.[0]?.payload as { needs_action?: number } | undefined)?.needs_action ?? 0,
+    );
+
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
     await asServiceRole(db, () =>
@@ -455,6 +465,17 @@ describe("audit security money batch", { concurrent: false }, () => {
     );
     expect(before.rows?.[0]?.situation).toBe("paymobNeedsAction");
 
+    const flaggedCounts = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_queue_counts() AS payload`,
+    );
+    expect(
+      Number(
+        (flaggedCounts.rows?.[0]?.payload as { needs_action?: number } | undefined)?.needs_action ?? 0,
+      ),
+    ).toBe(baselineNeeds + 1);
+
     const resolved = await tryAsUser(
       db,
       IDS.adminUser,
@@ -473,6 +494,15 @@ describe("audit security money batch", { concurrent: false }, () => {
       [paymobId],
     );
     expect(after.rows?.[0]?.situation).toBe("paid");
+
+    const afterCounts = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_queue_counts() AS payload`,
+    );
+    expect(
+      Number((afterCounts.rows?.[0]?.payload as { needs_action?: number } | undefined)?.needs_action ?? 0),
+    ).toBe(baselineNeeds);
   });
 
   it("admin wallet idempotency keys are namespaced per customer", async () => {
