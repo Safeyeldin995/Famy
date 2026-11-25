@@ -297,6 +297,9 @@ const ar: Translation = {
       in_progress: "الخدمة شغالة دلوقتي",
       completion_requested: "أكد إن الخدمة خلصت",
     },
+    ratePrompt: "قيم {{provider}}",
+    openRateForm: "افتح التقييم",
+    ratePromptLater: "مش دلوقتي",
   },
   providerHome: {
     activeBookingTitle: "مهمتك النشطة",
@@ -332,6 +335,8 @@ const ar: Translation = {
   customerSearch: {
     placeholder: "ابحث عن جليسة أطفال أو مدرس خصوصي",
     results: "النتائج: {{value}}",
+    sortNext: "الأقرب موعدا",
+    verifiedOnly: "موثق بس",
   },
   customerDetail: {
     title: "تفاصيل الحجز",
@@ -985,6 +990,8 @@ const ar: Translation = {
     hoursShort: "{{hours}} س",
     whatsNext: "ماذا يحدث بعد ذلك",
     confirmed: "تم تأكيد الحجز",
+    payNow: "ادفع دلوقتي",
+    rate: "قيم",
   },
   status: {
     upcoming: "قادمة",
@@ -1569,6 +1576,8 @@ const ar: Translation = {
     emptyTitle: "لا توجد عناصر في المفضلة",
     emptyBody: "اضغط على القلب عند أي محترف لحفظه هنا",
     browse: "تصفح",
+    book: "احجز",
+    findProviders: "دور على مقدم خدمة",
   },
   mobileChat: {
     message: "رسالة",
@@ -1945,7 +1954,10 @@ const ar: Translation = {
     confirmedNumber: "حجز #{{id}} اتأكد",
     receipt: "الإيصال",
     addCalendar: "أضف إلى التقويم",
+    shareBooking: "شارك الحجز",
     support: "الدعم",
+    supportCall: "اتصل بالدعم",
+    supportWhatsapp: "دعم واتساب",
     whatsNext: "إيه اللي جاي؟",
     nextRemindTitle: "هنفكرك بالموعد",
     nextRemindBody: "هيجيلك إشعار قبل معادك بساعة",
@@ -4594,6 +4606,10 @@ Object.assign(ar, {
       title: "المحفظة",
       availableBalance: "المتاح: {{amount}}",
       terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي",
+      balanceHint: "رصيدك متاح تستخدمه في أي حجز جاي على فامي",
+      emptyTitle: "لسه مفيش حركات في محفظتك",
+      emptyBody: "الرصيد والخصومات من حجوزاتك هتظهر هنا",
+      bookNow: "احجز دلوقتي",
       reason: {
         provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
         customer_cancelled_refund: "رصيد إلغاء",

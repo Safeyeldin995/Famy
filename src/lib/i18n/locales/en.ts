@@ -295,6 +295,9 @@ const en = {
       in_progress: "Service in progress",
       completion_requested: "Confirm the service is complete",
     },
+    ratePrompt: "Rate {{provider}}",
+    openRateForm: "Open review",
+    ratePromptLater: "Not now",
   },
   providerHome: {
     activeBookingTitle: "Your active job",
@@ -330,6 +333,8 @@ const en = {
   customerSearch: {
     placeholder: "Search for a babysitter or private tutor",
     results: "Results: {{value}}",
+    sortNext: "Next available",
+    verifiedOnly: "Verified only",
   },
   customerDetail: {
     title: "Booking details",
@@ -990,6 +995,8 @@ const en = {
     hoursShort: "{{hours}}h",
     whatsNext: "What happens next",
     confirmed: "Booking confirmed",
+    payNow: "Pay now",
+    rate: "Rate",
   },
   status: {
     upcoming: "upcoming",
@@ -1577,6 +1584,8 @@ const en = {
     emptyTitle: "No favorites yet",
     emptyBody: "Tap the heart on a professional to save them here.",
     browse: "Browse",
+    book: "Book",
+    findProviders: "Find a provider",
   },
   mobileChat: {
     message: "Message",
@@ -1960,7 +1969,10 @@ const en = {
     confirmedNumber: "Booking #{{id}} is confirmed.",
     receipt: "Receipt",
     addCalendar: "Add to calendar",
+    shareBooking: "Share booking",
     support: "Support",
+    supportCall: "Call support",
+    supportWhatsapp: "WhatsApp support",
     whatsNext: "What happens next",
     nextRemindTitle: "We'll remind you",
     nextRemindBody: "A notification 1 hour before your booking.",
@@ -4642,6 +4654,10 @@ Object.assign(en, {
       title: "Wallet",
       availableBalance: "Available: {{amount}}",
       terms: "Your balance is ready to use on any upcoming Famy booking.",
+      balanceHint: "Your balance is ready to use on any upcoming Famy booking.",
+      emptyTitle: "No wallet activity yet",
+      emptyBody: "Credits and debits from your bookings will show here",
+      bookNow: "Book now",
       reason: {
         provider_cancelled: "Provider cancellation credit",
         customer_cancelled_refund: "Cancellation credit",

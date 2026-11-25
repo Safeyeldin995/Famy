@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { CalendarDays, Clock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
 import { colors, radius, space, shadow } from "@/ui/theme";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
 import { unreadConversationsByBookingId, useConversations } from "@/lib/chatQueries";
@@ -20,6 +20,11 @@ import { Avatar } from "@/ui/ProviderCard";
 import { Button } from "@/ui/Button";
 import { isProviderNoResponseCancellation } from "@shared/booking/pending-expiry";
 import { bookingAmountDue } from "@shared/payments/amountDue";
+import {
+  customerBookingListActionKey,
+  customerBookingListNeedsHighlight,
+  sortUpcomingCustomerBookings,
+} from "@/lib/customerBookingsList";
 
 export default function Bookings() {
   const { t, i18n } = useTranslation();
@@ -28,13 +33,21 @@ export default function Bookings() {
   const conversations = useConversations();
   const unreadByBooking = unreadConversationsByBookingId(conversations.data);
   const parties = useBookingParties((q.data ?? []).map((b) => b.id));
-  const rows = (q.data ?? []).filter((b) =>
-    tab === "upcoming"
-      ? activeStatuses.includes(b.status)
-      : tab === "completed"
-        ? b.status === "completed"
-        : ["cancelled", "no_show"].includes(b.status),
+  const allBookings = q.data ?? [];
+  const upcomingCount = useMemo(
+    () => allBookings.filter((b) => activeStatuses.includes(b.status)).length,
+    [allBookings],
   );
+  const rows = useMemo(() => {
+    const filtered = allBookings.filter((b) =>
+      tab === "upcoming"
+        ? activeStatuses.includes(b.status)
+        : tab === "completed"
+          ? b.status === "completed"
+          : ["cancelled", "no_show"].includes(b.status),
+    );
+    return tab === "upcoming" ? sortUpcomingCustomerBookings(filtered) : filtered;
+  }, [allBookings, tab]);
   const locale = i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG";
   const Arrow = rowChevronIcon(i18n.language);
   return (
@@ -78,7 +91,7 @@ export default function Bookings() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "upcoming", label: t("bookings.upcoming") },
+            { value: "upcoming", label: t("bookings.upcoming"), badgeCount: upcomingCount },
             { value: "completed", label: t("bookings.completed") },
             { value: "cancelled", label: t("bookings.cancelled") },
           ]}
@@ -103,6 +116,8 @@ export default function Bookings() {
           const statusStyle = bookingStatusStyle(b.status);
           const hours = Math.max(1, Math.round((+new Date(b.end_at) - +start) / 36e5));
           const hasUnread = unreadByBooking.get(b.id) === true;
+          const actionKey = !past ? customerBookingListActionKey(b) : null;
+          const needsHighlight = !past && customerBookingListNeedsHighlight(b);
           return (
             <View
               key={b.id}
@@ -113,6 +128,8 @@ export default function Bookings() {
                   padding: 0,
                   overflow: "hidden",
                   backgroundColor: past ? colors.surface2 : colors.surface,
+                  borderWidth: needsHighlight ? 2 : 0,
+                  borderColor: needsHighlight ? colors.brand : "transparent",
                   ...shadow.card,
                 },
               ]}
@@ -163,17 +180,33 @@ export default function Bookings() {
                           {localized(b.service, i18n.language)}
                         </Text>
                       </View>
-                      <View
-                        style={{
-                          borderRadius: 999,
-                          paddingHorizontal: space.md,
-                          paddingVertical: space.sm,
-                          backgroundColor: statusStyle.backgroundColor,
-                        }}
-                      >
-                        <Text size="xs" weight="heavy" style={{ color: statusStyle.color }}>
-                          {t(`status.${b.status}`)}
-                        </Text>
+                      <View style={{ alignItems: "flex-end", gap: space.xs }}>
+                        <View
+                          style={{
+                            borderRadius: 999,
+                            paddingHorizontal: space.md,
+                            paddingVertical: space.sm,
+                            backgroundColor: statusStyle.backgroundColor,
+                          }}
+                        >
+                          <Text size="xs" weight="heavy" style={{ color: statusStyle.color }}>
+                            {t(`status.${b.status}`)}
+                          </Text>
+                        </View>
+                        {actionKey ? (
+                          <View
+                            style={{
+                              borderRadius: 999,
+                              paddingHorizontal: space.md,
+                              paddingVertical: space.sm,
+                              backgroundColor: colors.brandTint,
+                            }}
+                          >
+                            <Text size="xs" weight="heavy" tone="brand">
+                              {t(actionKey)}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                     <View style={[customerStyle.row, { flexWrap: "wrap", gap: space.sm }]}>
@@ -225,8 +258,21 @@ export default function Bookings() {
                     paddingTop: space.md,
                     borderTopWidth: 1,
                     borderTopColor: colors.border,
+                    gap: space.sm,
                   }}
                 >
+                  {tab === "completed" && b.status === "completed" && !b.hasReview ? (
+                    <Button
+                      variant="secondary"
+                      label={t("bookings.rate")}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/booking/[id]",
+                          params: { id: b.id, review: "1" },
+                        })
+                      }
+                    />
+                  ) : null}
                   <Button
                     variant="secondary"
                     label={t(expired ? "bookings.bookAnotherProvider" : "bookings.bookAgain")}
