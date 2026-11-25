@@ -34,15 +34,18 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
     [confirmText, confirmWord],
   );
 
+  const runDeletionCheck = async () => {
+    setCheck(null);
+    const { data, error } = await supabase.rpc("account_deletion_check");
+    if (error) {
+      setCheck({ ok: false, reason: "not_authenticated" });
+      return;
+    }
+    setCheck((data ?? { ok: false, reason: "not_authenticated" }) as DeletionCheck);
+  };
+
   useEffect(() => {
-    void (async () => {
-      const { data, error } = await supabase.rpc("account_deletion_check");
-      if (error) {
-        setCheck({ ok: false, reason: "not_authenticated" });
-        return;
-      }
-      setCheck((data ?? { ok: false, reason: "not_authenticated" }) as DeletionCheck);
-    })();
+    void runDeletionCheck();
   }, []);
 
   const blockedReason = !check?.ok ? check?.reason : undefined;
@@ -56,18 +59,21 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
     setBusy(true);
     setActionError(false);
     setErrorKey(null);
-    const result = await requestMobileAccountDeletion({
-      confirmWalletForfeit: needsWalletForfeitConfirm && walletForfeitConfirmed,
-    });
-    if (!result.ok) {
-      setErrorKey(`accountDeletion.errors.${result.error}`);
-      setActionError(true);
+    try {
+      const result = await requestMobileAccountDeletion({
+        confirmWalletForfeit: needsWalletForfeitConfirm && walletForfeitConfirmed,
+      });
+      if (!result.ok) {
+        setErrorKey(`accountDeletion.errors.${result.error}`);
+        setActionError(true);
+        return;
+      }
+      await revokeActivePushToken();
+      await supabase.auth.signOut();
+      router.replace("/login");
+    } finally {
       setBusy(false);
-      return;
     }
-    await revokeActivePushToken();
-    await supabase.auth.signOut();
-    router.replace("/login");
   };
 
   return (
@@ -103,7 +109,14 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
         </Text>
       )}
       {blockedReason === "not_authenticated" && (
-        <Text tone="danger">{t("accountDeletion.errors.unauthorized")}</Text>
+        <>
+          <Text tone="danger">{t("accountDeletion.errors.unauthorized")}</Text>
+          <Button
+            variant="secondary"
+            label={t("common.retry")}
+            onPress={() => void runDeletionCheck()}
+          />
+        </>
       )}
       {blockedReason === "active_bookings" ? (
         <Text tone="danger">{t("accountDeletion.blockedActiveBookings")}</Text>

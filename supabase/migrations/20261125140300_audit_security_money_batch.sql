@@ -1167,11 +1167,14 @@ BEGIN
   );
   v_closed := v_booking IN ('cancelled', 'no_show');
 
-  IF COALESCE((v_meta->>'capture_shortfall')::numeric, 0) > 0
-     OR COALESCE((v_meta->>'needs_admin_review')::boolean, false)
-     OR NULLIF(v_meta->>'gateway_refund_recorded_at', '') IS NOT NULL
-     OR COALESCE((v_meta->>'unmapped_order')::boolean, false)
-     OR COALESCE((v_meta->>'paymob_unmapped')::boolean, false)
+  IF NULLIF(v_meta->>'paymob_resolved_at', '') IS NULL
+     AND (
+       COALESCE((v_meta->>'capture_shortfall')::numeric, 0) > 0
+       OR COALESCE((v_meta->>'needs_admin_review')::boolean, false)
+       OR NULLIF(v_meta->>'gateway_refund_recorded_at', '') IS NOT NULL
+       OR COALESCE((v_meta->>'unmapped_order')::boolean, false)
+       OR COALESCE((v_meta->>'paymob_unmapped')::boolean, false)
+     )
   THEN
     RETURN 'paymobNeedsAction';
   END IF;
@@ -1519,9 +1522,9 @@ BEGIN
   END IF;
 
   v_reason := CASE WHEN p_direction = 'credit' THEN 'admin_credit' ELSE 'admin_debit' END;
-  v_key := COALESCE(
+  v_key := 'admin_wallet:' || p_customer_id::text || ':' || COALESCE(
     NULLIF(btrim(p_idempotency_key), ''),
-    'admin_wallet:' || v_admin::text || ':' || gen_random_uuid()::text
+    gen_random_uuid()::text
   );
 
   v_entry_id := public.customer_wallet_insert_entry(
@@ -1544,5 +1547,116 @@ REVOKE ALL ON FUNCTION public.admin_adjust_customer_wallet(uuid, text, numeric, 
   FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_adjust_customer_wallet(uuid, text, numeric, text, uuid, text)
   TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Admin: resolve Paymob capture flags (shortfall, gateway refund, unmapped)
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.admin_resolve_paymob_flag(
+  p_payment_id uuid,
+  p_unmapped_transaction_id bigint,
+  p_note text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_admin uuid := auth.uid();
+  v_pay public.payments%ROWTYPE;
+  v_unmapped public.paymob_unmapped_captures%ROWTYPE;
+  v_note text := NULLIF(btrim(COALESCE(p_note, '')), '');
+  v_resolved jsonb;
+BEGIN
+  IF v_admin IS NULL OR NOT public.has_role(v_admin, 'admin') THEN
+    RAISE EXCEPTION 'Admin required.' USING ERRCODE = '42501';
+  END IF;
+  IF v_note IS NULL THEN
+    RAISE EXCEPTION 'A resolution note is required.' USING ERRCODE = '23514';
+  END IF;
+  IF p_payment_id IS NULL AND (p_unmapped_transaction_id IS NULL OR p_unmapped_transaction_id <= 0) THEN
+    RAISE EXCEPTION 'Payment or unmapped transaction id is required.' USING ERRCODE = '23514';
+  END IF;
+
+  v_resolved := jsonb_build_object(
+    'paymob_resolved_at', now(),
+    'paymob_resolved_by', v_admin,
+    'paymob_resolve_note', v_note,
+    'needs_admin_review', false
+  );
+
+  IF p_payment_id IS NOT NULL THEN
+    SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Payment not found.' USING ERRCODE = 'P0002';
+    END IF;
+    UPDATE public.payments
+    SET metadata = (
+      COALESCE(metadata, '{}'::jsonb)
+      - 'capture_shortfall'
+      - 'capture_shortfall_recorded_at'
+    ) || v_resolved
+    WHERE id = p_payment_id;
+  END IF;
+
+  IF p_unmapped_transaction_id IS NOT NULL AND p_unmapped_transaction_id > 0 THEN
+    SELECT * INTO v_unmapped
+    FROM public.paymob_unmapped_captures
+    WHERE paymob_transaction_id = p_unmapped_transaction_id
+    FOR UPDATE;
+    IF FOUND THEN
+      UPDATE public.paymob_unmapped_captures
+      SET
+        needs_admin_review = false,
+        metadata = COALESCE(metadata, '{}'::jsonb) || v_resolved
+      WHERE paymob_transaction_id = p_unmapped_transaction_id;
+    END IF;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'payment_id', p_payment_id,
+    'unmapped_transaction_id', p_unmapped_transaction_id
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_resolve_paymob_flag(uuid, bigint, text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_resolve_paymob_flag(uuid, bigint, text)
+  TO authenticated;
+
+-- #454 LOW: move legacy checkout secrets out of payments.metadata
+INSERT INTO public.payment_paymob_checkout (
+  payment_id, checkout_url, client_secret, intention_id, updated_at
+)
+SELECT
+  p.id,
+  NULLIF(p.metadata->>'paymob_checkout_url', ''),
+  NULLIF(p.metadata->>'paymob_client_secret', ''),
+  NULLIF(p.metadata->>'paymob_intention_id', ''),
+  now()
+FROM public.payments p
+WHERE p.status = 'pending'::public.payment_status
+  AND p.payment_method_code = 'paymob'
+  AND (
+    p.metadata ? 'paymob_client_secret'
+    OR p.metadata ? 'paymob_checkout_url'
+  )
+ON CONFLICT (payment_id) DO UPDATE SET
+  checkout_url = COALESCE(EXCLUDED.checkout_url, public.payment_paymob_checkout.checkout_url),
+  client_secret = COALESCE(EXCLUDED.client_secret, public.payment_paymob_checkout.client_secret),
+  intention_id = COALESCE(EXCLUDED.intention_id, public.payment_paymob_checkout.intention_id),
+  updated_at = now();
+
+UPDATE public.payments p
+SET metadata = metadata - 'paymob_client_secret' - 'paymob_checkout_url'
+WHERE p.status = 'pending'::public.payment_status
+  AND p.payment_method_code = 'paymob'
+  AND (
+    p.metadata ? 'paymob_client_secret'
+    OR p.metadata ? 'paymob_checkout_url'
+  );
 
 NOTIFY pgrst, 'reload schema';

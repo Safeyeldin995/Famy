@@ -50,6 +50,7 @@ function methodType(p: PaymentSituationInput) {
  */
 function paymobNeedsAdminReview(metadata?: Record<string, unknown> | null) {
   if (!metadata || typeof metadata !== "object") return false;
+  if (metadata.paymob_resolved_at) return false;
   const shortfall = Number(metadata.capture_shortfall);
   if (Number.isFinite(shortfall) && shortfall > 0.005) return true;
   if (metadata.gateway_refund_recorded_at) return true;

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProviderStatementRow = {
@@ -135,6 +135,29 @@ export function useAdminPaymentQueueCounts() {
         cash_to_confirm: number;
         fee_payments: number;
       };
+    },
+  });
+}
+
+export function useAdminResolvePaymobFlag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      paymentId?: string | null;
+      unmappedTransactionId?: number | null;
+      note: string;
+    }) => {
+      const { error } = await (supabase.rpc as any)("admin_resolve_paymob_flag", {
+        p_payment_id: input.paymentId ?? null,
+        p_unmapped_transaction_id: input.unmappedTransactionId ?? null,
+        p_note: input.note,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "payment-queue"] });
+      qc.invalidateQueries({ queryKey: ["admin", "payment-queue-counts"] });
+      qc.invalidateQueries({ queryKey: ["admin", "payments"] });
     },
   });
 }

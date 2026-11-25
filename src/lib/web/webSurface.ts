@@ -72,6 +72,7 @@ export function isWebSurfacePathAllowed(
   if (path === "/account/delete") return true;
   if (path.startsWith("/content/")) return true;
   if (path === "/auth/callback") return true;
+  if (path === "/parent-guardian/flag") return true;
   if (path.startsWith("/provider/")) return true;
 
   if (isOnlineWebSurfacePath(path)) return true;

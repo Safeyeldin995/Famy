@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
+import { randomUUID } from "node:crypto";
+import { paymentCapturedForJoin } from "@/lib/livekit/sessionAccess";
 import {
   asServiceRole,
   createBookingLifecycleDb,
@@ -413,5 +415,211 @@ describe("audit security money batch", { concurrent: false }, () => {
       [IDS.provider],
     );
     expect(after[0]?.n).toBe("0");
+  });
+
+  it("provider sees captured online Paymob payment via provider_booking_payment (join gate)", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+  await asServiceRole(db, () =>
+      db.exec(`
+        ALTER TABLE public.bookings DISABLE TRIGGER trg_lock_booking_service_mode;
+        UPDATE public.bookings SET service_mode = 'online' WHERE id = '${bookingId}';
+        ALTER TABLE public.bookings ENABLE TRIGGER trg_lock_booking_service_mode;
+      `),
+    );
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    const amountRows = await queryRows<{ amount: string }>(
+      db,
+      "SELECT amount::text AS amount FROM public.payments WHERE id = $1",
+      [paymobId],
+    );
+    const amountCents = Math.round(Number(amountRows[0]!.amount) * 100);
+    const orderId = 881234;
+    await bindPaymobOrder(paymobId, orderId);
+    await asServiceRole(db, () =>
+      db.query(
+        `UPDATE public.payments
+         SET payment_method_type = 'online', payment_method_code = 'paymob', method = 'paymob'
+         WHERE id = $1`,
+        [paymobId],
+      ),
+    );
+
+    await asServiceRole(db, () =>
+      queryRows(
+        db,
+        `SELECT public.paymob_apply_transaction_webhook(
+           88123401::bigint, $1::bigint, 77, 'EGP', true, false, $2::bigint, 'capture'
+         )`,
+        [orderId, amountCents],
+      ),
+    );
+
+    const rpc = await tryAsUser(
+      db,
+      IDS.providerUser,
+      "SELECT public.provider_booking_payment($1::uuid) AS payload",
+      [bookingId],
+    );
+    expect(rpc.error).toBeUndefined();
+    const payload = rpc.rows?.[0]?.payload as {
+      status?: string;
+      payment_method_type?: string;
+      amount?: number;
+    } | null;
+    expect(payload?.status).toBe("captured");
+    expect(payload?.payment_method_type).toBe("online");
+    expect(paymentCapturedForJoin(payload)).toBe(true);
+    expect(Number(payload?.amount ?? 0)).toBeGreaterThan(0);
+  });
+
+  it("admin_resolve_paymob_flag clears paymobNeedsAction for payment metadata flags", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await asServiceRole(db, () =>
+      db.query(
+        `UPDATE public.payments
+         SET metadata = jsonb_build_object(
+           'capture_shortfall', 25,
+           'needs_admin_review', true
+         )
+         WHERE id = $1`,
+        [paymobId],
+      ),
+    );
+
+    const before = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_situation(
+         'captured', 'online', 'paymob', NULL, 'confirmed', false,
+         (SELECT metadata FROM public.payments WHERE id = $1::uuid)
+       ) AS situation`,
+      [paymobId],
+    );
+    expect(before.rows?.[0]?.situation).toBe("paymobNeedsAction");
+
+    const resolved = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_resolve_paymob_flag($1::uuid, NULL, 'reconciled in Paymob dashboard') AS payload`,
+      [paymobId],
+    );
+    expect(resolved.error).toBeUndefined();
+
+    const after = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_payment_situation(
+         'captured', 'online', 'paymob', NULL, 'confirmed', false,
+         (SELECT metadata FROM public.payments WHERE id = $1::uuid)
+       ) AS situation`,
+      [paymobId],
+    );
+    expect(after.rows?.[0]?.situation).toBe("paid");
+  });
+
+  it("admin wallet idempotency keys are namespaced per customer", async () => {
+    const key = `idem-${Date.now()}`;
+    const first = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'test credit', NULL, $2) AS entry_id`,
+      [IDS.customer, key],
+    );
+    expect(first.error).toBeUndefined();
+    const firstId = first.rows?.[0]?.entry_id;
+    expect(firstId).toBeTruthy();
+
+    const retry = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'test credit', NULL, $2) AS entry_id`,
+      [IDS.customer, key],
+    );
+    expect(retry.rows?.[0]?.entry_id).toBe(firstId);
+
+    const otherCustomer = "00000000-0000-0000-0000-000000000002";
+    await asServiceRole(db, () =>
+      db.exec(`
+        INSERT INTO auth.users (id, raw_user_meta_data) VALUES
+          ('${otherCustomer}', '{"full_name":"Other Customer"}')
+        ON CONFLICT (id) DO NOTHING;
+        INSERT INTO public.profiles (id, full_name, phone)
+        VALUES ('${otherCustomer}', 'Other', '01098765432')
+        ON CONFLICT (id) DO UPDATE SET phone = EXCLUDED.phone;
+      `),
+    );
+    const other = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_adjust_customer_wallet($1, 'credit', 5, 'other customer', NULL, $2) AS entry_id`,
+      [otherCustomer, key],
+    );
+    expect(other.error).toBeUndefined();
+    expect(other.rows?.[0]?.entry_id).not.toBe(firstId);
+
+    const stored = await queryRows<{ idempotency_key: string }>(
+      db,
+      `SELECT idempotency_key FROM public.customer_wallet_entries WHERE customer_id = $1 AND idempotency_key LIKE $2`,
+      [IDS.customer, `admin_wallet:${IDS.customer}:${key}`],
+    );
+    expect(stored[0]?.idempotency_key).toBe(`admin_wallet:${IDS.customer}:${key}`);
+  });
+
+  it("backfill moves pending Paymob checkout secrets to payment_paymob_checkout", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const payId = randomUUID();
+    await asServiceRole(db, () =>
+      db.query(
+        `INSERT INTO public.payments (
+           id, booking_id, customer_id, amount, status,
+           payment_method_id, payment_method_type, payment_method_code, method, metadata
+         )
+         SELECT $1, $2, $3, 100, 'pending', pm.id, 'online', 'paymob', 'paymob',
+           jsonb_build_object(
+             'paymob_client_secret', 'legacy-secret',
+             'paymob_checkout_url', 'https://paymob.test/checkout'
+           )
+         FROM public.payment_methods pm WHERE pm.code = 'paymob' LIMIT 1`,
+        [payId, bookingId, IDS.customer],
+      ),
+    );
+
+    await asServiceRole(db, () =>
+      db.exec(`
+        INSERT INTO public.payment_paymob_checkout (
+          payment_id, checkout_url, client_secret, intention_id, updated_at
+        )
+        SELECT
+          p.id,
+          NULLIF(p.metadata->>'paymob_checkout_url', ''),
+          NULLIF(p.metadata->>'paymob_client_secret', ''),
+          NULLIF(p.metadata->>'paymob_intention_id', ''),
+          now()
+        FROM public.payments p
+        WHERE p.id = '${payId}'
+        ON CONFLICT (payment_id) DO UPDATE SET
+          checkout_url = COALESCE(EXCLUDED.checkout_url, public.payment_paymob_checkout.checkout_url),
+          client_secret = COALESCE(EXCLUDED.client_secret, public.payment_paymob_checkout.client_secret);
+
+        UPDATE public.payments p
+        SET metadata = metadata - 'paymob_client_secret' - 'paymob_checkout_url'
+        WHERE p.id = '${payId}';
+      `),
+    );
+
+    const checkout = await queryRows<{ secret: string | null }>(
+      db,
+      `SELECT client_secret AS secret FROM public.payment_paymob_checkout WHERE payment_id = $1`,
+      [payId],
+    );
+    expect(checkout[0]?.secret).toBe("legacy-secret");
+
+    const meta = await queryRows<{ has_secret: boolean }>(
+      db,
+      `SELECT (metadata ? 'paymob_client_secret') AS has_secret FROM public.payments WHERE id = $1`,
+      [payId],
+    );
+    expect(meta[0]?.has_secret).toBe(false);
   });
 });
