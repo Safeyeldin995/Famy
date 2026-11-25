@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
+import { AppState, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useFonts } from "expo-font";
@@ -30,6 +31,15 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
+
+// React Query only knows about browser focus. On the phone, treat the app
+// coming back to the foreground as "focused" so stale screens refetch.
+if (Platform.OS !== "web") {
+  focusManager.setEventListener((handleFocus) => {
+    const sub = AppState.addEventListener("change", (state) => handleFocus(state === "active"));
+    return () => sub.remove();
+  });
+}
 
 export default function RootLayout() {
   const [i18nReady, setI18nReady] = useState(false);

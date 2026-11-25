@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Calendar, Clock, MapPin, Phone, User } from "lucide-react-native";
+import { BookOpen, Calendar, Clock, MapPin, Navigation, Phone, User } from "lucide-react-native";
 import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { bookingTeachingSummary } from "@shared/tutoring/bookingTeachingSummary";
 import { shortBookingCode } from "@/lib/provider/constants";
@@ -40,6 +40,13 @@ import { colors, space } from "@/ui/theme";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
 import { useToast } from "@/ui/Toast";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
+import {
+  directionsUrl,
+  providerMoneyBreakdown,
+  requestCountdown,
+  requestCountdownLabel,
+} from "@shared/provider/providerWorkHelpers";
+import { useBookingExpirySettings } from "@/lib/bookingQueries";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +60,7 @@ export default function ProBookingDetail() {
   const bookingStatus = String((q.data as { status?: string } | undefined)?.status ?? "");
   const conversation = useConversationByBooking(id, bookingStatus);
   const mut = useProviderUpdateBookingStatus();
+  const expiryQ = useBookingExpirySettings();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [dialog, setDialog] = useState<"" | "decline" | "cancel">("");
   const [chatFeedback, setChatFeedback] = useState<"" | "unavailable" | "error">("");
@@ -75,6 +83,13 @@ export default function ProBookingDetail() {
   const zoneName =
     (i18n.language.startsWith("ar") ? party?.zone_name_ar : party?.zone_name_en) || party?.area;
   const status = String(b?.status ?? "");
+  const countdown =
+    status === "pending" && b?.created_at && b?.start_at
+      ? requestCountdown(String(b.created_at), String(b.start_at), expiryQ.data, new Date(nowMs))
+      : null;
+  const breakdown = b ? providerMoneyBreakdown(b as Parameters<typeof providerMoneyBreakdown>[0]) : null;
+  const mapUrl =
+    !isOnline && status !== "pending" && addr ? directionsUrl(addr.lat, addr.lng) : null;
   const stepWindow =
     b?.start_at && b?.end_at && status
       ? providerStepWindowState(status, String(b.start_at), String(b.end_at), new Date(nowMs))
@@ -300,21 +315,36 @@ export default function ProBookingDetail() {
                 </View>
               ) : null}
               {!isOnline ? (
-                <View style={proCard.row}>
-                  <MapPin size={16} color={colors.brand} />
-                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
-                    {t("pro.booking.address")}
-                  </Text>
-                  <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                    {status !== "pending" && addr
-                      ? [addr.street, addr.building, addr.area, addr.city]
-                          .filter(Boolean)
-                          .join("، ")
-                      : zoneName
-                        ? t("pro.booking.areaOnly", { area: zoneName })
-                        : t("pro.booking.addressMissing")}
-                  </Text>
-                </View>
+                <>
+                  <View style={proCard.row}>
+                    <MapPin size={16} color={colors.brand} />
+                    <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                      {t("pro.booking.address")}
+                    </Text>
+                    <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                      {status !== "pending" && addr
+                        ? [addr.street, addr.building, addr.area, addr.city]
+                            .filter(Boolean)
+                            .join("، ")
+                        : zoneName
+                          ? t("pro.booking.areaOnly", { area: zoneName })
+                          : t("pro.booking.addressMissing")}
+                    </Text>
+                  </View>
+                  {mapUrl && !["completed", "cancelled", "no_show"].includes(status) ? (
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={t("pro.booking.openMap")}
+                      onPress={() => void Linking.openURL(mapUrl).catch(() => undefined)}
+                      style={[proCard.row, { justifyContent: "flex-start", minHeight: 44 }]}
+                    >
+                      <Navigation size={18} color={colors.brand} />
+                      <Text weight="bold" tone="brand">
+                        {t("pro.booking.openMap")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </>
               ) : null}
               {phone ? (
                 <Pressable
@@ -336,6 +366,34 @@ export default function ProBookingDetail() {
                 {money(bookingAmountDue(b), i18n.language)}
               </Text>
             </View>
+            {breakdown ? (
+              <View style={proCard.card}>
+                <View style={proCard.row}>
+                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                    {t("pro.earnings.breakdownBookingValue")}
+                  </Text>
+                  <Text weight="bold" size="sm" style={moneyTextStyle(i18n.language)}>
+                    {money(breakdown.bookingValue, i18n.language)}
+                  </Text>
+                </View>
+                <View style={proCard.row}>
+                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                    {t("pro.earnings.breakdownCommission")}
+                  </Text>
+                  <Text weight="bold" size="sm" style={moneyTextStyle(i18n.language)}>
+                    − {money(breakdown.commission, i18n.language)}
+                  </Text>
+                </View>
+                <View style={proCard.row}>
+                  <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                    {t("pro.earnings.breakdownNet")}
+                  </Text>
+                  <Text weight="heavy" tone="brand" style={moneyTextStyle(i18n.language)}>
+                    {money(breakdown.net, i18n.language)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
             {carriedFees(b) > 0 ? (
               <Text size="sm" tone="muted">
                 {t("pro.booking.carriedFeesNote", { amount: money(carriedFees(b), i18n.language) })}
@@ -400,6 +458,17 @@ export default function ProBookingDetail() {
       </QueryState>
       {b ? (
         <View style={proCard.dock}>
+          {status === "pending" && countdown ? (
+            <Text
+              size="sm"
+              weight="bold"
+              tone={countdown.kind === "overdue" || countdown.urgent ? "danger" : "brand"}
+              style={{ textAlign: "center" }}
+              accessibilityLiveRegion="polite"
+            >
+              {requestCountdownLabel(countdown, t)}
+            </Text>
+          ) : null}
           {status === "pending" ? (
             <View style={{ flexDirection: "row", gap: space.sm }}>
               <Button
