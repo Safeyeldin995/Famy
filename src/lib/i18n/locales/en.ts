@@ -115,6 +115,7 @@ const en = {
       body: "Download the Famy app for Android or iPhone to book, pay, and follow every step in one place.",
       imageAlt: "Famy app booking screen on a phone",
       downloadOn: "Download on",
+      comingSoon: "Coming soon on",
       useWeb: "Use Famy in your browser",
     },
     providerShare: {
@@ -3959,6 +3960,16 @@ const en = {
       appReleaseSaved: "App version settings saved",
       appReleaseSaveError: "Couldn't save app version settings",
       appReleaseLoadError: "Couldn't load app version settings",
+      storeLinksTitle: "Store download links",
+      storeLinksSubtitle:
+        "HTTPS links shown on the public site and in the app update gate. Leave empty to show “coming soon” badges.",
+      storeLinksPlay: "Google Play URL",
+      storeLinksApple: "App Store URL",
+      storeLinksInvalidUrl:
+        "Use a full https URL on play.google.com or apps.apple.com, or leave the field empty.",
+      storeLinksSaved: "Store links saved",
+      storeLinksSaveError: "Couldn't save store links",
+      storeLinksLoadError: "Couldn't load store links",
       subtitle: "Platform configuration — changes here have real, immediate effect on the app.",
       saved: "Saved",
       paymentsTitle: "Payments",

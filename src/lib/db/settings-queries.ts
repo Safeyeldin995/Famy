@@ -17,6 +17,7 @@ import {
   type BookingExpirySettings,
 } from "@/lib/booking/pending-expiry";
 import { commissionPercentEqual, parseCommissionPercent } from "@/lib/billing/commissionPercent";
+import { validateStoreLinksSettings, type StoreLinksSettings } from "@/lib/storeLinks";
 
 export type BillingSettings = {
   vat_percent: number;
@@ -434,10 +435,7 @@ export const DEFAULT_RELEASE_FEATURES: ReleaseFeatureSettings = {
   online_lessons_enabled: false,
 };
 
-export type StoreLinksSettings = {
-  play_url: string;
-  app_store_url: string;
-};
+export type { StoreLinksSettings };
 
 export const DEFAULT_STORE_LINKS: StoreLinksSettings = {
   play_url: "",
@@ -464,6 +462,33 @@ export function useStoreLinksSettings() {
       if (error) throw error;
       return parseStoreLinksSettings((data?.value as Record<string, unknown>) ?? {});
     },
+  });
+}
+
+export function useStoreLinksSettingsAdmin() {
+  return useStoreLinksSettings();
+}
+
+export function useUpdateStoreLinksSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: StoreLinksSettings) => {
+      if (validateStoreLinksSettings(value).length > 0) {
+        throw new Error("Store links are invalid.");
+      }
+      const normalized = parseStoreLinksSettings(value);
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "store_links", value: normalized }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseStoreLinksSettings(data.value as Record<string, unknown>);
+      if (JSON.stringify(stored) !== JSON.stringify(normalized)) {
+        throw new Error("Store links did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "store_links"] }),
   });
 }
 

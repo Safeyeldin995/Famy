@@ -430,9 +430,9 @@ BEGIN
     IF v_online AND COALESCE(v_rule.lead_minutes, 0) = 10 THEN
       v_type := 'online_lesson_starting';
       v_title_en := 'Your online lesson starts soon';
-      v_title_ar := 'درسك الأونلاين يبدأ قريباً';
+      v_title_ar := 'الحصة الأونلاين هتبدأ قريب';
       v_body_en := 'Your session starts in about 10 minutes. Tap to join when you are ready.';
-      v_body_ar := 'درسك يبدأ بعد حوالي ١٠ دقائق. اضغط للدخول لما تكون جاهز.';
+      v_body_ar := 'الحصة الأونلاين هتبدأ بعد حوالي 10 دقايق. اضغط للدخول.';
     ELSE
       v_type := 'booking_reminder';
       v_title_en := 'Upcoming booking';

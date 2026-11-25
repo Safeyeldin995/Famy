@@ -20,16 +20,20 @@ export function assetLinksDocument(env: NodeJS.ProcessEnv = process.env): string
 }
 
 export function appleAppSiteAssociation(env: NodeJS.ProcessEnv = process.env): string {
-  const teamId = env.APPLE_APP_LINK_TEAM_ID?.trim() ?? "TEAMID";
+  const teamId = env.APPLE_APP_LINK_TEAM_ID?.trim();
+  const details =
+    teamId && teamId.length > 0
+      ? [
+          {
+            appID: `${teamId}.${IOS_BUNDLE}`,
+            paths: ["/booking/*", "/online/lessons/*", "/p/*", "/provider/*"],
+          },
+        ]
+      : [];
   return JSON.stringify({
     applinks: {
       apps: [],
-      details: [
-        {
-          appID: `${teamId}.${IOS_BUNDLE}`,
-          paths: ["/booking/*", "/online/lessons/*", "/p/*", "/provider/*"],
-        },
-      ],
+      details,
     },
   });
 }

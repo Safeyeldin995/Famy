@@ -59,15 +59,24 @@ export function StoreBadges({ className = "" }: { className?: string }) {
   const { t } = useTranslation();
   const links = useStoreLinksSettings();
   const downloadOn = t("site.download.downloadOn");
+  const comingSoon = t("site.download.comingSoon");
   const playUrl = links.data?.play_url ?? "";
   const appleUrl = links.data?.app_store_url ?? "";
 
   return (
     <div className={`flex flex-wrap gap-3 ${className}`}>
-      {appleUrl ? (
-        <Badge path={APPLE_PATH} store="App Store" label={downloadOn} href={appleUrl} />
-      ) : null}
-      {playUrl ? <Badge path={PLAY_PATH} store="Google Play" label={downloadOn} href={playUrl} /> : null}
+      <Badge
+        path={APPLE_PATH}
+        store="App Store"
+        label={appleUrl ? downloadOn : comingSoon}
+        href={appleUrl || undefined}
+      />
+      <Badge
+        path={PLAY_PATH}
+        store="Google Play"
+        label={playUrl ? downloadOn : comingSoon}
+        href={playUrl || undefined}
+      />
     </div>
   );
 }

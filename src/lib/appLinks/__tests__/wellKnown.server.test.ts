@@ -13,6 +13,10 @@ describe("wellKnown app links", () => {
     expect(doc[0]?.target?.sha256_cert_fingerprints?.[0]).toContain("AA:BB");
   });
 
+  it("omits Apple app entries when team id is unset", () => {
+    expect(JSON.parse(appleAppSiteAssociation({})).applinks.details).toEqual([]);
+  });
+
   it("builds apple-app-site-association paths", () => {
     const doc = JSON.parse(appleAppSiteAssociation({ APPLE_APP_LINK_TEAM_ID: "ABCDE12345" }));
     expect(doc.applinks.details[0].appID).toBe("ABCDE12345.com.famy.app");

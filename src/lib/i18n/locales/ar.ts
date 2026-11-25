@@ -117,6 +117,7 @@ const ar: Translation = {
       body: "نزل تطبيق فامي لأندرويد أو آيفون علشان تحجز وتدفع وتتابع خطوات حجزك من مكان واحد",
       imageAlt: "شاشة حجز فامي على الموبايل",
       downloadOn: "حمل من",
+      comingSoon: "قريب على",
       useWeb: "استخدم فامي من المتصفح",
     },
     providerShare: {
@@ -3924,6 +3925,16 @@ const ar: Translation = {
       appReleaseSaved: "اتحفظ إصدار التطبيق",
       appReleaseSaveError: "تعذر حفظ إعدادات إصدار التطبيق",
       appReleaseLoadError: "تعذر تحميل إعدادات إصدار التطبيق",
+      storeLinksTitle: "روابط تحميل المتجر",
+      storeLinksSubtitle:
+        "روابط https اللي بتظهر في الموقع العام وفي شاشة تحديث التطبيق. سيبها فاضية لعرض شارة «قريب».",
+      storeLinksPlay: "رابط Google Play",
+      storeLinksApple: "رابط App Store",
+      storeLinksInvalidUrl:
+        "استخدم رابط https كامل على play.google.com أو apps.apple.com، أو سيب الحقل فاضي.",
+      storeLinksSaved: "اتحفظت روابط المتجر",
+      storeLinksSaveError: "تعذر حفظ روابط المتجر",
+      storeLinksLoadError: "تعذر تحميل روابط المتجر",
       subtitle: "إعدادات المنصة، وأي تغيير هنا يطبق فورا على التطبيق",
       saved: "تم الحفظ",
       paymentsTitle: "المدفوعات",
