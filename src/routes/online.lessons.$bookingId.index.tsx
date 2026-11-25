@@ -21,6 +21,7 @@ import { moneyHeld } from "@/lib/payments/refundOwed";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePaymobReturnPaymentPoll } from "@/hooks/usePaymobReturnPaymentPoll";
+import { useNowTick } from "@/hooks/useNowTick";
 
 export const Route = createFileRoute("/online/lessons/$bookingId/")({
   component: OnlineLessonDetail,
@@ -46,6 +47,8 @@ function OnlineLessonDetail() {
   });
 
   usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
+  // Join eligibility is computed from the clock at render; tick so the Join button appears when the window opens.
+  useNowTick(30_000);
 
   if (bookingQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
