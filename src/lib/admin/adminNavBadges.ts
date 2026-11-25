@@ -21,6 +21,7 @@ export const ADMIN_NAV_BADGE_ROUTES: Record<string, readonly AdminNavBadgeKey[]>
   "/admin/payments": ["payments_pending_review"],
   "/admin/finance": ["pending_settlements", "providers_at_cash_limit"],
   "/admin/online-lesson-issues": ["online_lesson_issue_reports"],
+  "/admin/reports-ugc": ["ugc_reports"],
 };
 
 export function adminNavBadgeCount(

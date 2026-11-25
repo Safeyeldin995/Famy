@@ -34,6 +34,8 @@ import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
 import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
+import { useSession } from "@/lib/session";
+import { UgcReportSheet } from "@/ui/ugc/UgcReportSheet";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -71,6 +73,8 @@ export default function ProviderProfile() {
   const caps = useApprovedTeachingCapabilities(id);
   const availability = useProviderAvailability(id);
   const favoriteIds = useFavoriteIds();
+  const { session } = useSession();
+  const [reportReviewId, setReportReviewId] = useState<string | null>(null);
   const favorite = useToggleFavorite();
   const toast = useToast();
   const [shareError, setShareError] = useState(false);
@@ -475,6 +479,17 @@ export default function ProviderProfile() {
                         </Text>
                       </View>
                       {r.comment ? <Text>{r.comment}</Text> : null}
+                      {session?.user ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setReportReviewId(r.id)}
+                          style={{ alignSelf: "flex-start", paddingVertical: space.xs }}
+                        >
+                          <Text size="sm" tone="muted" weight="bold">
+                            {t("ugc.reportReview")}
+                          </Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   ))
                 )}
@@ -483,6 +498,14 @@ export default function ProviderProfile() {
           </>
         ) : null}
       </QueryState>
+      {reportReviewId ? (
+        <UgcReportSheet
+          visible
+          subjectType="review"
+          reviewId={reportReviewId}
+          onClose={() => setReportReviewId(null)}
+        />
+      ) : null}
     </Page>
   );
 }

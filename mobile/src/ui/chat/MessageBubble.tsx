@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { Pressable, View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { BookingMessage } from "@/lib/chatQueries";
 import { Avatar } from "@/ui/ProviderCard";
@@ -12,12 +12,14 @@ export function MessageBubble({
   otherAvatar,
   otherName,
   customer = false,
+  onReport,
 }: {
   message: BookingMessage;
   mine: boolean;
   otherAvatar: string | null;
   otherName: string;
   customer?: boolean;
+  onReport?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   if (message.message_type === "system") {
@@ -29,31 +31,41 @@ export function MessageBubble({
       </View>
     );
   }
+  const bubble = (
+    <View
+      style={[
+        styles.bubble,
+        mine ? styles.mine : styles.theirs,
+        customer && {
+          borderRadius: 20,
+          paddingVertical: space.md,
+          ...(mine ? { borderBottomEndRadius: 6 } : { borderBottomStartRadius: 6 }),
+        },
+      ]}
+    >
+      <Text tone={mine ? "inverse" : "default"} style={styles.body}>
+        {message.body}
+      </Text>
+      <Text
+        tone={mine ? "inverse" : "muted"}
+        size={customer ? "xs" : "sm"}
+        style={[styles.time, customer && mine && { opacity: 0.7 }]}
+      >
+        {formatChatMessageTime(message.created_at, i18n.language)}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={[styles.row, mine ? styles.rowEnd : styles.rowStart]}>
       {!mine ? <Avatar raw={otherAvatar} size={28} round={customer} /> : null}
-      <View
-        style={[
-          styles.bubble,
-          mine ? styles.mine : styles.theirs,
-          customer && {
-            borderRadius: 20,
-            paddingVertical: space.md,
-            ...(mine ? { borderBottomEndRadius: 6 } : { borderBottomStartRadius: 6 }),
-          },
-        ]}
-      >
-        <Text tone={mine ? "inverse" : "default"} style={styles.body}>
-          {message.body}
-        </Text>
-        <Text
-          tone={mine ? "inverse" : "muted"}
-          size={customer ? "xs" : "sm"}
-          style={[styles.time, customer && mine && { opacity: 0.7 }]}
-        >
-          {formatChatMessageTime(message.created_at, i18n.language)}
-        </Text>
-      </View>
+      {onReport && !mine ? (
+        <Pressable accessibilityRole="button" onLongPress={onReport} delayLongPress={400}>
+          {bubble}
+        </Pressable>
+      ) : (
+        bubble
+      )}
     </View>
   );
 }
