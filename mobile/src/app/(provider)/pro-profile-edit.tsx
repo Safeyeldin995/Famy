@@ -395,9 +395,7 @@ export default function ProProfileEditScreen() {
               {on ? (
                 <ProviderServicePreparationNotesField
                   savedNotes={(row?.preparation_notes as string | null) ?? null}
-                  draft={
-                    preparationDrafts[id] ?? String(row?.preparation_notes ?? "")
-                  }
+                  draft={preparationDrafts[id] ?? String(row?.preparation_notes ?? "")}
                   onDraftChange={(value) =>
                     setPreparationDrafts((drafts) => ({ ...drafts, [id]: value }))
                   }

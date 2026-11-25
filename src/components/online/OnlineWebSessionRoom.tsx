@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ConnectionState,
   Room,
   RoomEvent,
   Track,
@@ -8,12 +9,18 @@ import {
   type RemoteTrackPublication,
 } from "livekit-client";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { PrimaryButton } from "@/components/famio/ui";
 import { fetchOnlineSessionToken } from "@/lib/online/onlineSessionApi";
+import { onlineSessionTokenErrorKey, isMediaDeviceErrorMessage } from "@/lib/online/onlineWebSessionMessage";
+import { sessionJoinWindow } from "@/lib/livekit/sessionAccess";
+import { OnlineWebSessionPreJoin, type PreJoinChoice } from "@/components/online/OnlineWebSessionPreJoin";
 
 type Props = {
   bookingId: string;
   displayName?: string;
+  startAt: Date;
+  endAt: Date;
   onLeave: () => void;
 };
 
@@ -65,140 +72,305 @@ function attachRemoteTrack(track: RemoteTrack, remoteVideoHost: HTMLDivElement, 
   }
 }
 
-export function OnlineWebSessionRoom({ bookingId, displayName, onLeave }: Props) {
+type Phase = "prejoin" | "connecting" | "live" | "error";
+
+export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, onLeave }: Props) {
   const { t } = useTranslation();
   const roomRef = useRef<Room | null>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
   const remoteAudioRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(true);
+  const [phase, setPhase] = useState<Phase>("prejoin");
+  const [prejoin, setPrejoin] = useState<PreJoinChoice | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mediaRetry, setMediaRetry] = useState(false);
+  const [audioOnly, setAudioOnly] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
+  const [remoteCount, setRemoteCount] = useState(0);
+  const [connState, setConnState] = useState<ConnectionState>(ConnectionState.Disconnected);
+  const [countdownLabel, setCountdownLabel] = useState<string | null>(null);
+  const joinWindow = sessionJoinWindow(startAt, endAt);
+  const connectStartedRef = useRef(false);
 
   const toggleMic = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
     const next = !micEnabled;
-    await room.localParticipant.setMicrophoneEnabled(next);
-    setMicEnabled(next);
-  }, [micEnabled]);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(next);
+      setMicEnabled(next);
+    } catch {
+      toast.error(t("onlineSession.controlFailed"));
+    }
+  }, [micEnabled, t]);
 
   const toggleCam = useCallback(async () => {
     const room = roomRef.current;
     const localVideo = localVideoRef.current;
     if (!room) return;
     const next = !camEnabled;
-    await room.localParticipant.setCameraEnabled(next);
-    setCamEnabled(next);
-    const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
-    const track = pub?.track;
-    if (next && track && track.kind === Track.Kind.Video && localVideo) {
-      track.attach(localVideo);
-    } else if (!next && track) {
-      detachTrackElements(track, localVideo);
+    try {
+      await room.localParticipant.setCameraEnabled(next);
+      setCamEnabled(next);
+      setAudioOnly(!next);
+      const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+      const track = pub?.track;
+      if (next && track && track.kind === Track.Kind.Video && localVideo) {
+        track.attach(localVideo);
+      } else if (!next && track) {
+        detachTrackElements(track, localVideo);
+      }
+    } catch {
+      toast.error(t("onlineSession.controlFailed"));
     }
-  }, [camEnabled]);
+  }, [camEnabled, t]);
 
-  useEffect(() => {
-    const localVideo = localVideoRef.current;
-    const remoteVideoHost = remoteVideoRef.current;
-    const audioHost = remoteAudioRef.current;
-    if (!localVideo || !remoteVideoHost || !audioHost) return;
+  const teardownRoom = useCallback(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    room.removeAllListeners();
+    void room.disconnect();
+    roomRef.current = null;
+  }, []);
 
-    let cancelled = false;
-    const onTrackSubscribed = (
-      track: RemoteTrack,
-      _publication: RemoteTrackPublication,
-      _participant: RemoteParticipant,
-    ) => {
-      attachRemoteTrack(track, remoteVideoHost, audioHost);
-    };
-    const onTrackUnsubscribed = (track: RemoteTrack) => {
-      detachTrackElements(track, null);
-    };
+  const connectLive = useCallback(
+    async (choice: PreJoinChoice) => {
+      const localVideo = localVideoRef.current;
+      const remoteVideoHost = remoteVideoRef.current;
+      const audioHost = remoteAudioRef.current;
+      if (!remoteVideoHost || !audioHost) return;
 
-    void (async () => {
+      teardownRoom();
+      setErrorMessage(null);
+      setMediaRetry(false);
+      setAudioOnly(choice.audioOnly);
+
       const token = await fetchOnlineSessionToken({ bookingId, displayName });
-      if (cancelled) return;
-      if (!token.ok) {
-        setError(token.error);
-        setConnecting(false);
+      if (token.ok === false) {
+        const key = onlineSessionTokenErrorKey(token.error);
+        setErrorMessage(key ? t(key) : t("onlineSession.errors.server_error"));
+        setPhase("error");
         return;
       }
+
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
+
+      const refreshRemoteCount = () => setRemoteCount(room.remoteParticipants.size);
+      const onTrackSubscribed = (
+        track: RemoteTrack,
+        _publication: RemoteTrackPublication,
+        _participant: RemoteParticipant,
+      ) => {
+        attachRemoteTrack(track, remoteVideoHost, audioHost);
+        refreshRemoteCount();
+      };
+      const onTrackUnsubscribed = (track: RemoteTrack) => {
+        detachTrackElements(track, null);
+      };
+      const onParticipantChange = () => refreshRemoteCount();
+
       room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
       room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
+      room.on(RoomEvent.ParticipantConnected, onParticipantChange);
+      room.on(RoomEvent.ParticipantDisconnected, onParticipantChange);
+      room.on(RoomEvent.ConnectionStateChanged, (s) => setConnState(s));
+
       try {
         await room.connect(token.url, token.token);
         await room.localParticipant.setMicrophoneEnabled(true);
-        await room.localParticipant.setCameraEnabled(true);
-        const cameraPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
-        const localTrack = cameraPub?.track;
-        if (localTrack && localTrack.kind === Track.Kind.Video && localVideo) {
-          localTrack.attach(localVideo);
+        if (!choice.audioOnly) {
+          await room.localParticipant.setCameraEnabled(true);
+          const cameraPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+          const localTrack = cameraPub?.track;
+          if (localTrack && localTrack.kind === Track.Kind.Video && localVideo) {
+            localTrack.attach(localVideo);
+          }
+          setCamEnabled(true);
+        } else {
+          await room.localParticipant.setCameraEnabled(false);
+          setCamEnabled(false);
         }
         syncRemoteTracks(room, remoteVideoHost, audioHost);
-        setConnecting(false);
+        refreshRemoteCount();
+        setPhase("live");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "connect_failed");
-        setConnecting(false);
+        const msg = e instanceof Error ? e.message : "connect_failed";
+        if (isMediaDeviceErrorMessage(msg)) {
+          setMediaRetry(true);
+          setErrorMessage(t("onlineSession.mediaErrorBody"));
+        } else {
+          setErrorMessage(t("onlineSession.roomErrorBody"));
+        }
+        setPhase("error");
+        teardownRoom();
       }
-    })();
+    },
+    [bookingId, displayName, t, teardownRoom],
+  );
 
-    return () => {
-      cancelled = true;
-      const room = roomRef.current;
-      room?.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
-      room?.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
-      void room?.disconnect();
-      roomRef.current = null;
+  useEffect(() => {
+    return () => teardownRoom();
+  }, [teardownRoom]);
+
+  useEffect(() => {
+    if (phase === "prejoin") connectStartedRef.current = false;
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "connecting" || !prejoin || connectStartedRef.current) return;
+    connectStartedRef.current = true;
+    void connectLive(prejoin);
+  }, [phase, prejoin, connectLive]);
+
+  useEffect(() => {
+    if (phase !== "live") return;
+    const tick = () => {
+      const now = Date.now();
+      if (now > joinWindow.closesAt.getTime()) {
+        teardownRoom();
+        onLeave();
+        return;
+      }
+      const remaining = Math.max(0, endAt.getTime() - now);
+      const mins = Math.ceil(remaining / 60_000);
+      setCountdownLabel(
+        mins > 0 ? t("onlineWeb.session.lessonEndsIn", { minutes: String(mins) }) : null,
+      );
     };
-  }, [bookingId, displayName]);
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [phase, endAt, joinWindow.closesAt, onLeave, t, teardownRoom]);
+
+  if (phase === "prejoin") {
+    return (
+      <OnlineWebSessionPreJoin
+        onCancel={onLeave}
+        onReady={(choice) => {
+          setPrejoin(choice);
+          setPhase("connecting");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-[60vh] flex-col rounded-3xl bg-navy text-white">
+      {connState === ConnectionState.Reconnecting ? (
+        <div className="bg-coral/90 px-4 py-2 text-center text-pro-13 font-bold">
+          {t("onlineWeb.session.reconnecting")}
+        </div>
+      ) : null}
+      {connState === ConnectionState.Disconnected && phase === "live" ? (
+        <div className="flex flex-wrap items-center justify-center gap-2 bg-coral/90 px-4 py-2 text-pro-13">
+          <span>{t("onlineWeb.session.disconnected")}</span>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              if (!prejoin) return;
+              connectStartedRef.current = false;
+              setPhase("connecting");
+            }}
+          >
+            {t("onlineWeb.session.rejoin")}
+          </button>
+        </div>
+      ) : null}
       <div className="grid flex-1 gap-3 p-4 md:grid-cols-2">
         <div className="relative aspect-video overflow-hidden rounded-2xl bg-black/40">
-          <video ref={localVideoRef} playsInline autoPlay muted className="h-full w-full object-cover" />
+          {!audioOnly ? (
+            <video ref={localVideoRef} playsInline autoPlay muted className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center px-4 text-center text-pro-13 text-white/80">
+              {t("onlineSession.audioOnlyBanner")}
+            </div>
+          )}
           <p className="absolute bottom-2 start-2 rounded bg-black/50 px-2 py-1 text-pro-12">{t("onlineSession.preJoinCamera")}</p>
         </div>
         <div ref={remoteVideoRef} className="relative min-h-[12rem] space-y-2 overflow-hidden rounded-2xl bg-black/40 p-2">
-          {!connecting && !error ? (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-pro-13 text-white/70 empty:hidden">
-              {/* placeholder cleared when remote tiles mount */}
+          {phase === "live" && remoteCount === 0 ? (
+            <p className="flex min-h-[10rem] items-center justify-center text-pro-13 text-white/70">
+              {t("onlineSession.waitingForOther")}
             </p>
           ) : null}
         </div>
       </div>
       <div ref={remoteAudioRef} className="sr-only" aria-hidden />
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
-        {connecting ? <p>{t("common.loading")}</p> : null}
-        {error ? <p className="text-pro-14 text-coral">{error}</p> : null}
-        {!error && !connecting ? (
-          <p className="text-pro-15 font-bold">{t("onlineWeb.walkthrough.roomLive")}</p>
+        {phase === "connecting" ? <p>{t("common.loading")}</p> : null}
+        {errorMessage ? (
+          <div className="max-w-md space-y-3 text-center">
+            <p className="text-pro-14 text-coral">{errorMessage}</p>
+            {mediaRetry ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                <PrimaryButton
+                  className="h-10"
+                  onClick={() => {
+                    setPrejoin({ audioOnly: true });
+                    connectStartedRef.current = false;
+                    setPhase("connecting");
+                  }}
+                >
+                  {t("onlineWeb.session.continueAudioOnly")}
+                </PrimaryButton>
+                <button
+                  type="button"
+                  className="text-pro-13 font-bold underline"
+                  onClick={() => {
+                    if (!prejoin) return;
+                    connectStartedRef.current = false;
+                    setPhase("connecting");
+                  }}
+                >
+                  {t("onlineSession.retry")}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-pro-13 font-bold underline"
+                onClick={() => {
+                  if (!prejoin) return;
+                  connectStartedRef.current = false;
+                  setPhase("connecting");
+                }}
+              >
+                {t("onlineSession.retry")}
+              </button>
+            )}
+          </div>
+        ) : null}
+        {phase === "live" && !errorMessage ? (
+          <>
+            <p className="text-pro-15 font-bold">{t("onlineWeb.walkthrough.roomLive")}</p>
+            {countdownLabel ? <p className="text-pro-13 text-white/70">{countdownLabel}</p> : null}
+          </>
         ) : null}
       </div>
-      <div className="flex flex-wrap gap-2 border-t border-white/10 p-4">
-        <button
-          type="button"
-          className="rounded-full bg-white/10 px-4 py-2 text-pro-13 font-bold"
-          onClick={() => void toggleMic()}
-        >
-          {micEnabled ? t("onlineSession.mute") : t("onlineSession.unmute")}
-        </button>
-        <button
-          type="button"
-          className="rounded-full bg-white/10 px-4 py-2 text-pro-13 font-bold"
-          onClick={() => void toggleCam()}
-        >
-          {camEnabled ? t("onlineSession.preJoinCamera") : t("onlineSession.audioOnlyBanner")}
-        </button>
-        <PrimaryButton className="ms-auto h-11 min-w-[8rem]" onClick={onLeave}>
-          {t("onlineSession.leave")}
-        </PrimaryButton>
-      </div>
+      {phase === "live" && !errorMessage ? (
+        <div className="flex flex-wrap gap-2 border-t border-white/10 p-4">
+          <button
+            type="button"
+            className="rounded-full bg-white/10 px-4 py-2 text-pro-13 font-bold"
+            onClick={() => void toggleMic()}
+          >
+            {micEnabled ? t("onlineSession.mute") : t("onlineSession.unmute")}
+          </button>
+          <button
+            type="button"
+            className="rounded-full bg-white/10 px-4 py-2 text-pro-13 font-bold"
+            onClick={() => void toggleCam()}
+          >
+            {camEnabled ? t("onlineSession.cameraOff") : t("onlineSession.cameraOn")}
+          </button>
+          <PrimaryButton className="ms-auto h-11 min-w-[8rem]" onClick={onLeave}>
+            {t("onlineSession.leave")}
+          </PrimaryButton>
+        </div>
+      ) : null}
     </div>
   );
 }
