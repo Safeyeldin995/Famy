@@ -14,6 +14,7 @@ import {
   ADDRESS_QUERY_ROOT,
   DEFAULT_ADDRESS_QUERY_ROOT,
 } from "@shared/db/address-query-keys";
+import { BOOKING_PAYMENT_QUERY_STATUSES } from "@shared/payments/bookingPaymentVisibility";
 const customerMarketplaceRefetchInterval = 5_000;
 function useAuth() {
   const { session } = useSession();
@@ -664,7 +665,7 @@ export function useBookingPayment(bookingId: string | undefined) {
         .from("payments")
         .select("*")
         .eq("booking_id", bookingId!)
-        .in("status", ["pending", "pending_review", "captured", "partially_refunded"])
+        .in("status", [...BOOKING_PAYMENT_QUERY_STATUSES])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
