@@ -5,5 +5,6 @@ export {
   providerCompletionMinutesRemaining,
   providerCompletionOpensAt,
   providerStepOpensAt,
+  providerStepWindowState,
   providerTravelWindowOpen,
 } from "@/lib/booking/timeWindow";

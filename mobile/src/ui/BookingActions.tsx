@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -22,9 +22,11 @@ import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
 import { BookingProblem } from "./BookingProblem";
 import { useToast } from "./Toast";
+import { hapticSuccess } from "./haptics";
 export function BookingActions({
   booking,
   suppressRebook = false,
+  initialRating = 0,
 }: {
   booking: {
     id: string;
@@ -36,6 +38,7 @@ export function BookingActions({
     service_mode?: string | null;
   };
   suppressRebook?: boolean;
+  initialRating?: number;
 }) {
   const { t, i18n } = useTranslation();
   const toast = useToast();
@@ -51,8 +54,11 @@ export function BookingActions({
   const [confirmCompletionOpen, setConfirmCompletionOpen] = useState(false);
   const [reasonId, setReasonId] = useState("");
   const [note, setNote] = useState("");
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating);
   const [comment, setComment] = useState("");
+  useEffect(() => {
+    if (initialRating > 0) setRating(initialRating);
+  }, [initialRating]);
   const [error, setError] = useState("");
   const cancelFee = useBookingCancellationFee(booking.id, open);
   const cancelPayment = useBookingPayment(open ? booking.id : undefined);
@@ -266,7 +272,10 @@ export function BookingActions({
                         comment,
                       },
                       {
-                        onSuccess: () => toast.show(t("bookingDetail.reviewSubmitted")),
+                        onSuccess: () => {
+                          hapticSuccess();
+                          toast.show(t("bookingDetail.reviewSubmitted"));
+                        },
                         onError: () => setError(t("common.somethingWentWrong")),
                       },
                     )

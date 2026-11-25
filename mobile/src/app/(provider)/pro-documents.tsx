@@ -89,7 +89,9 @@ export default function ProDocumentsScreen() {
             )
             .map((doc: { id: string; type: string; status: string; rejected_reason?: string }) => (
               <View key={doc.id} style={proCard.card}>
-                <Text weight="bold">{doc.type}</Text>
+                <Text weight="bold">
+                  {t(`providerDocuments.${doc.type}`, { defaultValue: doc.type })}
+                </Text>
                 <Text tone="muted">{t(`providerDocuments.${doc.status}`)}</Text>
               </View>
             ))}

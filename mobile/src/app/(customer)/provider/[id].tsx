@@ -23,6 +23,7 @@ import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { localized, money } from "@/lib/presentation";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { workingHoursSummary } from "@shared/provider/workingHoursSummary";
+import { hapticLightImpact } from "@/ui/haptics";
 import { levelRanges } from "@shared/tutoring/levelRanges";
 import type { TeachingCapabilityOption } from "@shared/tutoring/teachingCapabilities";
 import { Avatar } from "@/ui/ProviderCard";
@@ -161,7 +162,8 @@ export default function ProviderProfile() {
               }}
               disabled={favorite.isPending || favoriteIds.isLoading || favoriteIds.isError}
               style={iconStyle}
-              onPress={() =>
+              onPress={() => {
+                hapticLightImpact();
                 favorite.mutate(
                   { providerId: id, on: !liked },
                   {
@@ -170,8 +172,8 @@ export default function ProviderProfile() {
                         t(liked ? "mobile.removedFavorite" : "bookingDetail.savedFavorite"),
                       ),
                   },
-                )
-              }
+                );
+              }}
             >
               <Heart
                 size={20}

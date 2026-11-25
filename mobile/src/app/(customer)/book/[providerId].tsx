@@ -15,6 +15,7 @@ import {
   type CapabilityPickValue,
 } from "@shared/tutoring/providerCapabilityCascade";
 import { planPostCreatePayment } from "@/lib/bookingPure";
+import { hapticSuccess } from "@/ui/haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -674,6 +675,7 @@ function BookForm({
           }
         }
       }
+      hapticSuccess();
       router.replace({
         pathname: "/booking/[id]",
         params: { id: booking.id, created: "1", educationWarning: educationWarning ? "1" : "0" },
