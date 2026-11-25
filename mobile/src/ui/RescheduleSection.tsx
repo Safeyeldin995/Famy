@@ -12,10 +12,21 @@ import { DateField } from "./DateField";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 import { scheduleTimeChoices, timeChoiceLabel } from "@shared/provider/scheduleDate";
 
+function rescheduleErrorMessage(error: unknown, t: (key: string) => string) {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
+  if (message.trim()) return message.trim();
+  return t("common.somethingWentWrong");
+}
+
 export function RescheduleSection({
   booking,
+  viewer = "customer",
 }: {
   booking: { id: string; customer_id: string; status: string; start_at: string; end_at: string };
+  viewer?: "customer" | "provider";
 }) {
   const { t, i18n } = useTranslation();
   const requests = useRescheduleRequests(booking.id);
@@ -31,10 +42,16 @@ export function RescheduleSection({
     String(Math.max(1, Math.round((+new Date(booking.end_at) - +initial) / 3600000))),
   );
   const [reason, setReason] = useState("");
-  const [form, setForm] = useState<"" | "request" | "reject" | "withdraw">("");
+  const [form, setForm] = useState<"" | "request" | "reject" | "withdraw" | "counter">("");
   const [history, setHistory] = useState(false);
   const open = requests.data?.find((row) => row.status === "pending");
-  const mine = open?.requested_by === booking.customer_id;
+  const requestedByCustomer = open ? open.requested_by === booking.customer_id : false;
+  const awaitingMe = open
+    ? viewer === "customer"
+      ? !requestedByCustomer
+      : requestedByCustomer
+    : false;
+  const isMine = open ? !awaitingMe : false;
   const eligible = ["pending", "confirmed"].includes(booking.status);
   const start = new Date(`${date}T${time}:00`);
   const valid = Number.isFinite(+start) && Number.isInteger(Number(hours)) && Number(hours) >= 1;
@@ -53,54 +70,76 @@ export function RescheduleSection({
         {open ? (
           <>
             <Text>{dateTime(open.proposed_start_at, i18n.language)}</Text>
-            {!!open.reason && (
+            {!!open.request_reason && (
               <Text size="sm" tone="muted">
-                {open.reason}
+                {open.request_reason}
               </Text>
             )}
-            {mine ? (
+            {awaitingMe ? (
+              <View style={{ gap: space.sm }}>
+                <View style={{ flexDirection: "row", gap: space.sm }}>
+                  <Button
+                    style={{ flex: 1 }}
+                    label={t("reschedule.accept")}
+                    disabled={action.isPending}
+                    onPress={() => perform({ type: "accept", requestId: open.id })}
+                  />
+                  <Button
+                    style={{ flex: 1 }}
+                    variant="secondary"
+                    label={t("reschedule.reject")}
+                    disabled={action.isPending}
+                    onPress={() => setForm("reject")}
+                  />
+                </View>
+                {viewer === "provider" ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("reschedule.proposeOther")}
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                    onPress={() => setForm("counter")}
+                  >
+                    <Text tone="brand" weight="heavy">
+                      {t("reschedule.proposeOther")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
               <>
                 <Text size="sm" tone="muted">
                   {t("reschedule.waiting")}
                 </Text>
-                <Button
-                  variant="secondary"
-                  label={t("reschedule.withdraw")}
-                  onPress={() => setForm("withdraw")}
-                  disabled={action.isPending}
-                />
+                {isMine ? (
+                  <Button
+                    variant="secondary"
+                    label={t("reschedule.withdraw")}
+                    onPress={() => setForm("withdraw")}
+                    disabled={action.isPending}
+                  />
+                ) : null}
               </>
-            ) : (
-              <View style={{ flexDirection: "row", gap: space.sm }}>
-                <Button
-                  style={{ flex: 1 }}
-                  label={t("reschedule.accept")}
-                  disabled={action.isPending}
-                  onPress={() => perform({ type: "accept", requestId: open.id })}
-                />
-                <Button
-                  style={{ flex: 1 }}
-                  variant="secondary"
-                  label={t("reschedule.reject")}
-                  disabled={action.isPending}
-                  onPress={() => setForm("reject")}
-                />
-              </View>
             )}
           </>
         ) : eligible && !form ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("reschedule.requestButton")}
-            style={{ minHeight: 44, justifyContent: "center" }}
-            onPress={() => setForm("request")}
-          >
-            <Text tone="brand" weight="heavy">
-              {t("reschedule.requestButton")}
+          viewer === "customer" ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("reschedule.requestButton")}
+              style={{ minHeight: 44, justifyContent: "center" }}
+              onPress={() => setForm("request")}
+            >
+              <Text tone="brand" weight="heavy">
+                {t("reschedule.requestButton")}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text size="sm" tone="muted">
+              {t("reschedule.noneOpen")}
             </Text>
-          </Pressable>
+          )
         ) : null}
-        {form === "request" && !open && (
+        {form === "request" && !open && viewer === "customer" && (
           <>
             <DateField label={t("reschedule.proposedTime")} value={date} onChange={setDate} />
             <BottomSheetSelect
@@ -127,6 +166,42 @@ export function RescheduleSection({
                 if (valid)
                   perform({
                     type: "request",
+                    start: start.toISOString(),
+                    end: new Date(+start + Number(hours) * 3600000).toISOString(),
+                    reason,
+                  });
+              }}
+            />
+          </>
+        )}
+        {form === "counter" && open && viewer === "provider" && (
+          <>
+            <DateField label={t("reschedule.proposedTime")} value={date} onChange={setDate} />
+            <BottomSheetSelect
+              label={t("pro.schedule.start")}
+              value={time}
+              options={scheduleTimeChoices(time, false).map((value) => ({
+                value,
+                label: timeChoiceLabel(value, i18n.language),
+              }))}
+              onChange={setTime}
+            />
+            <Field
+              label={t("reschedule.durationHours")}
+              value={hours}
+              onChangeText={setHours}
+              keyboardType="number-pad"
+            />
+            <Field label={t("reschedule.reasonOptional")} value={reason} onChangeText={setReason} />
+            <Button
+              label={t("reschedule.sendProposal")}
+              disabled={!valid}
+              loading={action.isPending}
+              onPress={() => {
+                if (valid)
+                  perform({
+                    type: "counter",
+                    requestId: open.id,
                     start: start.toISOString(),
                     end: new Date(+start + Number(hours) * 3600000).toISOString(),
                     reason,
@@ -195,7 +270,7 @@ export function RescheduleSection({
       </QueryState>
       {action.isError && (
         <Text tone="danger" accessibilityLiveRegion="polite">
-          {t("common.somethingWentWrong")}
+          {rescheduleErrorMessage(action.error, t)}
         </Text>
       )}
     </View>

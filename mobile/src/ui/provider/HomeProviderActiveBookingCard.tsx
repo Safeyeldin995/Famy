@@ -15,9 +15,9 @@ import {
 import {
   isBookingTooEarlyError,
   isProviderCompletionTooEarly,
-  isProviderStepTooEarly,
   providerCompletionMinutesRemaining,
   providerStepOpensAt,
+  providerStepWindowState,
 } from "@/lib/provider/timeWindow";
 import { useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import type { BookingParty } from "@/lib/provider/parties";
@@ -104,7 +104,9 @@ export function HomeProviderActiveBookingCard({
       : focus.party?.zone_name_en) || focus.party?.area;
   const now = new Date(nowMs);
   const endAt = focus.end_at ?? focus.start_at;
-  const stepTooEarly = isProviderStepTooEarly(status, focus.start_at, endAt, now);
+  const stepWindow = providerStepWindowState(status, focus.start_at, endAt, now);
+  const stepTooEarly = stepWindow === "early";
+  const stepWindowClosed = stepWindow === "closed";
   const stepOpensAt = providerStepOpensAt(status, focus.start_at, endAt);
   const completionTooEarly =
     status === "in_progress"
@@ -130,7 +132,7 @@ export function HomeProviderActiveBookingCard({
           now,
         )
       : 0;
-  const ctaDisabled = stepTooEarly || completionTooEarly || mut.isPending;
+  const ctaDisabled = stepTooEarly || stepWindowClosed || completionTooEarly || mut.isPending;
   const testID = "provider-home-active-booking";
 
   const runStatus = () => {
@@ -200,6 +202,11 @@ export function HomeProviderActiveBookingCard({
             {stepTooEarly && stepOpensAt ? (
               <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
                 {t("pro.booking.tooEarly")}
+              </Text>
+            ) : null}
+            {stepWindowClosed ? (
+              <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                {t("pro.booking.bookingTimePassed")}
               </Text>
             ) : null}
             {completionTooEarly ? (

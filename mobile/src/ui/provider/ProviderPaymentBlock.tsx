@@ -16,6 +16,15 @@ import { colors, fonts, radius, space } from "@/ui/theme";
 import { proCard } from "./cards";
 import { bodyTextInputProps } from "../a11y";
 
+function paymentErrorMessage(error: unknown, t: (key: string) => string) {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
+  if (message.trim()) return message.trim();
+  return t("common.somethingWentWrong");
+}
+
 export function ProviderPaymentBlock({
   bookingId,
   bookingStatus,
@@ -29,6 +38,7 @@ export function ProviderPaymentBlock({
   const reject = useRejectPayment();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [proofError, setProofError] = useState<string | null>(null);
   const p = q.data as Record<string, unknown> | null | undefined;
   if (!p) return null;
 
@@ -37,6 +47,7 @@ export function ProviderPaymentBlock({
     (p.method === "cash" ? "cash" : p.method === "instapay" ? "manual_transfer" : null);
   const isOnline = methodType === "online";
   const isManual = methodType === "manual_transfer";
+  const isCash = methodType === "cash";
   const captureAllowed = bookingStatus === "completed";
   const canAct = !isOnline && (p.status === "pending" || p.status === "pending_review");
   const name = i18n.language.startsWith("ar")
@@ -46,11 +57,12 @@ export function ProviderPaymentBlock({
   const openProof = async () => {
     const path = p.proof_path as string | null;
     if (!path) return;
+    setProofError(null);
     try {
       const url = await getSignedProofUrl(path);
       await WebBrowser.openBrowserAsync(url);
     } catch {
-      // ActionError handled by parent if needed
+      setProofError(t("common.somethingWentWrong"));
     }
   };
 
@@ -78,7 +90,17 @@ export function ProviderPaymentBlock({
           </Text>
         </Pressable>
       ) : null}
-      {canAct ? (
+      {proofError ? (
+        <Text tone="danger" size="sm">
+          {proofError}
+        </Text>
+      ) : null}
+      {isManual && (p.status === "pending" || p.status === "pending_review") ? (
+        <Text tone="muted" size="sm">
+          {t("payment.famyReviewingTransfer")}
+        </Text>
+      ) : null}
+      {canAct && isCash ? (
         <View style={{ gap: space.sm }}>
           {captureAllowed ? (
             <Button
@@ -91,7 +113,7 @@ export function ProviderPaymentBlock({
               {t("payment.waitingForCompletion")}
             </Text>
           )}
-          {isManual ? (
+          {captureAllowed ? (
             <Button
               variant="secondary"
               label={t("payment.reject")}
@@ -99,6 +121,11 @@ export function ProviderPaymentBlock({
             />
           ) : null}
         </View>
+      ) : null}
+      {capture.isError ? (
+        <Text tone="danger" size="sm" accessibilityLiveRegion="polite">
+          {paymentErrorMessage(capture.error, t)}
+        </Text>
       ) : null}
       {p.status === "captured" ? (
         <Text tone="brand" weight="bold">
@@ -136,6 +163,11 @@ export function ProviderPaymentBlock({
                 color: colors.foreground,
               }}
             />
+            {reject.isError ? (
+              <Text tone="danger" size="sm">
+                {paymentErrorMessage(reject.error, t)}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: space.sm }}>
               <Button
                 variant="secondary"

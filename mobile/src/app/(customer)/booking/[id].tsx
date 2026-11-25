@@ -353,7 +353,7 @@ export default function BookingDetail() {
             {activeBooking ? (
               <CustomerPreparationNotesSection notes={preparation.data} />
             ) : null}
-            <RescheduleSection booking={b} />
+            <RescheduleSection booking={b} viewer="customer" />
             <View style={ui.card}>
               <Text size="xl" weight="heavy">
                 {t("mobile.priceBreakdown")}
