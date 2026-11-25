@@ -2875,6 +2875,10 @@ export type Database = {
           created_at: string
           flagged_for_review: boolean
           id: string
+          online_price_change_reason: string | null
+          online_price_change_requested_at: string | null
+          online_price_override: number | null
+          pending_online_price_override: number | null
           pending_price_override: number | null
           preparation_notes: string | null
           price_change_reason: string | null
@@ -2889,6 +2893,10 @@ export type Database = {
           created_at?: string
           flagged_for_review?: boolean
           id?: string
+          online_price_change_reason?: string | null
+          online_price_change_requested_at?: string | null
+          online_price_override?: number | null
+          pending_online_price_override?: number | null
           pending_price_override?: number | null
           preparation_notes?: string | null
           price_change_reason?: string | null
@@ -2903,6 +2911,10 @@ export type Database = {
           created_at?: string
           flagged_for_review?: boolean
           id?: string
+          online_price_change_reason?: string | null
+          online_price_change_requested_at?: string | null
+          online_price_override?: number | null
+          pending_online_price_override?: number | null
           pending_price_override?: number | null
           preparation_notes?: string | null
           price_change_reason?: string | null
@@ -4847,6 +4859,22 @@ export type Database = {
           p_decision: string
           p_reason?: string | null
         }
+        Returns: undefined
+      }
+      admin_review_online_price_change: {
+        Args: {
+          p_provider_service_id: string
+          p_decision: string
+          p_reason?: string | null
+        }
+        Returns: undefined
+      }
+      provider_request_online_price_change: {
+        Args: { p_service_id: string; p_price: number }
+        Returns: undefined
+      }
+      provider_cancel_online_price_change: {
+        Args: { p_service_id: string }
         Returns: undefined
       }
       provider_request_service: {

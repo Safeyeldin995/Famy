@@ -37,6 +37,10 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/pro/onboarding", "provider")).toEqual({
       pathname: "/pro-onboarding",
     });
+    expect(mapNotificationDeepLink("/pro/online-lessons", "provider")).toEqual({
+      pathname: "/pro-online-lessons",
+    });
+    expect(mapNotificationDeepLink("/pro/online-lessons", "customer")).toEqual({ pathname: "/home" });
     expect(mapNotificationDeepLink("/pro/profile", "provider")).toEqual({ pathname: "/pro-profile" });
     expect(mapNotificationDeepLink("/pro/profile#price-svc", "provider")).toEqual({
       pathname: "/pro-profile",

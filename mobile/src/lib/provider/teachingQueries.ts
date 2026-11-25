@@ -12,7 +12,7 @@ export function useMyTeachingCapabilities(providerId: string | undefined) {
       const { data, error } = await supabase
         .from("provider_teaching_capabilities")
         .select(
-          "id, provider_id, service_id, subject_id, curriculum_id, level_id, session_duration_min, session_price, status, submitted_at, subject:teaching_subjects(code, name_en, name_ar, max_session_duration_min), curriculum:teaching_curricula(code, name_en, name_ar), level:teaching_levels(code, name_en, name_ar)",
+          "id, provider_id, service_id, subject_id, curriculum_id, level_id, session_duration_min, session_price, online_session_price, status, submitted_at, subject:teaching_subjects(code, name_en, name_ar, max_session_duration_min), curriculum:teaching_curricula(code, name_en, name_ar), level:teaching_levels(code, name_en, name_ar)",
         )
         .eq("provider_id", providerId!);
       if (error) throw error;

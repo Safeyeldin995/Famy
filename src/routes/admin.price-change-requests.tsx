@@ -1,5 +1,6 @@
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { QueryError } from "@/components/famio/QueryError";
+import { adminPriceChangeKindLabelAr } from "@/lib/admin/priceChangeQueue";
 import { useAdminPriceChangeRequests } from "@/lib/db/admin-price-change-queries";
 import { currentLang } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
@@ -32,18 +33,26 @@ function AdminPriceChangeRequestsList() {
               lang === "ar"
                 ? (service?.name_ar ?? service?.name_en)
                 : (service?.name_en ?? service?.name_ar);
+            const kindLabel =
+              lang === "ar"
+                ? adminPriceChangeKindLabelAr(row.kind)
+                : row.kind === "online"
+                  ? t("adminPriceChange.kindOnline")
+                  : t("adminPriceChange.kindInPerson");
             return (
-              <li key={row.id}>
+              <li key={`${row.id}-${row.kind}`}>
                 <Link
                   to="/admin/price-change/$id"
                   params={{ id: row.id }}
+                  search={{ kind: row.kind }}
                   className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 hover:border-brand"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{name}</p>
                     <p className="truncate text-xs text-muted-foreground">{profile?.full_name}</p>
+                    <p className="text-xs font-semibold text-muted-foreground">{kindLabel}</p>
                     <p className="text-xs tabular-nums text-muted-foreground">
-                      {row.price_override} → {row.pending_price_override} EGP
+                      {row.liveAmount ?? "—"} → {row.pendingAmount} EGP
                     </p>
                   </div>
                   <span className="text-xs font-bold text-brand">
