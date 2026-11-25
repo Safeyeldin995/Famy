@@ -2579,6 +2579,7 @@ const ar: Translation = {
         accuracy_confirmation_required: "أكد دقة معلوماتك",
         phone_required: "رقم الهاتف مطلوب",
         duplicate_reference_phones: "يجب أن تكون أرقام المراجع مختلفة",
+        provider_price_invalid: "السعر خارج النطاق المسموح للخدمة",
       },
     },
     profile: {

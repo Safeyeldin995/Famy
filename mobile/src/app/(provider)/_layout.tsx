@@ -42,6 +42,8 @@ export default function ProviderStack() {
         options={{ title: t("mobilePro.notificationPrefs") }}
       />
       <Stack.Screen name="pro-onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="pro-help" options={{ title: t("helpC.title") }} />
+      <Stack.Screen name="pro-delete-account" options={{ title: t("accountDeletion.title") }} />
     </Stack>
   );
 }
