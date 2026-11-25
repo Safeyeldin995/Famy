@@ -36,6 +36,7 @@ const state = vi.hoisted(() => ({
 const translations = createInstance();
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: translations.t.bind(translations), i18n: translations }),
+  initReactI18next: { type: "3rdParty", init: () => {} },
 }));
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: () => false,
@@ -76,6 +77,9 @@ vi.mock("@/components/famio/ui", () => ({
   Avatar: () => null,
 }));
 vi.mock("@/components/famio/QueryError", () => ({ QueryError: () => <div>Query error</div> }));
+vi.mock("@/components/provider/ProviderServiceLifecycleActions", () => ({
+  ProviderServiceLifecycleActions: () => null,
+}));
 vi.mock("@/lib/db/teaching-queries", () => ({ useMyTeachingCapabilities: () => ({ data: [] }) }));
 vi.mock("@/lib/preview/previewPath", () => ({
   proPath: (path: string) => path,
