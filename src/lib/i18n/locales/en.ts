@@ -4547,6 +4547,7 @@ Object.assign(en, {
         admin_credit: "Admin credit",
         admin_debit: "Admin adjustment",
         checkout_spend: "Used at checkout",
+        checkout_release: "Released from abandoned checkout",
       },
     },
     reason: {
@@ -4555,6 +4556,7 @@ Object.assign(en, {
       admin_credit: "Admin credit",
       admin_debit: "Admin adjustment",
       checkout_spend: "Used at checkout",
+      checkout_release: "Released from abandoned checkout",
     },
     refundDisclosure:
       "Any refunded amount is added to your Famy wallet for use on your next Famy booking.",
@@ -4949,7 +4951,30 @@ Object.assign(en, {
         admin_credit: "Credit from Famy",
         admin_debit: "Adjustment",
         checkout_spend: "Used at checkout",
+        checkout_release: "Released from abandoned checkout",
       },
+      balanceError: "We couldn't load your wallet balance. Try again.",
+      entriesError: "We couldn't load wallet activity. Try again.",
+    },
+    timezoneLabel: "All times are Cairo time",
+    account: {
+      signOut: "Sign out",
+      signedIn: "Signed in",
+    },
+    session: {
+      continueAudioOnly: "Continue with audio only",
+      reconnecting: "Reconnecting…",
+      disconnected: "Connection lost.",
+      rejoin: "Rejoin",
+      lessonEndsIn: "Lesson ends in {{minutes}} min",
+    },
+    lessonDetail: {
+      loadError: "We couldn't load this lesson. Try again.",
+      paymentLoadError: "We couldn't load payment details. Try again.",
+      paymobFailed: "Card payment did not complete. You can try paying again.",
+      cancelFailed: "We couldn't cancel this lesson. Try again.",
+      payBy: "Pay by {{time}} (Cairo time) to keep this lesson.",
+      joinFrom: "You can join from {{time}} (Cairo time).",
     },
     providerRequests: {
       title: "Incoming lesson requests",
