@@ -1,20 +1,19 @@
 import { useState } from "react";
-import { View, TextInput, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Page, ActionError } from "@/ui/Page";
+import { Page, ActionError, Field } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { colors, radius, space } from "@/ui/theme";
+import { space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import {
   useParentAcknowledgeStudentLink,
   useParentFlagNotMyChild,
   useParentLinkedStudents,
-  useRegisterParentGuardianContact,
+  useSaveParentGuardianContact,
   useStudentParentLinkStatus,
-  useUpdateParentGuardianContact,
 } from "@/lib/studentParentLinkQueries";
 
 export default function StudentParentLinkScreen() {
@@ -23,8 +22,8 @@ export default function StudentParentLinkScreen() {
   const { linkId } = useLocalSearchParams<{ linkId?: string }>();
   const statusQ = useStudentParentLinkStatus();
   const linkedStudentsQ = useParentLinkedStudents();
-  const register = useRegisterParentGuardianContact();
-  const update = useUpdateParentGuardianContact();
+  const save = useSaveParentGuardianContact();
+  const [editing, setEditing] = useState(false);
   const acknowledge = useParentAcknowledgeStudentLink();
   const flag = useParentFlagNotMyChild();
   const [phone, setPhone] = useState("");
@@ -50,7 +49,7 @@ export default function StudentParentLinkScreen() {
     >
       <View style={styles.stack}>
         <ActionError
-          error={register.error || update.error || acknowledge.error || flag.error}
+          error={save.error || acknowledge.error || flag.error}
         />
         {isParentCard && parentCard ? (
           <>
@@ -82,43 +81,59 @@ export default function StudentParentLinkScreen() {
               }
             />
           </>
-        ) : statusQ.data?.status === "linked" ? (
-          <Text tone="muted">{t("studentParentLink.linkedState")}</Text>
-        ) : statusQ.data?.status === "notified" ? (
-          <Text tone="muted">{t("studentParentLink.notifiedState")}</Text>
-        ) : statusQ.data?.status === "flagged_not_my_child" ? (
-          <Text tone="muted">{t("studentParentLink.flaggedState")}</Text>
+        ) : statusQ.data && !editing ? (
+          <>
+            <Text tone="muted">
+              {statusQ.data.status === "linked"
+                ? t("studentParentLink.linkedState")
+                : statusQ.data.status === "flagged_not_my_child"
+                  ? t("studentParentLink.flaggedState")
+                  : t("studentParentLink.notifiedState")}
+            </Text>
+            <Button
+              variant="secondary"
+              label={t("studentParentLink.changeContact")}
+              onPress={() => setEditing(true)}
+            />
+          </>
         ) : (
           <>
             <Text tone="muted">{t("studentParentLink.lead")}</Text>
-            <TextInput
+            <Field
+              label={t("studentParentLink.parentPhone")}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
-              placeholder={t("studentParentLink.parentPhone")}
-              style={styles.input}
+              placeholder="01XXXXXXXXX"
+              ltr
             />
-            <TextInput
+            <Field
+              label={t("studentParentLink.parentEmail")}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholder={t("studentParentLink.parentEmail")}
-              style={styles.input}
+              autoCorrect={false}
+              placeholder="parent@email.com"
+              ltr
             />
             <Button
               label={t("studentParentLink.sendRequest")}
-              loading={register.isPending || update.isPending}
+              loading={save.isPending}
               disabled={!phone.trim() || !email.trim()}
-              onPress={() => {
-                const mutation = statusQ.data ? update : register;
-                mutation.mutate(
+              onPress={() =>
+                save.mutate(
                   { parentPhone: phone.trim(), parentEmail: email.trim() },
                   {
-                    onSuccess: () => toast.show(t("studentParentLink.requestSent")),
+                    onSuccess: () => {
+                      setEditing(false);
+                      setPhone("");
+                      setEmail("");
+                      toast.show(t("studentParentLink.requestSent"));
+                    },
                   },
-                );
-              }}
+                )
+              }
             />
           </>
         )}
@@ -130,12 +145,5 @@ export default function StudentParentLinkScreen() {
 const styles = StyleSheet.create({
   stack: {
     gap: space.md,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: space.md,
-    color: colors.foreground,
   },
 });

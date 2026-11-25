@@ -127,6 +127,7 @@ import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.servic
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
+import { Route as ApiMobileParentGuardianEmailRouteImport } from './routes/api.mobile.parent-guardian-email'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
@@ -796,6 +797,12 @@ const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
   path: '/api/mobile/debt-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileParentGuardianEmailRoute =
+  ApiMobileParentGuardianEmailRouteImport.update({
+    id: '/api/mobile/parent-guardian-email',
+    path: '/api/mobile/parent-guardian-email',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobilePaymobCapabilitiesRoute =
   ApiMobilePaymobCapabilitiesRouteImport.update({
     id: '/api/mobile/paymob-capabilities',
@@ -1302,6 +1309,7 @@ export interface FileRoutesByFullPath {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
@@ -1484,6 +1492,7 @@ export interface FileRoutesByTo {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
@@ -1676,6 +1685,7 @@ export interface FileRoutesById {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
@@ -1872,6 +1882,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
@@ -2054,6 +2065,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
@@ -2245,6 +2257,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
@@ -2364,6 +2377,7 @@ export interface RootRouteChildren {
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiLivekitWebhookRoute: typeof ApiLivekitWebhookRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
+  ApiMobileParentGuardianEmailRoute: typeof ApiMobileParentGuardianEmailRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
   ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
@@ -3205,6 +3219,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/debt-checkout'
       fullPath: '/api/mobile/debt-checkout'
       preLoaderRoute: typeof ApiMobileDebtCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/parent-guardian-email': {
+      id: '/api/mobile/parent-guardian-email'
+      path: '/api/mobile/parent-guardian-email'
+      fullPath: '/api/mobile/parent-guardian-email'
+      preLoaderRoute: typeof ApiMobileParentGuardianEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/paymob-capabilities': {
@@ -4214,6 +4235,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiLivekitWebhookRoute: ApiLivekitWebhookRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
+  ApiMobileParentGuardianEmailRoute: ApiMobileParentGuardianEmailRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
   ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
@@ -4231,13 +4253,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1143,6 +1143,7 @@ const ar: Translation = {
     parentPhone: "رقم ولي الأمر",
     parentEmail: "إيميل ولي الأمر",
     sendRequest: "احفظ بيانات ولي الأمر",
+    changeContact: "غير بيانات ولي الأمر",
     requestSent: "اتحفظت بيانات ولي الأمر",
     contactRequired: "رقم وإيميل ولي الأمر مطلوبين",
     contactRetryHint:
@@ -3420,6 +3421,7 @@ const ar: Translation = {
       reasonPlaceholder: "السبب (مطلوب)",
       confirmRevoke: "تأكيد الإلغاء",
       revoked: "تم إلغاء الربط",
+      removedByStudent: "الطالب شال ولي الأمر",
       status: {
         notified: "تم الإخطار",
         linked: "مربوط",

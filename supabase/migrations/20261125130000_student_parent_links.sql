@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS public.student_parent_links (
   flag_token uuid NOT NULL DEFAULT gen_random_uuid(),
   requested_at timestamptz NOT NULL DEFAULT now(),
   decided_at timestamptz NULL,
+  -- Who ended the link: lets admin see students who removed a linked parent.
+  revoked_by text NULL CHECK (revoked_by IS NULL OR revoked_by IN ('student', 'parent', 'admin')),
   CONSTRAINT student_parent_links_distinct CHECK (student_id IS DISTINCT FROM parent_id)
 );
 
@@ -33,7 +35,7 @@ GRANT ALL ON public.student_parent_links TO service_role;
 DROP POLICY IF EXISTS student_parent_links_self_read ON public.student_parent_links;
 CREATE POLICY student_parent_links_self_read ON public.student_parent_links
   FOR SELECT TO authenticated
-  USING (student_id = (select auth.uid()) OR parent_id = (select auth.uid()));
+  USING (parent_id = (select auth.uid()));
 
 CREATE OR REPLACE FUNCTION public.famy_profile_phone_digits(p_phone text)
 RETURNS text
@@ -106,6 +108,46 @@ CREATE INDEX IF NOT EXISTS parent_guardian_email_sends_link_id_idx
 REVOKE ALL ON public.parent_guardian_email_sends FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.parent_guardian_email_sends TO service_role;
 
+-- Tells a linked parent that the student removed or replaced them (never silent).
+CREATE OR REPLACE FUNCTION public._student_parent_link_notify_removed(
+  p_parent_id uuid,
+  p_link_id uuid,
+  p_student_id uuid
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_student_name text;
+BEGIN
+  IF p_parent_id IS NULL THEN
+    RETURN;
+  END IF;
+  SELECT left(COALESCE(NULLIF(btrim(full_name), ''), 'Student'), 40)
+    INTO v_student_name
+  FROM public.profiles WHERE id = p_student_id;
+  INSERT INTO public.notifications (
+    user_id, type, category, title, body, title_en, title_ar, body_en, body_ar,
+    payload, deep_link
+  ) VALUES (
+    p_parent_id,
+    'student_parent_link_removed',
+    'system',
+    v_student_name || ' removed you as guardian on Famy',
+    'If you did not expect this, contact Famy support from the app',
+    v_student_name || ' removed you as guardian on Famy',
+    v_student_name || ' شال بياناتك كولي أمر على فامي',
+    'If you did not expect this, contact Famy support from the app',
+    'لو ده مش متوقع، كلم دعم فامي من التطبيق',
+    jsonb_build_object('link_id', p_link_id, 'student_id', p_student_id),
+    '/student-parent-link'
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public._student_parent_link_notify_removed(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public._student_parent_link_resolve_parent(p_digits text, p_student_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -157,6 +199,8 @@ DECLARE
   v_flag_token uuid;
   v_status text;
   v_recent integer;
+  v_target_recent integer;
+  v_prev public.student_parent_links%ROWTYPE;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
@@ -175,7 +219,7 @@ BEGIN
   SELECT count(*)::integer INTO v_recent
   FROM public.student_parent_links l
   WHERE l.student_id = v_uid AND l.requested_at > now() - interval '24 hours';
-  IF v_recent >= 10 THEN
+  IF v_recent >= 3 THEN
     RAISE EXCEPTION 'parent_link_rate_limited' USING ERRCODE = 'P0001';
   END IF;
 
@@ -188,12 +232,37 @@ BEGIN
     RAISE EXCEPTION 'INVALID_EMAIL' USING ERRCODE = 'P0001';
   END IF;
 
+  -- One phone number can be listed by a few students a day (siblings), not by many.
+  SELECT count(*)::integer INTO v_target_recent
+  FROM public.student_parent_links l
+  WHERE l.requested_parent_phone = v_digits
+    AND l.student_id <> v_uid
+    AND l.requested_at > now() - interval '24 hours';
+  IF v_target_recent >= 5 THEN
+    RAISE EXCEPTION 'parent_link_rate_limited' USING ERRCODE = 'P0001';
+  END IF;
+
   v_parent_id := public._student_parent_link_resolve_parent(v_digits, v_uid);
   v_status := CASE WHEN v_parent_id IS NOT NULL THEN 'linked' ELSE 'notified' END;
 
+  SELECT * INTO v_prev
+  FROM public.student_parent_links
+  WHERE student_id = v_uid AND status IN ('notified', 'linked', 'flagged_not_my_child')
+  ORDER BY requested_at DESC
+  LIMIT 1
+  FOR UPDATE;
+
   UPDATE public.student_parent_links
-  SET status = 'revoked', decided_at = now()
+  SET status = 'revoked', decided_at = now(), revoked_by = 'student'
   WHERE student_id = v_uid AND status IN ('notified', 'linked', 'flagged_not_my_child');
+
+  -- A linked parent who is being replaced by someone else is told, never dropped silently.
+  IF v_prev.id IS NOT NULL
+     AND v_prev.status = 'linked'
+     AND v_prev.parent_id IS NOT NULL
+     AND v_prev.parent_id IS DISTINCT FROM v_parent_id THEN
+    PERFORM public._student_parent_link_notify_removed(v_prev.parent_id, v_prev.id, v_uid);
+  END IF;
 
   INSERT INTO public.student_parent_links (
     student_id, parent_id, requested_parent_phone, parent_email, status
@@ -206,7 +275,9 @@ BEGIN
   )
   RETURNING id, flag_token INTO v_link_id, v_flag_token;
 
-  SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_uid;
+  SELECT left(COALESCE(NULLIF(btrim(full_name), ''), 'Student'), 40)
+    INTO v_student_name
+  FROM public.profiles WHERE id = v_uid;
 
   IF v_parent_id IS NOT NULL THEN
     INSERT INTO public.notifications (
@@ -227,14 +298,9 @@ BEGIN
     );
   END IF;
 
-  RETURN jsonb_build_object(
-    'link_id', v_link_id,
-    'status', v_status,
-    'flag_token', v_flag_token,
-    'parent_on_famy', v_parent_id IS NOT NULL,
-    'parent_email', v_email,
-    'student_name', v_student_name
-  );
+  -- Same answer whether or not the phone belongs to a Famy account: the form must not
+  -- tell a student who is on Famy.
+  RETURN jsonb_build_object('link_id', v_link_id);
 END;
 $$;
 
@@ -253,6 +319,7 @@ DECLARE
   v_student_name text;
   v_student_count integer;
   v_email_count integer;
+  v_send_id uuid;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
@@ -304,11 +371,13 @@ BEGIN
   END IF;
 
   INSERT INTO public.parent_guardian_email_sends (student_id, parent_email, link_id)
-  VALUES (v_uid, v_link.parent_email, v_link.id);
+  VALUES (v_uid, v_link.parent_email, v_link.id)
+  RETURNING id INTO v_send_id;
 
   SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_uid;
   RETURN jsonb_build_object(
     'deduplicated', false,
+    'send_id', v_send_id,
     'link_id', v_link.id,
     'parent_email', v_link.parent_email,
     'student_name', v_student_name,
@@ -318,6 +387,19 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.claim_parent_guardian_email_send(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.claim_parent_guardian_email_send(uuid) TO authenticated;
+
+-- The server calls this (service role) when the email provider refused the message, so a
+-- failed send does not count toward the limits or the 1-hour dedupe and can be retried.
+CREATE OR REPLACE FUNCTION public.release_parent_guardian_email_claim(p_send_id uuid)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  DELETE FROM public.parent_guardian_email_sends WHERE id = p_send_id;
+$$;
+REVOKE ALL ON FUNCTION public.release_parent_guardian_email_claim(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.release_parent_guardian_email_claim(uuid) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.update_parent_guardian_contact(
   p_parent_phone text,
@@ -447,8 +529,13 @@ BEGIN
     RAISE EXCEPTION 'Not authorized.' USING ERRCODE = '42501';
   END IF;
   UPDATE public.student_parent_links
-  SET status = 'revoked', decided_at = now()
+  SET status = 'revoked',
+      decided_at = now(),
+      revoked_by = CASE WHEN v_uid = v_link.student_id THEN 'student' ELSE 'parent' END
   WHERE id = p_link_id;
+  IF v_uid = v_link.student_id AND v_link.status = 'linked' AND v_link.parent_id IS NOT NULL THEN
+    PERFORM public._student_parent_link_notify_removed(v_link.parent_id, p_link_id, v_link.student_id);
+  END IF;
   RETURN jsonb_build_object('link_id', p_link_id, 'status', 'revoked');
 END;
 $$;
@@ -487,15 +574,33 @@ $$;
 REVOKE ALL ON FUNCTION public.parent_linked_students() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.parent_linked_students() TO authenticated;
 
+-- Lessons show only after the parent tapped «تمام» (decided_at set on a linked row), and
+-- only what the parent screen needs: never the full booking row.
 CREATE OR REPLACE FUNCTION public.parent_student_lessons(p_student_id uuid)
-RETURNS SETOF public.bookings
+RETURNS TABLE (
+  booking_id uuid,
+  start_at timestamptz,
+  end_at timestamptz,
+  status text,
+  subject_code text,
+  price_total numeric,
+  tutor_name text
+)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT b.*
+  SELECT
+    b.id,
+    b.start_at,
+    b.end_at,
+    b.status::text,
+    b.teaching_subject_code,
+    b.price_total,
+    COALESCE(tp.full_name, '')
   FROM public.bookings b
+  LEFT JOIN public.profiles tp ON tp.id = b.provider_id
   WHERE b.customer_id = p_student_id
     AND b.service_mode = 'online'
     AND EXISTS (
@@ -503,6 +608,7 @@ AS $$
       WHERE l.parent_id = auth.uid()
         AND l.student_id = p_student_id
         AND l.status = 'linked'
+        AND l.decided_at IS NOT NULL
     )
   ORDER BY b.start_at DESC
   LIMIT 100;
@@ -522,8 +628,11 @@ AS $$
     (
       SELECT jsonb_build_object(
         'link_id', l.id,
-        'status', l.status,
-        'parent_id', l.parent_id,
+        'status', CASE
+          WHEN l.status = 'linked' AND l.decided_at IS NULL THEN 'notified'
+          ELSE l.status
+        END,
+        'parent_id', CASE WHEN l.decided_at IS NULL THEN NULL ELSE l.parent_id END,
         'requested_parent_phone', l.requested_parent_phone,
         'parent_email', l.parent_email,
         'requested_at', l.requested_at,
@@ -651,7 +760,10 @@ BEGIN
             ELSE '***'
           END AS parent_email_masked,
           l.requested_at,
-          l.decided_at
+          l.decided_at,
+          l.revoked_by,
+          (l.status = 'revoked' AND l.revoked_by = 'student' AND l.parent_id IS NOT NULL)
+            AS removed_by_student
         FROM public.student_parent_links l
         JOIN public.profiles sp ON sp.id = l.student_id
         LEFT JOIN public.profiles pp ON pp.id = l.parent_id
@@ -674,15 +786,25 @@ GRANT EXECUTE ON FUNCTION public.admin_list_student_links(text, text) TO authent
 
 CREATE OR REPLACE FUNCTION public.admin_student_parent_flag_count()
 RETURNS integer
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT count(*)::integer
-  FROM public.student_parent_links l
-  WHERE l.status = 'flagged_not_my_child'
-    AND COALESCE(l.decided_at, l.requested_at) > now() - interval '30 days';
+BEGIN
+  IF NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin access required.' USING ERRCODE = '42501';
+  END IF;
+  RETURN (
+    SELECT count(*)::integer
+    FROM public.student_parent_links l
+    WHERE COALESCE(l.decided_at, l.requested_at) > now() - interval '30 days'
+      AND (
+        l.status = 'flagged_not_my_child'
+        OR (l.status = 'revoked' AND l.revoked_by = 'student' AND l.parent_id IS NOT NULL)
+      )
+  );
+END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_student_parent_flag_count() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_student_parent_flag_count() TO authenticated;
@@ -709,7 +831,7 @@ BEGIN
   END IF;
   PERFORM set_config('app.audit_reason', btrim(p_reason), true);
   UPDATE public.student_parent_links
-  SET status = 'revoked', decided_at = now()
+  SET status = 'revoked', decided_at = now(), revoked_by = 'admin'
   WHERE id = p_link_id;
   SELECT COALESCE(full_name, '') INTO v_student_name FROM public.profiles WHERE id = v_link.student_id;
   IF v_link.parent_id IS NOT NULL THEN
@@ -756,302 +878,6 @@ DROP TRIGGER IF EXISTS trg_audit_student_parent_links ON public.student_parent_l
 CREATE TRIGGER trg_audit_student_parent_links
   AFTER INSERT OR UPDATE OR DELETE ON public.student_parent_links
   FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
-
--- v1: students pay for their own bookings; linked parents do not pay in this release.
-DROP FUNCTION IF EXISTS public.parent_may_pay_student_booking(uuid, uuid);
-
-DROP POLICY IF EXISTS payments_customer_insert ON public.payments;
-CREATE POLICY payments_customer_insert ON public.payments
-  FOR INSERT TO authenticated
-  WITH CHECK (
-    customer_id = (SELECT auth.uid() AS uid)
-    AND EXISTS (
-      SELECT 1 FROM public.bookings b
-      WHERE b.id = payments.booking_id AND b.customer_id = (SELECT auth.uid() AS uid)
-    )
-  );
-
-DROP POLICY IF EXISTS payments_customer_read ON public.payments;
-CREATE POLICY payments_customer_read ON public.payments
-  FOR SELECT TO authenticated
-  USING (customer_id = (SELECT auth.uid() AS uid));
-
-CREATE OR REPLACE FUNCTION public.create_booking(
-  p_provider_id uuid,
-  p_service_id uuid,
-  p_address_id uuid,
-  p_start_at timestamptz,
-  p_end_at timestamptz,
-  p_idempotency_key uuid,
-  p_family_member_id uuid DEFAULT NULL,
-  p_notes text DEFAULT NULL,
-  p_promo_code_id uuid DEFAULT NULL,
-  p_requirement_selections jsonb DEFAULT '[]'::jsonb,
-  p_teaching_capability_id uuid DEFAULT NULL,
-  p_teaching_subject_code text DEFAULT NULL,
-  p_teaching_curriculum_code text DEFAULT NULL,
-  p_teaching_level_code text DEFAULT NULL,
-  p_supervision_mode text DEFAULT NULL,
-  p_service_mode text DEFAULT 'in_person'
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_mode text := COALESCE(NULLIF(btrim(p_service_mode), ''), 'in_person');
-  v_address uuid;
-  v_fingerprint text;
-  v_existing RECORD;
-  v_booking_id uuid;
-  v_created boolean := false;
-  v_min_hours_before_start numeric;
-  v_provider_min_notice integer;
-  v_required_hours numeric;
-  v_category_slug text;
-  v_age integer;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'BOOKING_UNAUTHORIZED: Authentication required.'
-      USING ERRCODE = '42501';
-  END IF;
-  IF public.is_admin_account(v_uid) THEN
-    RAISE EXCEPTION 'admin_account_restricted' USING ERRCODE = 'P0001';
-  END IF;
-  IF public.is_not_suspended(v_uid) IS NOT TRUE THEN
-    RAISE EXCEPTION 'BOOKING_UNAUTHORIZED: Account is suspended.'
-      USING ERRCODE = '42501';
-  END IF;
-  IF v_mode NOT IN ('in_person', 'online') THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Invalid service mode.'
-      USING ERRCODE = '23514';
-  END IF;
-  IF p_idempotency_key IS NULL THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Idempotency key is required.'
-      USING ERRCODE = '23514';
-  END IF;
-  IF p_start_at IS NULL OR p_end_at IS NULL OR p_end_at <= p_start_at THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Invalid booking time range.'
-      USING ERRCODE = '23514';
-  END IF;
-
-  -- Online bookings never retain an unrelated address reference.
-  v_address := CASE WHEN v_mode = 'online' THEN NULL ELSE p_address_id END;
-
-  SELECT cat.slug INTO v_category_slug
-  FROM public.services s
-  JOIN public.categories cat ON cat.id = s.category_id
-  WHERE s.id = p_service_id;
-
-  IF v_mode = 'in_person' AND v_category_slug IN ('babysitting', 'tutoring') THEN
-    IF p_supervision_mode IS NULL
-       OR p_supervision_mode NOT IN ('cameras', 'adult_present') THEN
-      RAISE EXCEPTION
-        'BOOKING_SUPERVISION_REQUIRED: Choose how your child will be supervised during this service.'
-        USING ERRCODE = '23514';
-    END IF;
-  END IF;
-
-  IF v_mode = 'online' THEN
-    v_age := public.booking_online_age_years(v_uid, p_family_member_id);
-    IF v_age IS NULL THEN
-      RAISE EXCEPTION
-        'BOOKING_ONLINE_BIRTH_DATE_REQUIRED: Add a date of birth before booking an online lesson.'
-        USING ERRCODE = '23514';
-    ELSIF v_age < 12 THEN
-      RAISE EXCEPTION
-        'BOOKING_ONLINE_AGE_MINIMUM: Online lessons are available from age 12.'
-        USING ERRCODE = '23514';
-    END IF;
-  END IF;
-
-  v_fingerprint := public.booking_request_fingerprint(
-    p_provider_id,
-    p_service_id,
-    v_address,
-    p_start_at,
-    p_end_at,
-    p_family_member_id,
-    p_notes,
-    p_promo_code_id,
-    coalesce(p_requirement_selections, '[]'::jsonb),
-    p_teaching_capability_id,
-    p_teaching_subject_code,
-    p_teaching_curriculum_code,
-    p_teaching_level_code,
-    p_supervision_mode,
-    v_mode
-  );
-
-  PERFORM pg_advisory_xact_lock(
-    hashtextextended(v_uid::text || ':' || p_idempotency_key::text, 0)
-  );
-
-  SELECT id, request_fingerprint INTO v_existing
-  FROM public.bookings
-  WHERE customer_id = v_uid AND idempotency_key = p_idempotency_key;
-
-  IF FOUND THEN
-    IF v_existing.request_fingerprint IS DISTINCT FROM v_fingerprint THEN
-      RAISE EXCEPTION
-        'BOOKING_DUPLICATE_REQUEST_CONFLICT: Idempotency key reused with different booking details.'
-        USING ERRCODE = '23514';
-    END IF;
-    RETURN jsonb_build_object(
-      'booking_id', v_existing.id,
-      'created', false,
-      'idempotent_replay', true
-    );
-  END IF;
-
-  SELECT s.min_hours_before_start INTO v_min_hours_before_start
-  FROM public.booking_expiry_settings() s;
-
-  SELECT min_notice_hours INTO v_provider_min_notice
-  FROM public.providers
-  WHERE id = p_provider_id;
-
-  v_required_hours := GREATEST(
-    COALESCE(v_min_hours_before_start, 2),
-    COALESCE(v_provider_min_notice, 0)::numeric
-  );
-  IF p_start_at < now() + (v_required_hours * interval '1 hour') THEN
-    RAISE EXCEPTION
-      'BOOKING_INVALID_BOOKING_REQUEST: This start time is too soon for the provider to respond in time.'
-      USING ERRCODE = '23514';
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.marketplace_eligibility_internal(
-      p_provider_id, p_service_id, v_address, v_mode
-    ) e
-    WHERE e.is_eligible
-  ) THEN
-    RAISE EXCEPTION
-      'BOOKING_PROVIDER_INELIGIBLE: Provider is not eligible for this service mode and address.'
-      USING ERRCODE = '23514';
-  END IF;
-
-  IF public.provider_cash_debt_blocked(p_provider_id) THEN
-    RAISE EXCEPTION
-      'BOOKING_PROVIDER_SETTLEMENT_BLOCKED: Provider cannot receive new bookings until platform balance is settled.'
-      USING ERRCODE = '23514';
-  END IF;
-
-  PERFORM set_config('app.create_booking_in_progress', 'on', true);
-
-  BEGIN
-    INSERT INTO public.bookings (
-      customer_id,
-      provider_id,
-      service_id,
-      address_id,
-      start_at,
-      end_at,
-      status,
-      notes,
-      family_member_id,
-      requirement_selections,
-      promo_code_id,
-      price_subtotal,
-      price_discount,
-      price_total,
-      price_platform_fee,
-      price_vat,
-      price_extras_total,
-      price_travel_fee,
-      idempotency_key,
-      request_fingerprint,
-      currency,
-      teaching_capability_id,
-      teaching_subject_code,
-      teaching_curriculum_code,
-      teaching_level_code,
-      supervision_mode,
-      service_mode
-    ) VALUES (
-      v_uid,
-      p_provider_id,
-      p_service_id,
-      v_address,
-      p_start_at,
-      p_end_at,
-      'pending',
-      NULLIF(btrim(p_notes), ''),
-      p_family_member_id,
-      coalesce(p_requirement_selections, '[]'::jsonb),
-      p_promo_code_id,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      p_idempotency_key,
-      v_fingerprint,
-      'EGP',
-      p_teaching_capability_id,
-      NULLIF(btrim(p_teaching_subject_code), ''),
-      NULLIF(btrim(p_teaching_curriculum_code), ''),
-      NULLIF(btrim(p_teaching_level_code), ''),
-      p_supervision_mode,
-      v_mode
-    )
-    RETURNING id INTO v_booking_id;
-    v_created := true;
-  EXCEPTION
-    WHEN unique_violation THEN
-      SELECT id, request_fingerprint INTO v_existing
-      FROM public.bookings
-      WHERE customer_id = v_uid AND idempotency_key = p_idempotency_key;
-
-      IF FOUND AND v_existing.request_fingerprint = v_fingerprint THEN
-        RETURN jsonb_build_object(
-          'booking_id', v_existing.id,
-          'created', false,
-          'idempotent_replay', true
-        );
-      END IF;
-      RAISE EXCEPTION
-        'BOOKING_DUPLICATE_REQUEST_CONFLICT: Concurrent duplicate booking request.'
-        USING ERRCODE = '23514';
-    WHEN exclusion_violation THEN
-      RAISE EXCEPTION
-        'BOOKING_SLOT_UNAVAILABLE: That time slot is no longer available.'
-        USING ERRCODE = '23514';
-    WHEN SQLSTATE '23514' THEN
-      RAISE;
-    WHEN SQLSTATE '42501' THEN
-      RAISE;
-    WHEN OTHERS THEN
-      IF SQLERRM LIKE 'BOOKING_%' THEN
-        RAISE;
-      END IF;
-      RAISE EXCEPTION
-        'BOOKING_INVALID_BOOKING_REQUEST: Unable to create booking.'
-        USING ERRCODE = '23514';
-  END;
-
-  RETURN jsonb_build_object(
-    'booking_id', v_booking_id,
-    'created', v_created,
-    'idempotent_replay', false
-  );
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.create_booking(
-  uuid, uuid, uuid, timestamptz, timestamptz, uuid, uuid, text, uuid, jsonb,
-  uuid, text, text, text, text, text
-) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.create_booking(
-  uuid, uuid, uuid, timestamptz, timestamptz, uuid, uuid, text, uuid, jsonb,
-  uuid, text, text, text, text, text
-) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.tg_audit_changes()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$

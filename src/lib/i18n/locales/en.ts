@@ -1148,6 +1148,7 @@ const en = {
     parentPhone: "Parent phone number",
     parentEmail: "Parent email",
     sendRequest: "Save guardian contact",
+    changeContact: "Change parent details",
     requestSent: "Guardian contact saved",
     contactRequired: "Parent phone and email are required",
     contactRetryHint:
@@ -3455,6 +3456,7 @@ const en = {
       reasonPlaceholder: "Reason (required)",
       confirmRevoke: "Confirm revoke",
       revoked: "Link revoked",
+      removedByStudent: "Student removed the parent",
       status: {
         notified: "Notified",
         linked: "Linked",

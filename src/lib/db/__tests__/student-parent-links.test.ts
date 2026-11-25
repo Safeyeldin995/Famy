@@ -67,9 +67,15 @@ describe("student_parent_links", () => {
       ["01099998888", "guardian@example.com"],
     );
     expect(result.error).toBeUndefined();
-    const payload = result.rows?.[0]?.payload as { status?: string; parent_on_famy?: boolean };
-    expect(payload?.status).toBe("notified");
-    expect(payload?.parent_on_famy).toBe(false);
+    const payload = result.rows?.[0]?.payload as Record<string, unknown>;
+    // Same answer whether or not the phone is on Famy (no membership lookup).
+    expect(Object.keys(payload ?? {})).toEqual(["link_id"]);
+    const row = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.student_parent_links WHERE id = $1`,
+      [payload.link_id],
+    );
+    expect(row[0]?.status).toBe("notified");
   });
 
   it("register_parent_guardian_contact replaces an existing linked contact", async () => {
@@ -90,7 +96,12 @@ describe("student_parent_links", () => {
       ["01022222222", "first.parent@example.com"],
     );
     expect(first.error).toBeUndefined();
-    expect((first.rows?.[0]?.payload as { status?: string })?.status).toBe("linked");
+    const firstRow = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.student_parent_links WHERE id = $1`,
+      [(first.rows?.[0]?.payload as { link_id: string }).link_id],
+    );
+    expect(firstRow[0]?.status).toBe("linked");
 
     const second = await tryAsUser(
       db,
@@ -99,7 +110,23 @@ describe("student_parent_links", () => {
       ["01099998888", "new.parent@example.com"],
     );
     expect(second.error).toBeUndefined();
-    expect((second.rows?.[0]?.payload as { status?: string })?.status).toBe("notified");
+
+    // The replaced parent is told; the link is never dropped silently.
+    const removedNotice = await queryRows<{ n: string }>(
+      db,
+      `SELECT count(*)::text AS n FROM public.notifications
+       WHERE user_id = $1 AND type = 'student_parent_link_removed'
+         AND payload->>'student_id' = $2`,
+      [PARENT_ID, linkedStudent],
+    );
+    expect(Number(removedNotice[0]?.n)).toBe(1);
+    const revokedRow = await queryRows<{ revoked_by: string | null }>(
+      db,
+      `SELECT revoked_by FROM public.student_parent_links
+       WHERE student_id = $1 AND status = 'revoked' ORDER BY requested_at LIMIT 1`,
+      [linkedStudent],
+    );
+    expect(revokedRow[0]?.revoked_by).toBe("student");
 
     const active = await queryRows<{ status: string }>(
       db,
@@ -125,9 +152,31 @@ describe("student_parent_links", () => {
       ["01022222222", "parent.adult@example.com"],
     );
     expect(result.error).toBeUndefined();
-    const payload = result.rows?.[0]?.payload as { status?: string; parent_on_famy?: boolean };
-    expect(payload?.status).toBe("linked");
-    expect(payload?.parent_on_famy).toBe(true);
+    const payload = result.rows?.[0]?.payload as Record<string, unknown>;
+    expect(Object.keys(payload ?? {})).toEqual(["link_id"]);
+    const row = await queryRows<{ status: string; parent_id: string | null }>(
+      db,
+      `SELECT status, parent_id FROM public.student_parent_links WHERE id = $1`,
+      [payload.link_id],
+    );
+    expect(row[0]?.status).toBe("linked");
+    expect(row[0]?.parent_id).toBe(PARENT_ID);
+
+    // Until the parent taps «تمام», the student only sees "notified" and no parent id.
+    const studentView = await tryAsUser(
+      db,
+      orphan,
+      `SELECT public.student_parent_link_status() AS s`,
+    );
+    const s = studentView.rows?.[0]?.s as { status?: string; parent_id?: string | null };
+    expect(s?.status).toBe("notified");
+    expect(s?.parent_id ?? null).toBeNull();
+    const direct = await tryAsUser(
+      db,
+      orphan,
+      `SELECT count(*)::text AS c FROM public.student_parent_links`,
+    );
+    expect(direct.rows?.[0]?.c).toBe("0");
   });
 
   it("create_booking succeeds for minor without prior parent link", async () => {
@@ -234,6 +283,15 @@ describe("student_parent_links", () => {
     expect(Number(rows.rows?.[0]?.n)).toBeGreaterThan(0);
   });
 
+  it("admin_student_parent_flag_count is admin only", async () => {
+    const denied = await tryAsUser(
+      db,
+      STRANGER_ID,
+      `SELECT public.admin_student_parent_flag_count() AS n`,
+    );
+    expect(denied.error).toMatch(/Admin access required/);
+  });
+
   it("admin_student_parent_flag_count counts flagged links", async () => {
     const count = await tryAsUser(
       db,
@@ -317,5 +375,181 @@ describe("student_parent_links", () => {
       [linkId, "   "],
     );
     expect(revoked.error).toMatch(/reason/i);
+  });
+
+  it("limits a student to 3 guardian contacts a day", async () => {
+    const busy = "00000000-0000-0000-0000-00000000c111";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${busy}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${busy}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '15 years')::date WHERE id = '${busy}';
+    `);
+    for (const phone of ["01011110001", "01011110002", "01011110003"]) {
+      const ok = await tryAsUser(
+        db,
+        busy,
+        `SELECT public.register_parent_guardian_contact($1, $2)`,
+        [phone, "limit.parent@example.com"],
+      );
+      expect(ok.error).toBeUndefined();
+    }
+    const fourth = await tryAsUser(
+      db,
+      busy,
+      `SELECT public.register_parent_guardian_contact($1, $2)`,
+      ["01011110004", "limit.parent@example.com"],
+    );
+    expect(fourth.error).toMatch(/parent_link_rate_limited/);
+  });
+
+  it("limits how many students can list the same phone in a day", async () => {
+    const target = "201055550000";
+    const others = [STUDENT_ID, STRANGER_ID, ADMIN_ID, PARENT_ID, IDS.customer];
+    await seedLifecycleBooking(db);
+    for (const other of others) {
+      await db.query(
+        `INSERT INTO public.student_parent_links (student_id, requested_parent_phone, parent_email, status)
+         VALUES ($1, $2, 'x@example.com', 'revoked')`,
+        [other, target],
+      );
+    }
+    const prober = "00000000-0000-0000-0000-00000000c112";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${prober}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${prober}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '13 years')::date WHERE id = '${prober}';
+    `);
+    const probe = await tryAsUser(
+      db,
+      prober,
+      `SELECT public.register_parent_guardian_contact($1, $2)`,
+      ["01055550000", "probe@example.com"],
+    );
+    expect(probe.error).toMatch(/parent_link_rate_limited/);
+  });
+
+  it("a failed email send is released and can be retried", async () => {
+    const mailer = "00000000-0000-0000-0000-00000000c113";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${mailer}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${mailer}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '16 years')::date WHERE id = '${mailer}';
+    `);
+    const reg = await tryAsUser(
+      db,
+      mailer,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01077770000", "mail.parent@example.com"],
+    );
+    const linkId = (reg.rows?.[0]?.payload as { link_id: string }).link_id;
+    const claim = await tryAsUser(
+      db,
+      mailer,
+      `SELECT public.claim_parent_guardian_email_send($1::uuid) AS c`,
+      [linkId],
+    );
+    const c = claim.rows?.[0]?.c as { deduplicated: boolean; send_id: string };
+    expect(c.deduplicated).toBe(false);
+    expect(c.send_id).toBeTruthy();
+
+    // Students cannot release their own sends (that would bypass the limits).
+    const selfRelease = await tryAsUser(
+      db,
+      mailer,
+      `SELECT public.release_parent_guardian_email_claim($1::uuid)`,
+      [c.send_id],
+    );
+    expect(selfRelease.error).toMatch(/permission denied/i);
+
+    // The server releases it (service role) when the provider refused the email.
+    await db.query(`SELECT public.release_parent_guardian_email_claim($1::uuid)`, [c.send_id]);
+    const retry = await tryAsUser(
+      db,
+      mailer,
+      `SELECT public.claim_parent_guardian_email_send($1::uuid) AS c`,
+      [linkId],
+    );
+    expect((retry.rows?.[0]?.c as { deduplicated: boolean }).deduplicated).toBe(false);
+  });
+
+  it("parent sees the student's online lessons only after «تمام», with limited fields", async () => {
+    const learner = IDS.customer;
+    const { bookingId } = await seedLifecycleBooking(db);
+    await db.query(
+      `UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '15 years')::date WHERE id = $1`,
+      [learner],
+    );
+    // Fixture only: turn the seeded booking into an online lesson (the mode is locked by a trigger).
+    await db.exec("SET session_replication_role = replica");
+    await db.query(`UPDATE public.bookings SET service_mode = 'online' WHERE id = $1`, [bookingId]);
+    await db.exec("SET session_replication_role = DEFAULT");
+    const reg = await tryAsUser(
+      db,
+      learner,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01022222222", "lessons.parent@example.com"],
+    );
+    expect(reg.error).toBeUndefined();
+    const linkId = (reg.rows?.[0]?.payload as { link_id: string }).link_id;
+
+    const before = await tryAsUser(
+      db,
+      PARENT_ID,
+      `SELECT count(*)::text AS n FROM public.parent_student_lessons($1::uuid)`,
+      [learner],
+    );
+    expect(before.rows?.[0]?.n).toBe("0");
+
+    const ack = await tryAsUser(
+      db,
+      PARENT_ID,
+      `SELECT public.parent_acknowledge_student_link($1::uuid)`,
+      [linkId],
+    );
+    expect(ack.error).toBeUndefined();
+
+    const after = await tryAsUser(
+      db,
+      PARENT_ID,
+      `SELECT * FROM public.parent_student_lessons($1::uuid)`,
+      [learner],
+    );
+    expect(after.rows).toHaveLength(1);
+    expect(Object.keys(after.rows![0]!).sort()).toEqual(
+      ["booking_id", "end_at", "price_total", "start_at", "status", "subject_code", "tutor_name"].sort(),
+    );
+  });
+
+  it("a student removing a linked parent notifies the parent and flags it for admin", async () => {
+    const remover = "00000000-0000-0000-0000-00000000c115";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${remover}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${remover}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET date_of_birth = (CURRENT_DATE - interval '17 years')::date WHERE id = '${remover}';
+    `);
+    const reg = await tryAsUser(
+      db,
+      remover,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01022222222", "remove.parent@example.com"],
+    );
+    const linkId = (reg.rows?.[0]?.payload as { link_id: string }).link_id;
+    const before = await tryAsUser(db, ADMIN_ID, `SELECT public.admin_student_parent_flag_count() AS n`);
+    const revoked = await tryAsUser(
+      db,
+      remover,
+      `SELECT public.revoke_parent_link($1::uuid)`,
+      [linkId],
+    );
+    expect(revoked.error).toBeUndefined();
+    const notice = await queryRows<{ n: string }>(
+      db,
+      `SELECT count(*)::text AS n FROM public.notifications
+       WHERE user_id = $1 AND type = 'student_parent_link_removed' AND payload->>'link_id' = $2`,
+      [PARENT_ID, linkId],
+    );
+    expect(notice[0]?.n).toBe("1");
+    const after = await tryAsUser(db, ADMIN_ID, `SELECT public.admin_student_parent_flag_count() AS n`);
+    expect(Number(after.rows?.[0]?.n)).toBe(Number(before.rows?.[0]?.n) + 1);
   });
 });

@@ -132,6 +132,11 @@ function AdminStudentLinks() {
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase">
                   {t(`admin.studentLinks.status.${row.status}`)}
                 </span>
+                {row.removed_by_student ? (
+                  <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-bold text-coral">
+                    {t("admin.studentLinks.removedByStudent")}
+                  </span>
+                ) : null}
                 {REVOKABLE.includes(row.status) ? (
                   <button
                     type="button"

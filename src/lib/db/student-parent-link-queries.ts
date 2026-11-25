@@ -37,6 +37,9 @@ export type AdminStudentLinkRow = {
   status: StudentParentLinkStatusName;
   requested_at: string;
   decided_at: string | null;
+  revoked_by?: "student" | "parent" | "admin" | null;
+  /** The student removed or replaced a parent who was linked: shown as a flag to admin. */
+  removed_by_student?: boolean;
 };
 
 export type AdminCustomerParentLink = {
@@ -59,13 +62,20 @@ export type AdminLinkedStudentRow = {
   decided_at?: string | null;
 };
 
+/** Same answer whether or not the parent has a Famy account (no "who is on Famy" lookup). */
 export type RegisterParentGuardianResult = {
   link_id: string;
+};
+
+/** Only after the parent tapped «تمام», and only what the parent screen needs. */
+export type ParentStudentLesson = {
+  booking_id: string;
+  start_at: string;
+  end_at: string;
   status: string;
-  flag_token: string;
-  parent_on_famy: boolean;
-  parent_email: string;
-  student_name: string;
+  subject_code: string | null;
+  price_total: number;
+  tutor_name: string;
 };
 
 export function useStudentParentLinkStatus() {
@@ -185,7 +195,7 @@ export function useParentStudentLessons(studentId: string | undefined) {
         p_student_id: studentId!,
       });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ParentStudentLesson[];
     },
   });
 }
