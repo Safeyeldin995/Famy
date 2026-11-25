@@ -61,17 +61,19 @@ export function useAdminProviders(
   queue?: AdminWorkQueueKey,
   query = "",
   page = 0,
+  pageSize = ADMIN_LIST_PAGE_SIZE,
 ) {
   const q = query.trim();
+  const limit = Math.max(1, Math.min(pageSize, 300));
   return useQuery({
-    queryKey: ['admin', 'providers', filter, queue ?? 'none', q, page],
+    queryKey: ['admin', 'providers', filter, queue ?? 'none', q, page, limit],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)('admin_providers_list', {
         p_query: q,
         p_filter: filter,
         p_queue: queue ?? '',
-        p_limit: ADMIN_LIST_PAGE_SIZE,
-        p_offset: page * ADMIN_LIST_PAGE_SIZE,
+        p_limit: limit,
+        p_offset: page * limit,
       });
       if (error) throw error;
       const row = data as { total: number; items: unknown[] };

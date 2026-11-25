@@ -705,7 +705,7 @@ REVOKE ALL ON FUNCTION public.admin_work_queue_counts() FROM PUBLIC, anon, authe
 GRANT EXECUTE ON FUNCTION public.admin_work_queue_counts() TO authenticated;
 
 -- ---------------------------------------------------------------------------
--- 10) Payment queue counts: needs_action includes fee payments
+-- 10) Payment queue counts (#503 base + fee/unmapped in needs_action)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.admin_payment_queue_counts()
 RETURNS jsonb
@@ -720,6 +720,7 @@ DECLARE
   v_cash bigint;
   v_needs_action bigint;
   v_fee_payments bigint;
+  v_unmapped bigint;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
@@ -737,7 +738,8 @@ BEGIN
         FROM public.provider_ledger_entries e
         WHERE e.booking_id = p.booking_id
           AND e.kind = 'cash_collected_platform_share'
-      )
+      ),
+      p.metadata
     ) AS situation
     FROM public.payments p
     JOIN public.bookings b ON b.id = p.booking_id
@@ -746,7 +748,7 @@ BEGIN
     count(*) FILTER (WHERE situation = 'refundDue'),
     count(*) FILTER (WHERE situation = 'review'),
     count(*) FILTER (WHERE situation = 'cashUnconfirmed'),
-    count(*) FILTER (WHERE situation IN ('refundDue', 'review', 'cashUnconfirmed'))
+    count(*) FILTER (WHERE situation IN ('refundDue', 'review', 'cashUnconfirmed', 'paymobNeedsAction'))
   INTO v_refunds, v_receipts, v_cash, v_needs_action
   FROM situated;
 
@@ -755,7 +757,14 @@ BEGIN
   FROM public.customer_debt_settlements s
   WHERE s.status = 'pending_review';
 
-  v_needs_action := COALESCE(v_needs_action, 0) + COALESCE(v_fee_payments, 0);
+  SELECT count(*)
+  INTO v_unmapped
+  FROM public.paymob_unmapped_captures u
+  WHERE u.needs_admin_review AND u.reconciled_payment_id IS NULL;
+
+  v_needs_action := COALESCE(v_needs_action, 0)
+    + COALESCE(v_fee_payments, 0)
+    + COALESCE(v_unmapped, 0);
 
   RETURN jsonb_build_object(
     'refunds_due', COALESCE(v_refunds, 0),
