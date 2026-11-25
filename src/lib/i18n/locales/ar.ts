@@ -3316,7 +3316,7 @@ const ar: Translation = {
     },
     studentLinks: {
       title: "ربط الطلاب بأولياء الأمور",
-      subtitle: "مراجعة بيانات أولياء الأمور وبلاغات «ده مش ابني». الحجز مش بيتوقف",
+      subtitle: "مراجعة بيانات أولياء الأمور وبلاغات «ده مش ابني»، الحجز مش بيتوقف",
       filterStatus: "الحالة",
       statusAll: "كل الحالات",
       search: "بحث",
@@ -3327,7 +3327,7 @@ const ar: Translation = {
       parentNotOnFamy: "ولي الأمر لسه مش على فامي",
       parentMasked: "موبايل ***{{phone}} · {{email}}",
       revoke: "إلغاء الربط",
-      revokeHint: "السبب مطلوب وهيتسجل في السجل. الطالب وولي الأمر هيتبلغوا",
+      revokeHint: "السبب مطلوب وهيتسجل في السجل، الطالب وولي الأمر هيتبلغوا",
       revokeSuccess: "تم إلغاء الربط",
       revokeError: "تعذر إلغاء الربط",
       all: "الكل",
