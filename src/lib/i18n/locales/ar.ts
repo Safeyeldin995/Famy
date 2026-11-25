@@ -2579,6 +2579,7 @@ const ar: Translation = {
         accuracy_confirmation_required: "أكد دقة معلوماتك",
         phone_required: "رقم الهاتف مطلوب",
         duplicate_reference_phones: "يجب أن تكون أرقام المراجع مختلفة",
+        provider_price_invalid: "السعر خارج النطاق المسموح للخدمة",
       },
     },
     profile: {
@@ -4573,6 +4574,7 @@ Object.assign(ar, {
         admin_credit: "رصيد من الإدارة",
         admin_debit: "تعديل من الإدارة",
         checkout_spend: "استخدم عند الدفع",
+        checkout_release: "رجع من دفع ملغي",
       },
     },
     reason: {
@@ -4581,6 +4583,7 @@ Object.assign(ar, {
       admin_credit: "رصيد من الإدارة",
       admin_debit: "تعديل من الإدارة",
       checkout_spend: "استخدم عند الدفع",
+      checkout_release: "رجع من دفع ملغي",
     },
     refundDisclosure:
       "أي مبلغ مسترد بيتضاف لرصيدك في فامي وتقدر تستخدمه في أي حجز جاي",
@@ -4974,7 +4977,30 @@ Object.assign(ar, {
         admin_credit: "رصيد من فامي",
         admin_debit: "تعديل رصيد",
         checkout_spend: "استخدم في الدفع",
+        checkout_release: "رجع من دفع ملغي",
       },
+      balanceError: "ماقدرناش نحمل رصيد المحفظة، حاول تاني",
+      entriesError: "ماقدرناش نحمل حركات المحفظة، حاول تاني",
+    },
+    timezoneLabel: "كل المواعيد بتوقيت القاهرة",
+    account: {
+      signOut: "تسجيل الخروج",
+      signedIn: "مسجل دخول",
+    },
+    session: {
+      continueAudioOnly: "كمل بالصوت بس",
+      reconnecting: "بنعيد الاتصال…",
+      disconnected: "الاتصال انقطع",
+      rejoin: "ادخل تاني",
+      lessonEndsIn: "الحصة بتنتهي خلال {{minutes}} دقيقة",
+    },
+    lessonDetail: {
+      loadError: "ماقدرناش نحمل تفاصيل الحصة، حاول تاني",
+      paymentLoadError: "ماقدرناش نحمل تفاصيل الدفع، حاول تاني",
+      paymobFailed: "الدفع بالكارت ما اكتملش، تقدر تحاول تدفع تاني",
+      cancelFailed: "ماقدرناش نلغي الحصة، حاول تاني",
+      payBy: "ادفع قبل {{time}} (توقيت القاهرة) عشان الحصة تفضل محجوزة",
+      joinFrom: "تقدر تدخل من {{time}} (توقيت القاهرة)",
     },
     providerRequests: {
       title: "طلبات الدروس الواردة",
