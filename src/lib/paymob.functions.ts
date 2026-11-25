@@ -6,6 +6,7 @@ import type { SupabaseAdminClient } from "@/lib/paymob/paymobCheckout.server";
 const CreatePaymobCheckoutSchema = z.object({
   bookingId: z.string().uuid(),
   paymentId: z.string().uuid().optional(),
+  returnSurface: z.enum(["app", "online_web"]).optional(),
 });
 
 export const createPaymobCheckoutFn = createServerFn({ method: "POST" })
@@ -22,6 +23,7 @@ export const createPaymobCheckoutFn = createServerFn({ method: "POST" })
       userId,
       bookingId: data.bookingId,
       paymentId: data.paymentId,
+      returnSurface: data.returnSurface ?? "app",
     });
   });
 

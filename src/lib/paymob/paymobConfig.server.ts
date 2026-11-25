@@ -159,3 +159,9 @@ export function buildPaymobBookingReturnUrl(appOrigin: string, bookingId: string
   url.searchParams.set("paymob_return", "1");
   return url.toString();
 }
+
+export function buildPaymobOnlineWebLessonReturnUrl(appOrigin: string, bookingId: string): string {
+  const url = new URL(`/online/lessons/${bookingId}`, appOrigin);
+  url.searchParams.set("paymob_return", "1");
+  return url.toString();
+}

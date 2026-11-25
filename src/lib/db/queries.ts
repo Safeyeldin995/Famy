@@ -70,6 +70,27 @@ export function useUpdateProfile() {
   });
 }
 
+export function useUpdateProfileDateOfBirth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { date_of_birth: string }) => {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error('auth required');
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ date_of_birth: input.date_of_birth } as never)
+        .eq('id', user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
 export type AddressLabel = 'home' | 'work' | 'family' | 'other';
 
 export type AddressInput = {
@@ -449,13 +470,19 @@ type ProviderBookingSettings = {
 
 async function fetchProviderBookingSettings(
   providerId: string,
-  opts?: { serviceId?: string; addressId?: string },
+  opts?: { serviceId?: string; addressId?: string; serviceMode?: 'in_person' | 'online' },
 ): Promise<ProviderBookingSettings | null> {
-  const args: { p_provider_id: string; p_service_id?: string; p_address_id?: string } = {
+  const args: {
+    p_provider_id: string;
+    p_service_id?: string;
+    p_address_id?: string;
+    p_service_mode?: string;
+  } = {
     p_provider_id: providerId,
   };
   if (opts?.serviceId) args.p_service_id = opts.serviceId;
   if (opts?.addressId) args.p_address_id = opts.addressId;
+  if (opts?.serviceMode) args.p_service_mode = opts.serviceMode;
   const { data, error } = await supabase.rpc('marketplace_provider_booking_settings', args);
   if (error) throw error;
   return data?.[0] ?? null;
@@ -489,11 +516,11 @@ export function useAvailableSlots(
   providerId: string | undefined,
   date: Date | null,
   slotMinutes = 120,
-  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
+  opts?: { serviceId?: string | null; addressId?: string | null; serviceMode?: 'in_person' | 'online'; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.serviceMode ?? 'in_person', opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
@@ -512,6 +539,7 @@ export function useAvailableSlots(
       const provider = await fetchProviderBookingSettings(providerId!, {
         serviceId: opts?.serviceId ?? undefined,
         addressId: opts?.addressId ?? undefined,
+        serviceMode: opts?.serviceMode ?? 'in_person',
       });
       if (!provider) return [];
 

@@ -89,7 +89,9 @@ export function OnlineWebLessonPaymentPanel({ bookingId, total, onPaid }: Props)
         onPaid();
         return;
       }
-      const checkout = await redirectToPaymobCheckout(bookingId, paymentId);
+      const checkout = await redirectToPaymobCheckout(bookingId, paymentId, {
+        returnSurface: "online_web",
+      });
       if (!checkout.ok) throw new Error(checkout.message);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("onlineLesson.payFailedNext"));

@@ -128,6 +128,7 @@ import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
+import { Route as OnlineLessonsIndexRouteImport } from './routes/online.lessons.index'
 import { Route as OnlineLessonsBookingIdRouteImport } from './routes/online.lessons.$bookingId'
 import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
 import { Route as OnlineProviderRequestsRouteImport } from './routes/online.provider.requests'
@@ -183,7 +184,9 @@ import { Route as ApiMobileOtpContextRouteImport } from './routes/api.mobile.otp
 import { Route as ApiMobileOtpResendRouteImport } from './routes/api.mobile.otp.resend'
 import { Route as ApiMobileOtpSendRouteImport } from './routes/api.mobile.otp.send'
 import { Route as ApiMobileOtpVerifyRouteImport } from './routes/api.mobile.otp.verify'
+import { Route as OnlineLessonsBookingIdIndexRouteImport } from './routes/online.lessons.$bookingId.index'
 import { Route as OnlineLessonsBookingIdRoomRouteImport } from './routes/online.lessons.$bookingId.room'
+import { Route as OnlineTutorsProviderIdIndexRouteImport } from './routes/online.tutors.$providerId.index'
 import { Route as OnlineTutorsProviderIdRequestRouteImport } from './routes/online.tutors.$providerId.request'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
@@ -793,6 +796,11 @@ const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnlineLessonsIndexRoute = OnlineLessonsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnlineLessonsRoute,
+} as any)
 const OnlineLessonsBookingIdRoute = OnlineLessonsBookingIdRouteImport.update({
   id: '/$bookingId',
   path: '/$bookingId',
@@ -1076,11 +1084,23 @@ const ApiMobileOtpVerifyRoute = ApiMobileOtpVerifyRouteImport.update({
   path: '/api/mobile/otp/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnlineLessonsBookingIdIndexRoute =
+  OnlineLessonsBookingIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OnlineLessonsBookingIdRoute,
+  } as any)
 const OnlineLessonsBookingIdRoomRoute =
   OnlineLessonsBookingIdRoomRouteImport.update({
     id: '/room',
     path: '/room',
     getParentRoute: () => OnlineLessonsBookingIdRoute,
+  } as any)
+const OnlineTutorsProviderIdIndexRoute =
+  OnlineTutorsProviderIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OnlineTutorsProviderIdRoute,
   } as any)
 const OnlineTutorsProviderIdRequestRoute =
   OnlineTutorsProviderIdRequestRouteImport.update({
@@ -1289,6 +1309,7 @@ export interface FileRoutesByFullPath {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons/': typeof OnlineLessonsIndexRoute
   '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
@@ -1308,6 +1329,8 @@ export interface FileRoutesByFullPath {
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1368,7 +1391,6 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
-  '/online/lessons': typeof OnlineLessonsRouteWithChildren
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
@@ -1421,10 +1443,8 @@ export interface FileRoutesByTo {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
-  '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
-  '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRouteWithChildren
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1464,6 +1484,7 @@ export interface FileRoutesByTo {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons': typeof OnlineLessonsIndexRoute
   '/online/tutors': typeof OnlineTutorsIndexRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
@@ -1483,6 +1504,8 @@ export interface FileRoutesByTo {
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1650,6 +1673,7 @@ export interface FileRoutesById {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/online/lessons/': typeof OnlineLessonsIndexRoute
   '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
@@ -1669,6 +1693,8 @@ export interface FileRoutesById {
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
+  '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
+  '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
   '/admin/provider_/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider_/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1837,6 +1863,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons/'
     | '/online/tutors/'
     | '/preview/addresses/'
     | '/preview/admin/'
@@ -1856,6 +1883,8 @@ export interface FileRouteTypes {
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId/'
+    | '/online/tutors/$providerId/'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   fileRoutesByTo: FileRoutesByTo
@@ -1916,7 +1945,6 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
-    | '/online/lessons'
     | '/online/login'
     | '/online/otp'
     | '/online/set-password'
@@ -1969,10 +1997,8 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
-    | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
-    | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -2012,6 +2038,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons'
     | '/online/tutors'
     | '/preview/addresses'
     | '/preview/admin'
@@ -2031,6 +2058,8 @@ export interface FileRouteTypes {
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId'
+    | '/online/tutors/$providerId'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   id:
@@ -2197,6 +2226,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/online/lessons/'
     | '/online/tutors/'
     | '/preview/addresses/'
     | '/preview/admin/'
@@ -2216,6 +2246,8 @@ export interface FileRouteTypes {
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
+    | '/online/lessons/$bookingId/'
+    | '/online/tutors/$providerId/'
     | '/admin/provider_/$id/statement/print'
     | '/preview/admin/provider_/$id/statement/print'
   fileRoutesById: FileRoutesById
@@ -3111,6 +3143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/online/lessons/': {
+      id: '/online/lessons/'
+      path: '/'
+      fullPath: '/online/lessons/'
+      preLoaderRoute: typeof OnlineLessonsIndexRouteImport
+      parentRoute: typeof OnlineLessonsRoute
+    }
     '/online/lessons/$bookingId': {
       id: '/online/lessons/$bookingId'
       path: '/$bookingId'
@@ -3496,12 +3535,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileOtpVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/online/lessons/$bookingId/': {
+      id: '/online/lessons/$bookingId/'
+      path: '/'
+      fullPath: '/online/lessons/$bookingId/'
+      preLoaderRoute: typeof OnlineLessonsBookingIdIndexRouteImport
+      parentRoute: typeof OnlineLessonsBookingIdRoute
+    }
     '/online/lessons/$bookingId/room': {
       id: '/online/lessons/$bookingId/room'
       path: '/room'
       fullPath: '/online/lessons/$bookingId/room'
       preLoaderRoute: typeof OnlineLessonsBookingIdRoomRouteImport
       parentRoute: typeof OnlineLessonsBookingIdRoute
+    }
+    '/online/tutors/$providerId/': {
+      id: '/online/tutors/$providerId/'
+      path: '/'
+      fullPath: '/online/tutors/$providerId/'
+      preLoaderRoute: typeof OnlineTutorsProviderIdIndexRouteImport
+      parentRoute: typeof OnlineTutorsProviderIdRoute
     }
     '/online/tutors/$providerId/request': {
       id: '/online/tutors/$providerId/request'
@@ -3672,11 +3725,13 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 
 interface OnlineLessonsBookingIdRouteChildren {
   OnlineLessonsBookingIdRoomRoute: typeof OnlineLessonsBookingIdRoomRoute
+  OnlineLessonsBookingIdIndexRoute: typeof OnlineLessonsBookingIdIndexRoute
 }
 
 const OnlineLessonsBookingIdRouteChildren: OnlineLessonsBookingIdRouteChildren =
   {
     OnlineLessonsBookingIdRoomRoute: OnlineLessonsBookingIdRoomRoute,
+    OnlineLessonsBookingIdIndexRoute: OnlineLessonsBookingIdIndexRoute,
   }
 
 const OnlineLessonsBookingIdRouteWithChildren =
@@ -3686,10 +3741,12 @@ const OnlineLessonsBookingIdRouteWithChildren =
 
 interface OnlineLessonsRouteChildren {
   OnlineLessonsBookingIdRoute: typeof OnlineLessonsBookingIdRouteWithChildren
+  OnlineLessonsIndexRoute: typeof OnlineLessonsIndexRoute
 }
 
 const OnlineLessonsRouteChildren: OnlineLessonsRouteChildren = {
   OnlineLessonsBookingIdRoute: OnlineLessonsBookingIdRouteWithChildren,
+  OnlineLessonsIndexRoute: OnlineLessonsIndexRoute,
 }
 
 const OnlineLessonsRouteWithChildren = OnlineLessonsRoute._addFileChildren(
@@ -3698,11 +3755,13 @@ const OnlineLessonsRouteWithChildren = OnlineLessonsRoute._addFileChildren(
 
 interface OnlineTutorsProviderIdRouteChildren {
   OnlineTutorsProviderIdRequestRoute: typeof OnlineTutorsProviderIdRequestRoute
+  OnlineTutorsProviderIdIndexRoute: typeof OnlineTutorsProviderIdIndexRoute
 }
 
 const OnlineTutorsProviderIdRouteChildren: OnlineTutorsProviderIdRouteChildren =
   {
     OnlineTutorsProviderIdRequestRoute: OnlineTutorsProviderIdRequestRoute,
+    OnlineTutorsProviderIdIndexRoute: OnlineTutorsProviderIdIndexRoute,
   }
 
 const OnlineTutorsProviderIdRouteWithChildren =

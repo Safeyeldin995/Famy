@@ -63,6 +63,7 @@ describe("unavailable slot presentation", () => {
       120,
       "service",
       "address",
+      "in_person",
       false,
       null,
     ]);

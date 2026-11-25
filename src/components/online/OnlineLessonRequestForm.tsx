@@ -12,6 +12,7 @@ import {
 import { buildBookingRequest } from "@/lib/booking/bookingRequest";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
+import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
 
 type Props = {
   providerId: string;
@@ -21,7 +22,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const providerQ = useProvider(providerId, undefined, "online");
-  const servicesQ = useBookableServiceIds(providerId, "online");
+  const servicesQ = useBookableServiceIds(providerId, undefined, "online");
   const create = useCreateBooking();
   const [day, setDay] = useState(() => {
     const d = new Date();
@@ -40,6 +41,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const slotsQ = useAvailableSlots(providerId, day, slotMinutes, {
     serviceId,
     addressId: null,
+    serviceMode: "online",
     cairoTime: true,
   });
   const availableSlots = useMemo(
@@ -103,6 +105,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   }
 
   return (
+    <OnlineWebCustomerDobGate>
     <div className="space-y-5">
       <div>
         <p className="text-pro-13 font-bold text-muted-foreground">{t("onlineWeb.request.pickDay")}</p>
@@ -173,5 +176,6 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
         {t("onlineWeb.walkthrough.requestLesson")}
       </PrimaryButton>
     </div>
+    </OnlineWebCustomerDobGate>
   );
 }

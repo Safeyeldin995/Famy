@@ -1,14 +1,25 @@
 import { createPaymobCheckoutFn } from "@/lib/paymob.functions";
 
+export type PaymobCheckoutRedirectOptions = {
+  returnSurface?: "app" | "online_web";
+};
+
 export async function redirectToPaymobCheckout(
   bookingId: string,
   paymentId?: string,
+  options?: PaymobCheckoutRedirectOptions,
 ): Promise<{ ok: true; checkoutUrl: string } | { ok: false; message: string }> {
   if (typeof window === "undefined") {
     return { ok: false, message: "Paymob checkout is only available in the browser." };
   }
   try {
-    const result = await createPaymobCheckoutFn({ data: { bookingId, paymentId } });
+    const result = await createPaymobCheckoutFn({
+      data: {
+        bookingId,
+        paymentId,
+        returnSurface: options?.returnSurface ?? "app",
+      },
+    });
     window.location.assign(result.checkoutUrl);
     return { ok: true, checkoutUrl: result.checkoutUrl };
   } catch (error) {

@@ -4775,6 +4775,12 @@ Object.assign(en, {
       noSlots: "No open times on this day — try another date.",
       noService: "This tutor is not bookable online right now.",
       success: "Lesson requested — we will notify you when it is confirmed.",
+      dobLead: "We need your date of birth to confirm you are at least 12 years old.",
+      dobLabel: "Date of birth",
+      dobContinue: "Continue",
+      dobSaved: "Profile updated",
+      dobInvalid: "Enter a valid date of birth.",
+      dobTooYoung: "You must be at least 12 years old to book a lesson for yourself.",
     },
     lessons: {
       title: "My online lessons",

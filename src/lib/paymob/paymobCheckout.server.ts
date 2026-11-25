@@ -1,6 +1,6 @@
 import { readPaymobConfig, readOptionalPaymobIntegrationIdForChannel } from "./paymobConfig.server";
 import { createPaymobIntention, PaymobIntentionIndeterminateError } from "./paymobApi.server";
-import { buildPaymobBookingReturnUrl } from "./paymobConfig.server";
+import { buildPaymobBookingReturnUrl, buildPaymobOnlineWebLessonReturnUrl } from "./paymobConfig.server";
 import type { PaymobCheckoutChannel } from "./paymobChannels";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 
@@ -79,6 +79,7 @@ export async function createPaymobCheckoutForPayment(input: {
   bookingId: string;
   paymentId?: string;
   channel?: PaymobCheckoutChannel;
+  returnSurface?: "app" | "online_web";
 }): Promise<{
   checkoutUrl: string;
   paymentId: string;
@@ -246,7 +247,10 @@ export async function createPaymobCheckoutForPayment(input: {
       specialReference: payment.id,
       integrationId,
       notificationUrl: config.notificationUrl,
-      redirectionUrl: buildPaymobBookingReturnUrl(config.appOrigin, bookingRow.id),
+      redirectionUrl:
+        input.returnSurface === "online_web"
+          ? buildPaymobOnlineWebLessonReturnUrl(config.appOrigin, bookingRow.id)
+          : buildPaymobBookingReturnUrl(config.appOrigin, bookingRow.id),
       billingData: {
         ...billing,
         street: "NA",
