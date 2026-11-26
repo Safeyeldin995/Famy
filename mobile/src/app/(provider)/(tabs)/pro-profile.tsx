@@ -225,6 +225,7 @@ export default function ProviderProfile() {
         label={t("mobilePro.notificationPrefs")}
         onPress={() => router.push("/pro-notification-preferences")}
       />
+      <Row label={t("ugc.blockedUsersTitle")} onPress={() => router.push("/pro-blocked-users")} />
       <Row label={t("profile.help")} onPress={() => router.push("/pro-help")} />
       <Row
         label={t("profile.terms")}

@@ -44,6 +44,7 @@ export default function ProviderStack() {
       />
       <Stack.Screen name="pro-onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="pro-help" options={{ title: t("helpC.title") }} />
+      <Stack.Screen name="pro-blocked-users" options={{ title: t("ugc.blockedUsersTitle") }} />
       <Stack.Screen name="pro-delete-account" options={{ title: t("accountDeletion.title") }} />
     </Stack>
   );

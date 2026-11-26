@@ -4180,6 +4180,36 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: string
       }
+      unblock_chat_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: string
+      }
+      admin_unblock_chat_block: {
+        Args: { p_admin_notes?: string; p_block_id: string }
+        Returns: string
+      }
+      list_my_chat_blocks: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          conversation_id: string | null
+          other_user_id: string
+          other_full_name: string
+          created_at: string
+        }[]
+      }
+      admin_list_chat_blocks: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          conversation_id: string | null
+          customer_id: string
+          provider_user_id: string
+          blocked_by: string
+          blocked_by_name: string
+          created_at: string
+        }[]
+      }
       list_my_ugc_reports: {
         Args: Record<string, never>
         Returns: {

@@ -6,7 +6,8 @@ Use this when completing **App Privacy** in App Store Connect. Canonical store c
 
 | Category | Examples | Purpose | Third parties |
 | --- | --- | --- | --- |
-| Contact info | Name, phone | Account, bookings, OTP sign-in | Firebase Auth (phone), Supabase |
+| Contact info | Name, phone, email (profile or OAuth), parent or guardian phone and email for students aged 12–17 | Account, bookings, OTP sign-in, guardian contact | Firebase Auth (phone), Supabase |
+| Contact info | Date of birth (students 12–17 and online-lesson eligibility) | Age eligibility | Supabase |
 | Location | Precise coordinates on saved service addresses | Booking fulfillment | Supabase (not sold) |
 | User content | Profile photo, chat, booking notes, payment proof, provider ID docs | App functionality | Supabase storage |
 | Financial info | Booking payment history (not card numbers in-app) | Payments | Paymob (hosted checkout) |
@@ -14,10 +15,11 @@ Use this when completing **App Privacy** in App Store Connect. Canonical store c
 | Audio / video | Live lesson camera and microphone streams | Online lessons | LiveKit (ephemeral, not recorded) |
 | Diagnostics | Crash and performance data | App stability | Sentry |
 | Identifiers | User id, push token | Account, notifications | Supabase, Expo push |
+| Usage Data | Product interaction (Firebase Analytics events such as booking_started) | Product analytics, not ads | Google (Firebase Analytics) |
 
 ## Data not linked
 
-- Anonymous analytics is not used in the reviewed mobile build beyond optional Sentry diagnostics tied to the authenticated session.
+- Firebase Analytics events are not used for cross-app advertising. Advertising ID collection is disabled in the reviewed build.
 
 ## Tracking
 
