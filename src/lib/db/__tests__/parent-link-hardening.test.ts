@@ -31,6 +31,17 @@ describe("parent link hardening (20261126090000)", () => {
     );
     expect(grants.rows[0]).toEqual({ anon: false, auth: false, service: true });
 
+    // Parent auto-link only trusts OTP-verified phones.
+    const resolve = await db.query<{ src: string; auth: boolean }>(
+      `SELECT p.prosrc AS src,
+              has_function_privilege('authenticated', p.oid, 'EXECUTE') AS auth
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = '_student_parent_link_resolve_parent'`,
+    );
+    expect(resolve.rows).toHaveLength(1);
+    expect(resolve.rows[0].src).toContain("pr.phone_verified");
+    expect(resolve.rows[0].auth).toBe(false);
+
     await db.close();
   }, 180_000);
 });
