@@ -118,6 +118,24 @@ export function assertOnlineBookingPrepaid(methodType: string | null | undefined
   }
 }
 
+/** Participant may report after the lesson ends; RPC enforces the time window. */
+export function authorizeSessionReport(
+  booking: Pick<
+    SessionBookingSnapshot,
+    "service_mode" | "customer_id" | "provider_profile_id"
+  >,
+  userId: string,
+): SessionAuthorizeResult {
+  if (booking.service_mode !== "online") {
+    return { ok: false, code: "not_online_booking" };
+  }
+  const party = sessionParticipantForUser(booking, userId);
+  if (!party) {
+    return { ok: false, code: "not_participant" };
+  }
+  return { ok: true, party };
+}
+
 export function onlineLessonReportWindow(
   startAt: Date,
   endAt: Date,

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildContentSecurityPolicy } from "../lib/security/contentSecurityPolicy";
 
 const fetchMock = vi.fn();
 
@@ -41,8 +42,23 @@ describe("server HTML security headers", () => {
     expect(response.headers.get("Permissions-Policy")).toBe(
       "camera=(), microphone=(), geolocation=(self)",
     );
-    expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
     expect(await response.text()).toBe("<html><body>ok</body></html>");
+  });
+
+  it("includes Firebase and Supabase storage in CSP for /online/login", () => {
+    const csp = buildContentSecurityPolicy({
+      VITE_SUPABASE_URL: "https://proj.supabase.co",
+      LIVEKIT_URL: "wss://live.example.com",
+      VITE_FIREBASE_AUTH_DOMAIN: "proj.firebaseapp.com",
+    });
+    expect(csp).toContain("https://proj.supabase.co/storage/v1/object/");
+    expect(csp).toContain("https://identitytoolkit.googleapis.com");
+    expect(csp).toContain("https://recaptcha.google.com");
+    expect(csp).toContain("https://proj.firebaseapp.com");
   });
 
   it.each([
