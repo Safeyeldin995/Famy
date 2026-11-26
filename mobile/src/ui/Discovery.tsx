@@ -43,6 +43,7 @@ import {
   hasStudentEducation,
   providerMatchesStudentEducation,
   tutoringMatchBadgeLabel,
+  tutoringServiceKind,
 } from "@shared/tutoring/tutoringProviderMatch";
 
 export function Discovery({ category: group }: { category?: string }) {
@@ -155,14 +156,18 @@ export function Discovery({ category: group }: { category?: string }) {
       education_level_id: m.education_level_id,
     })),
   });
+  const selectedServiceSlug = (services.data ?? []).find((s) => s.id === serviceId)?.slug;
+  // Quran and music match on a skill level picked at booking time (issue 536, PR 2), not on the school profile.
+  const schoolMatching =
+    schoolTutoring && !!serviceId && tutoringServiceKind(selectedServiceSlug) !== "skill";
   // Strict matching (issue 536): once the student's system and grade are known, only matching tutors show.
   const strictMatching =
-    schoolTutoring &&
+    schoolMatching &&
     hasStudentEducation({
       curriculumId: studentProfile.educationCurriculumId,
       levelId: studentProfile.educationLevelId,
     });
-  const ranked = schoolTutoring
+  const ranked = schoolMatching
     ? filterProvidersForStudentEducation(items, caps.data ?? [], {
         serviceId: serviceId || null,
         curriculumId: studentProfile.educationCurriculumId,
@@ -318,8 +323,8 @@ export function Discovery({ category: group }: { category?: string }) {
         <QueryState
           query={{
             isLoading: a.isLoading || b.isLoading || (strictMatching && caps.isLoading),
-            isError: a.isError || b.isError,
-            refetch: () => Promise.all([a.refetch(), b.refetch()]),
+            isError: a.isError || b.isError || (strictMatching && caps.isError),
+            refetch: () => Promise.all([a.refetch(), b.refetch(), caps.refetch()]),
           }}
         >
           {!ranked.length ? (
@@ -362,7 +367,7 @@ export function Discovery({ category: group }: { category?: string }) {
                     })
                   }
                 />
-                {schoolTutoring &&
+                {schoolMatching &&
                 studentProfile.studentFirstName &&
                 providerMatchesStudentEducation(p.id, caps.data ?? [], {
                   serviceId: serviceId || null,

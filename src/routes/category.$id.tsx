@@ -220,8 +220,13 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
             ))}
           </div>
-        ) : provsQ.isError ? (
-          <QueryError onRetry={() => provsQ.refetch()} />
+        ) : provsQ.isError || (strictMatching && capsQ.isError) ? (
+          <QueryError
+            onRetry={() => {
+              void provsQ.refetch();
+              void capsQ.refetch();
+            }}
+          />
         ) : sorted.length === 0 ? (
           <EmptyState
             icon="search"
