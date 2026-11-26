@@ -246,7 +246,12 @@ BEGIN
   page AS (
     SELECT *
     FROM filtered f
-    ORDER BY f.created_at DESC, f.id DESC
+    -- Review queues are worked oldest-waiting first (same order the client used before paging).
+    ORDER BY
+      CASE WHEN v_queue IN ('new_applications', 'resubmitted_applications', 'applications_over_sla', 'pending_documents')
+        THEN COALESCE(f.resubmitted_at, f.submitted_at, f.created_at) END ASC NULLS LAST,
+      f.created_at DESC,
+      f.id DESC
     LIMIT v_limit
     OFFSET v_offset
   )
@@ -260,7 +265,11 @@ BEGIN
           'ratings', pg.ratings,
           'trust', pg.trust
         )
-        ORDER BY pg.created_at DESC, pg.id DESC
+        ORDER BY
+          CASE WHEN v_queue IN ('new_applications', 'resubmitted_applications', 'applications_over_sla', 'pending_documents')
+            THEN COALESCE(pg.resubmitted_at, pg.submitted_at, pg.created_at) END ASC NULLS LAST,
+          pg.created_at DESC,
+          pg.id DESC
       )
       FROM page pg
     ), '[]'::jsonb)

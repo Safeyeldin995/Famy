@@ -16,7 +16,7 @@
     "test:unit": "vitest run --exclude 'src/**/*.integration.test.ts'",
     "test:otp-integration": "node qa/run-with-qa-env.mjs vitest run --config vitest.otp-integration.config.ts",
     "test:release-gate:admin": "node qa/run-with-qa-env.mjs playwright test qa/tests/release-gate-admin.spec.ts",
-    "test:release-gate:db": "vitest run src/lib/db/__tests__/money-journey.test.ts src/lib/db/__tests__/cancellation-fee.test.ts src/lib/db/__tests__/release-features.test.ts src/lib/db/__tests__/release-gate-wallet-lock.test.ts",
+    "test:release-gate:db": "vitest run src/lib/db/__tests__/money-journey.test.ts src/lib/db/__tests__/cancellation-fee.test.ts src/lib/db/__tests__/release-features.test.ts src/lib/db/__tests__/release-gate-wallet-lock.test.ts src/lib/db/__tests__/ugc-reports.test.ts",
     "qa:preflight": "node qa/preflight.mjs",
     "qa:check-maestro": "node qa/check-maestro-flows.mjs"
   },

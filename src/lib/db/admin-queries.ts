@@ -4,6 +4,7 @@ import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache
 import { normalizeAdminWorkQueueCounts } from '@/lib/db/admin-work-queue';
 import { invalidateAdminPaymentQueue } from '@/lib/db/admin-payment-invalidation';
 import type { AdminWorkQueueKey } from '@/lib/db/admin-work-queue';
+import { parseProviderPerformanceStats } from '@/lib/provider/performanceStats';
 
 const ADMIN_LIST_PAGE_SIZE = 50;
 
@@ -52,6 +53,37 @@ export function useAdminBabysittingAgeGroups(providerId: string) {
         .eq("provider_id", providerId);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useAdminProviderPerformanceStats(providerId: string | undefined) {
+  return useQuery({
+    queryKey: ["admin", "provider-performance", providerId],
+    enabled: !!providerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("admin_provider_performance_stats", {
+        p_provider_id: providerId,
+        p_days: 30,
+      });
+      if (error) throw error;
+      return parseProviderPerformanceStats(data);
+    },
+  });
+}
+
+export function useAdminCreateProviderWarning() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, reason }: { providerId: string; reason: string }) => {
+      const { error } = await (supabase.rpc as any)("admin_create_provider_warning", {
+        p_provider_id: providerId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ["admin", "provider", vars.providerId] });
     },
   });
 }

@@ -26,6 +26,8 @@ import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { ChatThreadSkeleton } from "@/ui/Skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ChatThreadSafetyMenu } from "@/ui/ugc/ChatThreadSafetyMenu";
+import { UgcReportSheet } from "@/ui/ugc/UgcReportSheet";
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,6 +42,7 @@ export default function ChatScreen() {
   const send = useSendMessage(id);
   const markRead = useMarkBookingMessagesRead();
   const [warning, setWarning] = useState<string | null>(null);
+  const [reportMessageId, setReportMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     const bookingId = conv.data?.booking_id;
@@ -69,7 +72,8 @@ export default function ChatScreen() {
           return;
         }
         const msg = e instanceof Error ? e.message : "";
-        if (msg === "contact_masked")
+        if (msg.includes("user_blocked")) setWarning(t("ugc.blockedThreadNote"));
+        else if (msg === "contact_masked")
           setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
         else setWarning(t("messages.sendFailed"));
       },
@@ -87,7 +91,14 @@ export default function ChatScreen() {
         title={otherName}
         subtitle={t("messages.chatNotice")}
         backTo="/messages"
-        right={<Avatar raw={otherAvatar} size={44} round />}
+        right={
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {conv.data ? (
+              <ChatThreadSafetyMenu conversationId={conv.data.id} afterBlockTo="/messages" />
+            ) : null}
+            <Avatar raw={otherAvatar} size={44} round />
+          </View>
+        }
       />
       {conv.isLoading || msgs.isLoading ? (
         <ChatThreadSkeleton />
@@ -131,6 +142,11 @@ export default function ChatScreen() {
                 otherAvatar={otherAvatar}
                 otherName={otherName}
                 customer
+                onReport={
+                  item.message_type === "text" && item.sender_id !== meId
+                    ? () => setReportMessageId(item.id)
+                    : undefined
+                }
               />
             )}
             ListEmptyComponent={
@@ -154,6 +170,15 @@ export default function ChatScreen() {
           ) : null}
         </>
       )}
+      {conv.data && reportMessageId ? (
+        <UgcReportSheet
+          visible
+          subjectType="chat_message"
+          conversationId={conv.data.id}
+          messageId={reportMessageId}
+          onClose={() => setReportMessageId(null)}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
