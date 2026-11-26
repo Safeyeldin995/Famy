@@ -62,6 +62,21 @@ export function OnlineWebNotificationsBell() {
   const markAll = useMarkAllNotificationsRead();
   const nav = useNavigate();
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const bellRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const wasOpen = useRef(false);
+
+  // Move focus into the panel when it opens and back to the bell when it closes.
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      closeRef.current?.focus();
+    } else if (wasOpen.current) {
+      wasOpen.current = false;
+      bellRef.current?.focus();
+    }
+  }, [open]);
   const small = useIsSmallScreen();
 
   // Lock page scroll while the mobile sheet is open.
@@ -81,7 +96,26 @@ export function OnlineWebNotificationsBell() {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      // Keep Tab inside the modal sheet on phones.
+      if (e.key === "Tab" && small && panelRef.current) {
+        const items = panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -111,6 +145,7 @@ export function OnlineWebNotificationsBell() {
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={bellRef}
         type="button"
         className="focus-ring relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-foreground sm:h-10 sm:w-10"
         aria-label={
@@ -140,6 +175,7 @@ export function OnlineWebNotificationsBell() {
             />
           ) : null}
           <div
+            ref={panelRef}
             role="dialog"
             aria-modal={small ? true : undefined}
             aria-labelledby="online-notifications-title"
@@ -168,6 +204,7 @@ export function OnlineWebNotificationsBell() {
                   </button>
                 ) : null}
                 <button
+                  ref={closeRef}
                   type="button"
                   className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-2"
                   aria-label={t("common.close")}

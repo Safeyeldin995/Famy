@@ -5512,6 +5512,7 @@ Object.assign(en, {
       allLessons: "All my lessons",
       walletTitle: "Wallet balance",
       walletOpen: "Open wallet",
+      walletLoadError: "We couldn't load your balance right now",
       quickTitle: "Shortcuts",
       tutorDashTitle: "Tutor dashboard",
       pendingRequests: "{{count}} requests waiting for your reply",

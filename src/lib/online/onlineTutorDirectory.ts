@@ -36,6 +36,7 @@ export const NO_CURRICULUM_CODE = "na";
 export const ONLINE_CURRICULA_FALLBACK: readonly { code: string; name_ar: string; name_en: string }[] = [
   { code: "eg_national_ar", name_ar: "المنهج المصري (عربي)", name_en: "Egyptian National (Arabic)" },
   { code: "eg_national_lang", name_ar: "المنهج المصري (لغات / تجريبي)", name_en: "Egyptian National (Languages / Experimental)" },
+  { code: "eg_azhar", name_ar: "المنهج الأزهري", name_en: "Egyptian Azhar" },
   { code: "british", name_ar: "البريطاني (IGCSE / A Level)", name_en: "British (IGCSE / A Level)" },
   { code: "american", name_ar: "الأمريكي (دبلومة)", name_en: "American (Diploma)" },
   { code: "ib", name_ar: "البكالوريا الدولية (IB)", name_en: "International Baccalaureate (IB)" },

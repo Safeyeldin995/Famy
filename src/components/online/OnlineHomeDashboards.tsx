@@ -31,7 +31,12 @@ import {
   pickNextLesson,
 } from "@/lib/online/onlineTutorDirectory";
 import { filterWebOnlineBookingRows } from "@/lib/web/webOnlineDataBoundary";
-import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
+import {
+  BOOKING_PAYMENT_QUERY_STATUSES,
+  pickBookingPaymentRow,
+} from "@/lib/payments/bookingPaymentVisibility";
+import { moneyHeld } from "@/lib/payments/refundOwed";
 
 type Row = {
   id: string;
@@ -161,6 +166,56 @@ function useWalletBalance(enabled: boolean) {
   });
 }
 
+type PaymentRow = {
+  booking_id: string;
+  status: string;
+  created_at: string;
+  metadata?: unknown;
+  payment_method_type?: string | null;
+  proof_path?: string | null;
+};
+
+/**
+ * Confirmed lessons whose money isn't held yet (no captured payment and no
+ * transfer receipt in review). A confirmed lesson can already be paid, so the
+ * booking status alone never decides "pay now".
+ */
+function useUnpaidConfirmedIds(bookingIds: string[]) {
+  return useQuery({
+    enabled: bookingIds.length > 0,
+    queryKey: ["online-home-unpaid", [...bookingIds].sort().join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("booking_id, status, created_at, metadata, payment_method_type, proof_path")
+        .in("booking_id", bookingIds)
+        .in("status", [...BOOKING_PAYMENT_QUERY_STATUSES]);
+      if (error) throw error;
+      const byBooking = new Map<string, PaymentRow[]>();
+      for (const row of (data ?? []) as PaymentRow[]) {
+        const list = byBooking.get(row.booking_id) ?? [];
+        list.push(row);
+        byBooking.set(row.booking_id, list);
+      }
+      const unpaid = new Set<string>();
+      for (const id of bookingIds) {
+        const p = pickBookingPaymentRow(byBooking.get(id));
+        const held =
+          !!p &&
+          (p.status === "captured" ||
+            p.status === "partially_refunded" ||
+            moneyHeld({
+              paymentStatus: p.status,
+              methodType: p.payment_method_type ?? undefined,
+              proofPath: p.proof_path ?? undefined,
+            }));
+        if (!held) unpaid.add(id);
+      }
+      return unpaid;
+    },
+  });
+}
+
 /** Signed-in student home: next lesson, actions needed, wallet and shortcuts. */
 export function OnlineStudentHome() {
   const { t } = useTranslation();
@@ -172,7 +227,10 @@ export function OnlineStudentHome() {
   const next = useMemo(() => pickNextLesson(rows, now), [rows, now]);
   const upcoming = rows.filter((r) => ONLINE_UPCOMING_STATUSES.has(r.status) && new Date(r.end_at).getTime() > now);
   const waiting = upcoming.filter((r) => r.status === "pending");
-  const toPay = upcoming.filter((r) => r.status === "confirmed" && new Date(r.start_at).getTime() > now);
+  const confirmedFuture = upcoming.filter((r) => r.status === "confirmed" && new Date(r.start_at).getTime() > now);
+  const unpaidQ = useUnpaidConfirmedIds(confirmedFuture.map((r) => r.id));
+  // Only lessons we know are unpaid; while unknown or on error, show nothing rather than a wrong prompt.
+  const toPay = unpaidQ.data ? confirmedFuture.filter((r) => unpaidQ.data.has(r.id)) : [];
   const firstName = String(profileQ.data?.full_name ?? "").trim().split(/\s+/)[0] ?? "";
 
   if (bookingsQ.isLoading) {
@@ -200,8 +258,15 @@ export function OnlineStudentHome() {
               {t("onlineWeb.hub.walletTitle")}
             </p>
             <p className="text-pro-24 font-extrabold" dir="auto">
-              {walletQ.isLoading ? "…" : formatEGP(walletQ.data ?? 0)}
+              {walletQ.isLoading ? "…" : walletQ.isError ? "—" : formatEGP(walletQ.data ?? 0)}
             </p>
+            {walletQ.isError ? (
+              <p className="text-pro-13 text-muted-foreground">{t("onlineWeb.hub.walletLoadError")}</p>
+            ) : (walletQ.data ?? 0) > 0 ? (
+              <p className="text-pro-13 text-muted-foreground">
+                {currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms")}
+              </p>
+            ) : null}
             <Link to={ONLINE_WEB_ROUTE_IDS.wallet} className="focus-ring inline-flex text-pro-13 font-bold text-brand">
               {t("onlineWeb.hub.walletOpen")}
             </Link>

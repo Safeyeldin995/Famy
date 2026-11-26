@@ -9,8 +9,7 @@ import {
   StepConfirmPay,
   StepJoinLesson,
 } from "@/components/online/OnlineLandingIllustrations";
-import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
-import { currentLang } from "@/lib/i18n";
+import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
@@ -57,8 +56,6 @@ const WHY = [
 function OnlineHome() {
   const { t } = useTranslation();
   const { isAuthenticated, loading } = useAuth();
-  const walletTerms =
-    currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms");
 
   const myProviderQ = useMyProvider();
   const isTutor = isAuthenticated && Boolean(myProviderQ.data?.id);
@@ -118,7 +115,6 @@ function OnlineHome() {
         <OnlineStudentHome />
         <OnlineCurriculaGrid signedIn />
         <OnlineLandingFaq />
-        <p className="text-pro-13 leading-relaxed text-muted-foreground">{walletTerms}</p>
       </div>
     );
   }
@@ -194,8 +190,6 @@ function OnlineHome() {
           <div className="shrink-0">{primaryCta}</div>
         </div>
       </section>
-
-      <p className="text-pro-13 leading-relaxed text-muted-foreground">{walletTerms}</p>
     </div>
   );
 }

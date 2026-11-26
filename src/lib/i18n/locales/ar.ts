@@ -5402,6 +5402,7 @@ Object.assign(ar, {
       allLessons: "كل حصصي",
       walletTitle: "رصيد محفظتك",
       walletOpen: "افتح المحفظة",
+      walletLoadError: "مقدرناش نجيب رصيدك دلوقتي",
       quickTitle: "اختصارات",
       tutorDashTitle: "لوحة المدرس",
       pendingRequests: "{{count}} طلب مستني ردك",
