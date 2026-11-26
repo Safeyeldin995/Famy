@@ -35,6 +35,33 @@ describe("buildContentSecurityPolicy", () => {
     expect(csp).toContain("https://famylive.example.com");
   });
 
+  it("allows Google Maps (web address picker and admin zone map)", () => {
+    const csp = buildContentSecurityPolicy(fullEnv);
+    const directive = (name: string) =>
+      csp.split("; ").find((d) => d.startsWith(`${name} `)) ?? "";
+
+    expect(directive("script-src")).toContain("https://maps.googleapis.com");
+    expect(directive("img-src")).toContain("https://*.gstatic.com");
+    expect(directive("img-src")).toContain("https://*.googleapis.com");
+    expect(directive("connect-src")).toContain("https://maps.googleapis.com");
+    expect(directive("worker-src")).toContain("blob:");
+  });
+
+  it("allows LiveKit Cloud regional hosts when the project is on livekit.cloud", () => {
+    const csp = buildContentSecurityPolicy({ ...fullEnv, LIVEKIT_URL: "wss://famy-abc.livekit.cloud" });
+    const connect = csp.split("; ").find((d) => d.startsWith("connect-src ")) ?? "";
+
+    expect(connect).toContain("wss://famy-abc.livekit.cloud");
+    expect(connect).toContain("https://famy-abc.livekit.cloud");
+    expect(connect).toContain("wss://*.livekit.cloud");
+    expect(connect).toContain("https://*.livekit.cloud");
+  });
+
+  it("does not add livekit.cloud wildcards for a self-hosted LiveKit", () => {
+    const csp = buildContentSecurityPolicy(fullEnv);
+    expect(csp).not.toContain("*.livekit.cloud");
+  });
+
   it("warns when Supabase or LiveKit env is missing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     buildContentSecurityPolicy({});

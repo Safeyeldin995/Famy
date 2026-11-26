@@ -54,6 +54,35 @@ function firebaseCspSources(env: NodeJS.ProcessEnv): {
   };
 }
 
+/**
+ * LiveKit Cloud connects to regional edge hosts (e.g. wss://<project>.<region>.production.livekit.cloud),
+ * not only the configured project URL, so allow the livekit.cloud subdomains when the project is hosted there.
+ */
+function liveKitCspSources(liveKit: string | null): string[] {
+  if (!liveKit) return [];
+  const https = liveKit.replace(/^wss:/, "https:");
+  const wss = liveKit.replace(/^https:/, "wss:");
+  const sources = [https, wss];
+  try {
+    if (new URL(https).hostname.endsWith(".livekit.cloud")) {
+      sources.push("https://*.livekit.cloud", "wss://*.livekit.cloud");
+    }
+  } catch {
+    // ignore malformed URL; the configured origin is still allowed
+  }
+  return sources;
+}
+
+/** Google Maps JavaScript API (address picker, admin zone map) script, tiles, fonts and API calls. */
+const GOOGLE_MAPS_SCRIPT_SRC = ["https://maps.googleapis.com", "https://maps.gstatic.com"];
+const GOOGLE_MAPS_IMG_SRC = [
+  "https://*.googleapis.com",
+  "https://*.gstatic.com",
+  "https://*.google.com",
+  "https://*.googleusercontent.com",
+];
+const GOOGLE_MAPS_CONNECT_SRC = ["https://maps.googleapis.com", "https://*.googleapis.com"];
+
 /** Build HTML document CSP for the web app (admin + /online + marketing). */
 export function buildContentSecurityPolicy(env: NodeJS.ProcessEnv = process.env): string {
   const supabase = hostFromUrl(env.VITE_SUPABASE_URL ?? env.SUPABASE_URL);
@@ -72,8 +101,9 @@ export function buildContentSecurityPolicy(env: NodeJS.ProcessEnv = process.env)
   const connectSrc = uniqueSources([
     "'self'",
     ...(supabase ? [supabase, supabase.replace(/^https:/, "wss:")] : []),
-    ...(liveKit ? [liveKit, liveKit.replace(/^wss:/, "https:")] : []),
+    ...liveKitCspSources(liveKit),
     "https://accept.paymob.com",
+    ...GOOGLE_MAPS_CONNECT_SRC,
     sentry,
     ...firebase.connectSrc,
   ]);
@@ -83,10 +113,16 @@ export function buildContentSecurityPolicy(env: NodeJS.ProcessEnv = process.env)
     "data:",
     "blob:",
     "https://storage.googleapis.com",
+    ...GOOGLE_MAPS_IMG_SRC,
     ...(supabase ? [supabase, `${supabase}/storage/v1/object/`] : []),
   ]);
 
-  const scriptSrc = uniqueSources(["'self'", "'unsafe-inline'", ...firebase.scriptSrc]);
+  const scriptSrc = uniqueSources([
+    "'self'",
+    "'unsafe-inline'",
+    ...firebase.scriptSrc,
+    ...GOOGLE_MAPS_SCRIPT_SRC,
+  ]);
   const frameSrc = uniqueSources(["'self'", "https://accept.paymob.com", ...firebase.frameSrc]);
 
   return [
@@ -99,6 +135,7 @@ export function buildContentSecurityPolicy(env: NodeJS.ProcessEnv = process.env)
     `img-src ${imgSrc.join(" ")}`,
     `connect-src ${connectSrc.join(" ")}`,
     `media-src 'self' blob:`,
+    `worker-src 'self' blob:`,
     `frame-src ${frameSrc.join(" ")}`,
     "frame-ancestors 'none'",
   ].join("; ");
