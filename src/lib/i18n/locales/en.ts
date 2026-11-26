@@ -28,6 +28,7 @@ const en = {
     retry: "Try again",
     forceTitle: "A new version of Famy is available",
     forceBody: "A new version of Famy is available, update to continue",
+    forceIosStore: "A new version of Famy is available. Open the App Store on your iPhone and update Famy to continue.",
     updateNow: "Update now",
     softBanner: "A new Famy update is available",
     softUpdate: "Update",
@@ -1856,7 +1857,7 @@ const en = {
       },
       {
         q: "Which areas do you serve?",
-        a: "We currently serve Sheikh Zayed and 6th of October, and we add new areas as we grow.",
+        a: "Online lessons are available anywhere in Egypt. At-home services are available in selected areas that we are expanding over time.",
       },
     ],
   },
@@ -2368,6 +2369,16 @@ const en = {
     blockDoneBody:
       "This conversation is hidden. You can contact Famy support if you need more help.",
     blockedThreadNote: "Messaging is blocked between you and this user.",
+    blockedUsersTitle: "Blocked users",
+    blockedUsersSubtitle: "People you blocked cannot message you or book with you until you unblock them.",
+    blockedUsersEmpty: "You have not blocked anyone.",
+    blockedUnknownUser: "User",
+    unblockTitle: "Unblock this user?",
+    unblockBody: "{{name}} will be able to message you and book with you again.",
+    unblockConfirm: "Unblock",
+    unblockA11y: "Unblock {{name}}",
+    unblockError: "Could not unblock this user.",
+    unblockNoConversation: "This block cannot be removed from the app. Contact Famy support.",
     errors: {
       ownMessage: "You can't report a message you sent",
       limit: "You sent too many reports today, try again tomorrow",
@@ -3218,6 +3229,13 @@ const en = {
         customer: "Customer",
         provider: "Provider",
       },
+      tabReports: "Reports",
+      tabBlocks: "Blocks",
+      blocksSubtitle: "Active chat blocks between customers and providers.",
+      noBlocks: "No active chat blocks.",
+      blockedBy: "Blocked by",
+      unblock: "Unblock",
+      unblockNotes: "Why are you removing this block?",
     },
     onlineLessonIssues: {
       title: "Online lesson reports",
@@ -4516,6 +4534,8 @@ const en = {
       appReleaseSaved: "App version settings saved",
       appReleaseSaveError: "Couldn't save app version settings",
       appReleaseLoadError: "Couldn't load app version settings",
+      appReleaseStoreLinkRequired:
+        "Add the store link for this platform before raising the minimum version.",
       storeLinksTitle: "Store download links",
       storeLinksSubtitle:
         "HTTPS links shown on the public site and in the app update gate. Leave empty to show “coming soon” badges.",

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Image, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { AppState, Image, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -8,8 +8,13 @@ import {
   appStoreUpdateUrl,
   decideAppRelease,
   parseAppReleaseSettings,
+  parseAppReleaseCache,
+  resolveAppReleaseFetch,
+  serializeAppReleaseCache,
+  APP_RELEASE_CACHE_SCHEMA,
   type AppReleaseDecision,
   type AppReleaseSettings,
+  type CachedAppReleaseSnapshot,
 } from "@shared/appRelease";
 import { supabase } from "@/lib/supabase";
 import wordmark from "@/assets/images/famy-wordmark.png";
@@ -19,11 +24,43 @@ import { colors, radius, space } from "./theme";
 
 const FETCH_TIMEOUT_MS = 3000;
 const DISMISS_KEY = "famy.appRelease.softDismissedVersion";
+const CACHE_KEY = "famy.appRelease.decisionCache";
+const RECHECK_MS = 5 * 60 * 1000;
 
 type Loaded = { release: AppReleaseSettings; storeLinks: Record<string, unknown> | null };
 
-/** Reads the release settings; any error or a 3s timeout returns null (the user gets in). */
-async function loadAppRelease(): Promise<Loaded | null> {
+async function readReleaseCache(): Promise<CachedAppReleaseSnapshot | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    return parseAppReleaseCache(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function writeReleaseCache(loaded: Loaded): Promise<void> {
+  const storeLinks = loaded.storeLinks ?? {};
+  const snapshot: CachedAppReleaseSnapshot = {
+    schema: APP_RELEASE_CACHE_SCHEMA,
+    savedAt: Date.now(),
+    release: loaded.release,
+    storeLinks: {
+      play_url: typeof storeLinks.play_url === "string" ? storeLinks.play_url : "",
+      app_store_url: typeof storeLinks.app_store_url === "string" ? storeLinks.app_store_url : "",
+    },
+  };
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, serializeAppReleaseCache(snapshot));
+  } catch {
+    // ignore cache write failures
+  }
+}
+
+/** Reads release settings; on timeout reuses the last cached decision when available. */
+async function loadAppRelease(
+  cached: CachedAppReleaseSnapshot | null,
+): Promise<Loaded | null> {
+  let timedOut = false;
   const query = supabase
     .from("settings")
     .select("key, value")
@@ -37,12 +74,26 @@ async function loadAppRelease(): Promise<Loaded | null> {
         storeLinks: (byKey.get("store_links") as Record<string, unknown> | undefined) ?? null,
       };
     });
-  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), FETCH_TIMEOUT_MS));
+  const timeout = new Promise<null>((resolve) => {
+    setTimeout(() => {
+      timedOut = true;
+      resolve(null);
+    }, FETCH_TIMEOUT_MS);
+  });
+  let fetched: Loaded | null = null;
   try {
-    return await Promise.race([query, timeout]);
+    fetched = await Promise.race([query, timeout]);
   } catch {
-    return null;
+    fetched = null;
   }
+  if (fetched) {
+    await writeReleaseCache(fetched);
+    return fetched;
+  }
+  if (timedOut || !fetched) {
+    return resolveAppReleaseFetch(null, cached);
+  }
+  return null;
 }
 
 /**
@@ -55,20 +106,31 @@ export function AppReleaseGate({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [checking, setChecking] = useState(false);
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+  const cacheRef = useRef<CachedAppReleaseSnapshot | null>(null);
+  const lastCheckAt = useRef(0);
 
-  const check = useCallback(async () => {
+  const check = useCallback(async (force?: boolean) => {
+    const now = Date.now();
+    if (!force && now - lastCheckAt.current < RECHECK_MS) return;
+    lastCheckAt.current = now;
     setChecking(true);
-    const result = await loadAppRelease();
+    const cached = cacheRef.current ?? (await readReleaseCache());
+    cacheRef.current = cached;
+    const result = await loadAppRelease(cached);
     setLoaded(result);
     setChecking(false);
   }, []);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
-    void check();
+    void check(true);
     AsyncStorage.getItem(DISMISS_KEY)
       .then(setDismissedVersion)
       .catch(() => setDismissedVersion(null));
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void check();
+    });
+    return () => sub.remove();
   }, [check]);
 
   if (Platform.OS === "web") return <>{children}</>;
@@ -85,9 +147,8 @@ export function AppReleaseGate({ children }: { children: ReactNode }) {
   if (decision.kind === "maintenance") {
     return <MaintenanceScreen message={decision.message} checking={checking} onRetry={check} />;
   }
-  // Without a real store page there is nothing to send the user to: never trap them.
-  if (decision.kind === "force_update" && storeUrl) {
-    return <ForceUpdateScreen storeUrl={storeUrl} />;
+  if (decision.kind === "force_update") {
+    return <ForceUpdateScreen storeUrl={storeUrl} platform={platform} />;
   }
   const showBanner =
     !!storeUrl && decision.kind === "soft_update" && dismissedVersion !== decision.latest;
@@ -156,21 +217,30 @@ function MaintenanceScreen({
   );
 }
 
-function ForceUpdateScreen({ storeUrl }: { storeUrl: string }) {
+function ForceUpdateScreen({
+  storeUrl,
+  platform,
+}: {
+  storeUrl: string | null;
+  platform: "android" | "ios";
+}) {
   const { t } = useTranslation();
+  const iosNoLink = platform === "ios" && !storeUrl;
   return (
     <FullScreen>
       <Text size="xl" weight="heavy" style={styles.center}>
         {t("appRelease.forceTitle")}
       </Text>
       <Text tone="muted" style={styles.center}>
-        {t("appRelease.forceBody")}
+        {iosNoLink ? t("appRelease.forceIosStore") : t("appRelease.forceBody")}
       </Text>
-      <Button
-        label={t("appRelease.updateNow")}
-        onPress={() => void Linking.openURL(storeUrl).catch(() => undefined)}
-        style={styles.button}
-      />
+      {storeUrl ? (
+        <Button
+          label={t("appRelease.updateNow")}
+          onPress={() => void Linking.openURL(storeUrl).catch(() => undefined)}
+          style={styles.button}
+        />
+      ) : null}
     </FullScreen>
   );
 }
