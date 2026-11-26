@@ -48,6 +48,7 @@ import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
 import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminDocumentsExpiringRouteImport } from './routes/admin.documents-expiring'
 import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
 import { Route as AdminOnlineLessonIssuesRouteImport } from './routes/admin.online-lesson-issues'
@@ -405,6 +406,11 @@ const AdminCasesRoute = AdminCasesRouteImport.update({
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDocumentsExpiringRoute = AdminDocumentsExpiringRouteImport.update({
+  id: '/documents-expiring',
+  path: '/documents-expiring',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFinanceRoute = AdminFinanceRouteImport.update({
@@ -1277,6 +1283,7 @@ export interface FileRoutesByFullPath {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/documents-expiring': typeof AdminDocumentsExpiringRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
@@ -1474,6 +1481,7 @@ export interface FileRoutesByTo {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/documents-expiring': typeof AdminDocumentsExpiringRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
@@ -1669,6 +1677,7 @@ export interface FileRoutesById {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/documents-expiring': typeof AdminDocumentsExpiringRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
@@ -1874,6 +1883,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/documents-expiring'
     | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/online-lesson-issues'
@@ -2071,6 +2081,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/documents-expiring'
     | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/online-lesson-issues'
@@ -2265,6 +2276,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/documents-expiring'
     | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/online-lesson-issues'
@@ -2763,6 +2775,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/documents-expiring': {
+      id: '/admin/documents-expiring'
+      path: '/documents-expiring'
+      fullPath: '/admin/documents-expiring'
+      preLoaderRoute: typeof AdminDocumentsExpiringRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/finance': {
@@ -3940,6 +3959,7 @@ interface AdminRouteChildren {
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCasesRoute: typeof AdminCasesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminDocumentsExpiringRoute: typeof AdminDocumentsExpiringRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminMonitoringRoute: typeof AdminMonitoringRoute
   AdminOnlineLessonIssuesRoute: typeof AdminOnlineLessonIssuesRoute
@@ -3973,6 +3993,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCasesRoute: AdminCasesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminDocumentsExpiringRoute: AdminDocumentsExpiringRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminMonitoringRoute: AdminMonitoringRoute,
   AdminOnlineLessonIssuesRoute: AdminOnlineLessonIssuesRoute,

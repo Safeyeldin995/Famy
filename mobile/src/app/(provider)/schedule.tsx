@@ -14,8 +14,10 @@ import {
   useProviderExceptions,
   useAddException,
   useDeleteException,
+  useProviderBookings,
 } from "@/lib/provider/queries";
 import { WeeklyHoursEditor } from "@/ui/provider/WeeklyHoursEditor";
+import { ScheduleWeekPreview } from "@/ui/provider/ScheduleWeekPreview";
 import { ScheduleDateSheet } from "@/ui/provider/ScheduleDateSheet";
 import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, ActionError } from "@/ui/Page";
@@ -94,6 +96,7 @@ export default function ProviderSchedule() {
   const providerId = provider?.id as string | undefined;
   const vacations = useProviderVacations(providerId);
   const exceptions = useProviderExceptions(providerId);
+  const bookingsQ = useProviderBookings(providerId);
   const addVacation = useAddVacation();
   const deleteVacation = useDeleteVacation();
   const addException = useAddException();
@@ -181,11 +184,40 @@ export default function ProviderSchedule() {
     <Page
       title={t("pro.schedule.title")}
       header={<ProviderHeader title={t("pro.schedule.title")} />}
-      queries={[p, availQ, vacations, exceptions]}
+      queries={[p, availQ, vacations, exceptions, bookingsQ]}
     >
       <QueryState query={availQ}>
         <View style={proCard.card}>
           <Text weight="heavy">{t("scheduleUi.hours")}</Text>
+          <ScheduleWeekPreview
+            vacationDates={
+              new Set(
+                (vacations.data ?? []).flatMap((v) => {
+                  const dates: string[] = [];
+                  let cur = v.start_date;
+                  while (cur <= v.end_date) {
+                    dates.push(cur);
+                    const [y, m, d] = cur.split("-").map(Number);
+                    const next = new Date(Date.UTC(y, m - 1, d + 1));
+                    cur = next.toISOString().slice(0, 10);
+                  }
+                  return dates;
+                }),
+              )
+            }
+            exceptionDates={new Set((exceptions.data ?? []).map((e) => e.date))}
+            bookingDays={
+              new Set(
+                (bookingsQ.data ?? [])
+                  .filter((b) => b.status !== "cancelled")
+                  .map((b) =>
+                    new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(
+                      new Date(b.start_at),
+                    ),
+                  ),
+              )
+            }
+          />
           <WeeklyHoursEditor
             value={rows}
             onChange={setRows}

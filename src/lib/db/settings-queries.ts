@@ -571,6 +571,40 @@ export function useUpdateAppReleaseSettings() {
   });
 }
 
+export function useProviderReviewSlaHoursAdmin() {
+  return useQuery({
+    queryKey: ["settings", "provider_review_sla_hours"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "provider_review_sla_hours")
+        .maybeSingle();
+      if (error) throw error;
+      const hours = Number((data?.value as { hours?: number } | null)?.hours ?? 24);
+      return Number.isFinite(hours) && hours > 0 ? hours : 24;
+    },
+  });
+}
+
+export function useUpdateProviderReviewSlaHours() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (hours: number) => {
+      if (!Number.isInteger(hours) || hours < 1 || hours > 168) {
+        throw new Error("SLA hours must be between 1 and 168.");
+      }
+      const { error } = await supabase
+        .from("settings")
+        .upsert({ key: "provider_review_sla_hours", value: { hours } }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["settings", "provider_review_sla_hours"] });
+    },
+  });
+}
+
 export function useBookingCancellationFee(bookingId: string | undefined, enabled = true) {
   return useQuery({
     enabled: !!bookingId && enabled,
