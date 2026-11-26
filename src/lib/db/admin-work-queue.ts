@@ -27,6 +27,7 @@ export function isProviderWorkQueueKey(value: unknown): value is AdminWorkQueueK
     [
       "new_applications",
       "resubmitted_applications",
+      "applications_over_sla",
       "new_service_requests",
       "price_change_requests",
       "pending_services",

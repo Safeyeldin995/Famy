@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { adminDate, adminLabel } from "@/components/admin/adminPresentation";
 import { AdminPicker } from "@/components/admin/AdminPicker";
 import { createFileRoute } from "@tanstack/react-router";
@@ -53,7 +54,7 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
 
   const handlePreview = () => {
     preview.mutate(target, {
-      onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.audienceError")),
+      onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.campaigns.audienceError"))),
     });
   };
 
@@ -97,7 +98,7 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
           setBodyAr("");
           onCreated();
         },
-        onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.createError")),
+        onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.campaigns.createError"))),
       },
     );
   };
@@ -229,7 +230,7 @@ function CampaignRow({ c }: { c: any }) {
         setActivateOpen(false);
         setConfirmText("");
       },
-      onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.activateError")),
+      onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.campaigns.activateError"))),
     });
   };
 
@@ -274,7 +275,7 @@ function CampaignRow({ c }: { c: any }) {
             <button
               onClick={() =>
                 cancel.mutate(c.id, {
-                  onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.cancelError")),
+                  onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.campaigns.cancelError"))),
                 })
               }
               disabled={cancel.isPending}

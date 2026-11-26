@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -126,7 +127,7 @@ function AdminOnlineLessonIssues() {
                   setSheet(null);
                   toast.success(t("admin.onlineLessonIssues.closed"));
                 },
-                onError: (e: any) => toast.error(e?.message ?? t("common.error")),
+                onError: (e: any) => toast.error(adminErrorText(t, e, t("common.error"))),
               },
             );
           }}
