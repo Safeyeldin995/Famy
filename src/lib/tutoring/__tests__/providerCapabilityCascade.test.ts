@@ -6,6 +6,7 @@ import {
   capabilityPickFromCapability,
   coerceCapabilityPick,
   curriculumOptionsFromCapabilities,
+  durationOptionsFromCapabilityPick,
   levelOptionsFromCapabilities,
   soleOptionValue,
   subjectOptionsFromCapabilities,
@@ -94,6 +95,42 @@ describe("providerCapabilityCascade", () => {
       levelId: "g10",
     });
     expect(matches.map((row) => row.id)).toEqual(["1"]);
+  });
+
+  it("shows one duration chip after grade, none before (same duration across grades)", () => {
+    const homeworkCaps = ["g7", "g8", "g9", "g10"].map((levelId, index) =>
+      cap({
+        id: `hw-${levelId}`,
+        subjectCode: "homework",
+        subjectNameEn: "Homework support",
+        subjectNameAr: "مساعدة واجبات",
+        curriculumId: "cur-us",
+        curriculumCode: "american",
+        curriculumNameEn: "American (Diploma)",
+        curriculumNameAr: "أمريكي",
+        levelId,
+        levelCode: levelId,
+        levelNameEn: levelId,
+        levelNameAr: levelId,
+        durationMin: 120,
+        price: 150 + index * 10,
+      }),
+    );
+    const approved = approvedCapabilitiesForService(homeworkCaps, "svc");
+    const beforeGrade = durationOptionsFromCapabilityPick(
+      approved,
+      { subjectCode: "homework", curriculumId: "cur-us", levelId: "" },
+      true,
+    );
+    expect(beforeGrade).toEqual([]);
+    const afterGrade = durationOptionsFromCapabilityPick(
+      approved,
+      { subjectCode: "homework", curriculumId: "cur-us", levelId: "g8" },
+      true,
+    );
+    expect(afterGrade).toHaveLength(1);
+    expect(afterGrade[0]!.durationMin).toBe(120);
+    expect(afterGrade[0]!.price).toBe(160);
   });
 
   it("soleOptionValue returns empty when ambiguous", () => {
