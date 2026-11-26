@@ -1362,7 +1362,7 @@ const en = {
     adminMatrixEmpty: "No zones yet",
     adminOnlineTitle: "Online lessons by governorate",
     adminOnlineHint:
-      "Online lessons are open in every governorate. Close one only if you need to stop online booking there",
+      "Online lessons are open in every governorate. Closing one blocks new online bookings only for customers who set that governorate on their account",
     adminOnlineOpen: "Open",
     adminOnlineClosed: "Closed",
     adminOnlineToggle: "Online lessons in {{name}}",
