@@ -10,6 +10,7 @@ import {
 } from "@shared/ui/starRating";
 import { colors, space } from "./theme";
 import { Text } from "./Text";
+import { hapticLightImpact } from "./haptics";
 
 export function StarRatingInput({
   label,
@@ -53,7 +54,10 @@ export function StarRatingInput({
                 accessibilityRole="button"
                 accessibilityLabel={t("mobileBooking.starA11y", { n: star })}
                 accessibilityState={{ selected: filled }}
-                onPress={() => onChange?.(star)}
+                onPress={() => {
+                  hapticLightImpact();
+                  onChange?.(star);
+                }}
                 style={{
                   minWidth: 44,
                   minHeight: 44,

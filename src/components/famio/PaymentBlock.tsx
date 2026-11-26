@@ -11,6 +11,7 @@ import { paymentPresentation } from "@/lib/booking/paymentPresentation";
  */
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import {
   useBookingPayment,
@@ -83,7 +84,7 @@ export function PaymentBlock({
   embedded?: boolean;
 }) {
   const Container = embedded ? "div" : Card;
-  const q = useBookingPayment(bookingId);
+  const q = useBookingPayment(bookingId, { providerSafe: viewer === "provider" });
   const createPayment = useCreatePayment();
   const activeMethodsQ = useActivePaymentMethods();
   const upload = useUploadPaymentProof();
@@ -180,6 +181,80 @@ export function PaymentBlock({
       </Container>
     );
   }
+
+  const canCustomerRepay =
+    viewer === "customer" &&
+    isPaymentEligibleBookingStatus(bookingStatus) &&
+    authoritativePriceTotal != null &&
+    Number.isFinite(Number(authoritativePriceTotal)) &&
+    Number(authoritativePriceTotal) > 0;
+
+  const startNewPayment = async (input: {
+    paymentMethodId: string;
+    methodType: "cash" | "manual_transfer" | "online";
+  }) => {
+    if (!canCustomerRepay) return;
+    if (payment?.status === "rejected") {
+      const { error: releaseErr } = await (
+        supabase.rpc as (name: string, args?: object) => ReturnType<typeof supabase.rpc>
+      )("customer_release_booking_checkout_wallet", {
+        p_booking_id: bookingId,
+      });
+      if (releaseErr) {
+        toast.error(mapPaymentInsertError(releaseErr));
+        return;
+      }
+    }
+    try {
+      const created = await createPayment.mutateAsync({
+        bookingId,
+        paymentMethodId: input.paymentMethodId,
+        methodType: input.methodType,
+      });
+      clearPendingPayment(bookingId);
+      await q.refetch();
+      if (input.methodType === "online") {
+        setPaymobStarting(true);
+        const result = await redirectToPaymobCheckout(bookingId, created.id);
+        if (!result.ok) {
+          setPaymobStarting(false);
+          toast.error(result.message || t("payment.paymobStartFailed"));
+        }
+      } else if (input.methodType === "manual_transfer") {
+        // Nothing is uploaded yet: point the customer to the receipt step.
+        toast.success(t("payment.transferStarted"));
+      } else {
+        toast.success(t("payment.methodSaved"));
+      }
+    } catch (e: unknown) {
+      toast.error(mapPaymentInsertError(e));
+    }
+  };
+
+  const paymentMethodChooser =
+    canCustomerRepay && (activeMethodsQ.data?.length ?? 0) > 0 ? (
+      <div className="space-y-2 border-t border-border pt-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {t("bookFlow.choosePaymentMethod")}
+        </div>
+        <div className="flex flex-col gap-2">
+          {(activeMethodsQ.data ?? []).map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              disabled={createPayment.isPending || paymobStarting}
+              onClick={() =>
+                void startNewPayment({ paymentMethodId: m.id, methodType: m.method_type })
+              }
+              className="flex h-11 items-center justify-center rounded-2xl border border-border bg-surface-2 text-sm font-extrabold disabled:opacity-50"
+            >
+              {lang === "ar" ? m.name_ar : m.name_en}
+            </button>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   const p = payment;
   if (!p) {
     return (
@@ -195,6 +270,7 @@ export function PaymentBlock({
               )
             : t("payment.noneRecorded")}
         </div>
+        {paymentMethodChooser}
       </Container>
     );
   }
@@ -456,11 +532,13 @@ export function PaymentBlock({
           {p.rejection_reason && (
             <p className="mt-1 text-pro-12 text-muted-foreground">{p.rejection_reason}</p>
           )}
-          {viewer === "customer" && isManualTransfer && (
+          {viewer === "customer" && (
             <p className="mt-1 text-pro-12 text-muted-foreground">{t("payment.rejectedRetry")}</p>
           )}
         </div>
       )}
+
+      {p.status === "rejected" && viewer === "customer" ? paymentMethodChooser : null}
 
       {/* Provider/Admin actions */}
       {canConfirm &&

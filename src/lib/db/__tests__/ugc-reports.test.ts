@@ -149,6 +149,26 @@ describe("ugc_reports and chat blocks", () => {
     expect(hide.error).toMatch(/moderation status/i);
   });
 
+  it("does not let authenticated users probe arbitrary block pairs", async () => {
+    const probe = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.chat_pair_is_blocked($1::uuid, $2::uuid)`,
+      [IDS.customer, IDS.providerUser],
+    );
+    expect(probe.ok).toBe(false);
+    expect(probe.error).toMatch(/permission denied|42501/i);
+
+    const mine = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.my_chat_block_status($1::uuid) AS blocked`,
+      [conversationId],
+    );
+    expect(mine.ok).toBe(true);
+    expect(Boolean(mine.rows?.[0]?.blocked)).toBe(true);
+  });
+
   it("prevents new bookings between a blocked pair", async () => {
     const service = await queryRows<{ id: string }>(
       db,

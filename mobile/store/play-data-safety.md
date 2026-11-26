@@ -24,7 +24,7 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 | **Calendar / booking info** | Yes | Between customer and provider | Service scheduling | Required for bookings |
 | **Messages** | Yes | Between booking parties | Chat | Optional |
 | **Purchase history** | Yes (booking payments) | Payment processors (e.g. Paymob) | Payments, support | Required for paid bookings |
-| **App interactions** | Yes | No | Notifications preferences, booking state | Mixed |
+| **App interactions** | Yes | Google (Firebase Analytics) | Product analytics (funnel events, no ads) | Required for usage |
 | **Device or other IDs** | Push token | Push infrastructure | Notifications | Optional (push opt-in) |
 | **Crash logs** | Not explicitly integrated in mobile app reviewed | — | — | — |
 | **Payment card numbers** | **No in app** | Entered on Paymob hosted flow when paying online | Online payment | User choice |
@@ -35,7 +35,16 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 - Coordinates come from **“use my location”** *or* from **manually moving the pin** on the map (`LocationPicker` → `AddressEditor`); denying GPS does **not** avoid coordinate collection if the user still saves an address.
 - **Not collected in the background** — only while the user is actively placing or editing an address (foreground map flow).
 - Used for **app functionality** (matching, routing context, booking fulfillment with the saved address).
-- **Not shared with third parties** (no ad/analytics location SDK); address details needed for an active booking are shared with the matched provider as part of fulfillment, not sold.
+- **Not shared with third parties** for advertising; address details needed for an active booking are shared with the matched provider as part of fulfillment, not sold.
+
+### Firebase Analytics (Google Analytics for Firebase)
+
+- **Collected:** App interaction events (e.g. booking started, payment completed) via `@react-native-firebase/analytics`.
+- **Purpose:** Analytics only — product funnel measurement; **not** used for ads or profiling for advertising.
+- **Shared:** With Google as processor under the Firebase terms; **not sold**.
+- **Advertising ID:** Disabled in `mobile/firebase.json`; Android `AD_ID` permission is blocked in `app.config.js`.
+- **User-identifying params:** Event payloads must not include names, phone numbers, or account identifiers (current implementation follows this).
+- **Play form:** Declare **App activity → App interactions** as collected, shared with Google for analytics, not used for advertising.
 
 ### Family / children
 

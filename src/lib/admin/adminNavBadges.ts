@@ -24,11 +24,18 @@ export const ADMIN_NAV_BADGE_ROUTES: Record<string, readonly AdminNavBadgeKey[]>
   "/admin/reports-ugc": ["ugc_reports"],
 };
 
+export type AdminNavBadgeExtras = {
+  pendingSettlements: number;
+  providersAtCashLimit: number;
+  studentParentFlags: number;
+};
+
 export function adminNavBadgeCount(
   route: string,
   queue: Record<AdminWorkQueueKey, number>,
-  extras: { pendingSettlements: number; providersAtCashLimit: number },
+  extras: AdminNavBadgeExtras,
 ): number {
+  if (route === "/admin/student-links") return extras.studentParentFlags;
   const keys = ADMIN_NAV_BADGE_ROUTES[route];
   if (!keys?.length) return 0;
   return keys.reduce((sum, key) => {

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { Text } from "./Text";
 import { colors, space } from "./theme";
+import { hapticLightImpact } from "./haptics";
 
 const tabs = { home: Home, bookings: Calendar, profile: User };
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
@@ -46,7 +47,10 @@ export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBa
                   target: route.key,
                   canPreventDefault: true,
                 });
-                if (!active && !event.defaultPrevented) navigateToTab(route.key);
+                if (!active && !event.defaultPrevented) {
+                  hapticLightImpact();
+                  navigateToTab(route.key);
+                }
               }}
               onLongPress={() => emitter.emit({ type: "tabLongPress", target: route.key })}
             >

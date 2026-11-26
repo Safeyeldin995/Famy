@@ -177,10 +177,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Authorization-only, refunded, and voided transactions do not
-  // prove receipt of funds. Do not consume their transaction IDs as captures.
-  if ([obj.is_auth, obj.is_refunded, obj.is_voided].some(asBoolean)) {
-    return new Response(JSON.stringify({ ok: true, ignored: true }), {
+  if (asBoolean(obj.is_auth)) {
+    return new Response(JSON.stringify({ ok: true, ignored: true, reason: "auth_only" }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -189,6 +187,31 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  if (asBoolean(obj.is_refunded) || asBoolean(obj.is_voided)) {
+    const { data, error } = await supabase.rpc("paymob_apply_refund_webhook", {
+      p_paymob_transaction_id: paymobTransactionId,
+      p_order_id: orderId,
+      p_amount_cents: Math.trunc(amountCents),
+      p_is_voided: asBoolean(obj.is_voided),
+      p_metadata: {
+        paymob_transaction_id: paymobTransactionId,
+        paymob_order_id: obj.order?.id ?? null,
+        paymob_processed_at: new Date().toISOString(),
+      },
+    });
+    if (error) {
+      console.error("[paymob-webhook] refund rpc failed", error.message);
+      return new Response(JSON.stringify({ error: "processing_failed" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ ok: true, result: data }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const success = asBoolean(obj.success) && !asBoolean(obj.error_occured);
   const pending = asBoolean(obj.pending);

@@ -52,8 +52,40 @@ AS $$
       AND b.provider_user_id = p_provider_user_id
   );
 $$;
-REVOKE ALL ON FUNCTION public.chat_pair_is_blocked(uuid, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.chat_pair_is_blocked(uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.chat_pair_is_blocked(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.chat_pair_is_blocked(uuid, uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.my_chat_block_status(p_conversation_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_conv public.conversations%ROWTYPE;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO v_conv
+  FROM public.conversations c
+  WHERE c.id = p_conversation_id;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF v_uid <> v_conv.customer_id AND v_uid <> v_conv.provider_user_id THEN
+    RAISE EXCEPTION 'not_a_participant' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN public.chat_pair_is_blocked(v_conv.customer_id, v_conv.provider_user_id);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.my_chat_block_status(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.my_chat_block_status(uuid) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2) UGC reports queue

@@ -12,10 +12,27 @@ import {
 } from "@/lib/db/queries";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { buildBookingRequest } from "@/lib/booking/bookingRequest";
+import { useBillingSettings } from "@/lib/db/settings-queries";
+import { onlineLessonRequestTotal } from "@/lib/online/onlineLessonRequestQuote";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
+import {
+  OnlineWebParentContactFields,
+  useOnlineStudentNeedsGuardianContact,
+} from "@/components/online/OnlineWebParentLinkGate";
+import { useRegisterParentGuardianContact } from "@/lib/db/student-parent-link-queries";
+import { sendParentGuardianEmailFn } from "@/lib/email/parentGuardianEmail.functions";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import {
+  cairoDayStrip,
+  cairoTodayStart,
+  localMidnightForCairoInstant,
+  sameCairoCalendarDay,
+  ONLINE_WEB_TIME_ZONE,
+} from "@/lib/online/onlineWebCairoTime";
+import { formatEGP, formatDate, formatTime, formatLocale, formatNumber } from "@/lib/format";
+import { currentLang } from "@/lib/i18n";
 import type { CapabilityPickValue } from "@/lib/tutoring/providerCapabilityCascade";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
 
@@ -29,6 +46,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const servicesQ = useProviderServices(providerId);
   const bookableQ = useBookableServiceIds(providerId, undefined, "online");
   const create = useCreateBooking();
+  const billingQ = useBillingSettings();
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [capabilityPick, setCapabilityPick] = useState<CapabilityPickValue>({
     subjectCode: "",
@@ -36,13 +54,15 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     levelId: "",
   });
   const [capabilityId, setCapabilityId] = useState<string | null>(null);
-  const [day, setDay] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const lang = currentLang();
+  const locale = formatLocale(lang);
+  const [day, setDay] = useState(() => cairoTodayStart());
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const guardian = useOnlineStudentNeedsGuardianContact();
+  const registerGuardian = useRegisterParentGuardianContact();
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -85,8 +105,9 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const selectedCapability: TeachingCapabilityOption | null =
     capabilities.find((row) => row.id === capabilityId) ?? null;
   const slotMinutes = selectedCapability?.durationMin ?? 0;
+  const slotsDay = useMemo(() => localMidnightForCairoInstant(day), [day]);
 
-  const slotsQ = useAvailableSlots(providerId, day, slotMinutes || 60, {
+  const slotsQ = useAvailableSlots(providerId, slotsDay, slotMinutes || 60, {
     serviceId: resolvedServiceId,
     addressId: null,
     serviceMode: "online",
@@ -101,22 +122,44 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     setSlotStart(null);
   }, [capabilityId, day]);
 
-  const dayOptions = useMemo(() => {
-    const out: Date[] = [];
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      out.push(d);
-    }
-    return out;
-  }, []);
+  const dayOptions = useMemo(() => cairoDayStrip(14), []);
+
+  const priceTotal = useMemo(() => {
+    if (!selectedCapability || !billingQ.data) return null;
+    return onlineLessonRequestTotal(
+      { durationMin: selectedCapability.durationMin, price: selectedCapability.price },
+      billingQ.data,
+    );
+  }, [billingQ.data, selectedCapability]);
 
   const selectedSlot = useMemo(() => {
     if (!slotStart) return null;
     return availableSlots.find((s) => s.start.getTime() === slotStart.getTime()) ?? null;
   }, [availableSlots, slotStart]);
+
+  const tryRegisterGuardianContact = async () => {
+    if (!guardian.isMinorStudent) return;
+  const phone = parentPhone.trim();
+    const email = parentEmail.trim();
+    if (!phone || !email) {
+      toast.info(t("studentParentLink.contactRetryHint"));
+      return;
+    }
+    try {
+      const registered = await registerGuardian.mutateAsync({
+        parentPhone: phone,
+        parentEmail: email,
+      });
+      const emailResult = await sendParentGuardianEmailFn({
+        data: { linkId: String((registered as { link_id?: string }).link_id ?? "") || undefined },
+      });
+      if (emailResult?.ok === false) {
+        toast.info(t("studentParentLink.contactRetryHint"));
+      }
+    } catch {
+      toast.info(t("studentParentLink.contactRetryHint"));
+    }
+  };
 
   const submit = async () => {
     if (!resolvedServiceId || !selectedSlot || !selectedCapability || create.isPending) return;
@@ -148,13 +191,16 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
         idempotency_key: crypto.randomUUID(),
       });
       toast.success(t("onlineWeb.request.success"));
+      if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
+        void tryRegisterGuardianContact();
+      }
       nav({ to: onlineWebLessonPath(result.id), replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong"));
     }
   };
 
-  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading;
+  const loading = servicesQ.isLoading || bookableQ.isLoading || capabilitiesQ.isLoading || guardian.loading;
   if (loading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
   }
@@ -165,6 +211,15 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   return (
     <OnlineWebCustomerDobGate>
       <div className="space-y-5">
+        {guardian.isMinorStudent && guardian.needsNewContact ? (
+          <OnlineWebParentContactFields
+            parentPhone={parentPhone}
+            parentEmail={parentEmail}
+            onParentPhoneChange={setParentPhone}
+            onParentEmailChange={setParentEmail}
+            disabled={registerGuardian.isPending || create.isPending}
+          />
+        ) : null}
         {tutoringServices.length > 1 ? (
           <label className="block">
             <span className="text-pro-13 font-bold text-muted-foreground">{t("bookingUx.chooseService")}</span>
@@ -199,7 +254,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
           <p className="text-pro-13 font-bold text-muted-foreground">{t("onlineWeb.request.pickDay")}</p>
           <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
             {dayOptions.map((d) => {
-              const active = d.toDateString() === day.toDateString();
+              const active = sameCairoCalendarDay(d, day);
               return (
                 <button
                   key={d.toISOString()}
@@ -210,7 +265,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
                   }`}
                   onClick={() => setDay(d)}
                 >
-                  {d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+                  {formatDate(d, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}
                 </button>
               );
             })}
@@ -255,6 +310,23 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
             placeholder={t("onlineWeb.request.notesPlaceholder")}
           />
         </label>
+
+        {priceTotal != null && selectedCapability ? (
+          <div className="rounded-2xl border border-border/60 bg-surface-2 p-4">
+            <p className="text-pro-14 font-extrabold">
+              {t("booking.total")}: {formatEGP(priceTotal, undefined, lang)}
+            </p>
+            <p className="mt-1 text-pro-13 text-muted-foreground">
+              {t("bookFlow.sessionLine", { minutes: formatNumber(selectedCapability.durationMin, lang) })}
+              {selectedSlot
+                ? ` · ${formatTime(selectedSlot.end, locale, ONLINE_WEB_TIME_ZONE)}`
+                : null}
+            </p>
+            <p className="mt-2 text-pro-12 text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
+          </div>
+        ) : null}
+
+        <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
 
         <PrimaryButton
           className="h-12 w-full"
