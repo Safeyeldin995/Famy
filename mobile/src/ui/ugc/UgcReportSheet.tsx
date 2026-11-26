@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Modal, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { UGC_REASONS, type UgcReason, type UgcSubjectType, useReportUgc } from "@/lib/ugcQueries";
+import {
+  UGC_REASONS,
+  type UgcReason,
+  type UgcSubjectType,
+  ugcReportErrorKey,
+  useReportUgc,
+} from "@/lib/ugcQueries";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { Choices, ui } from "@/ui/Page";
@@ -37,6 +43,7 @@ export function UgcReportSheet({
     setReason("harassment");
     setDetail("");
     setDone(false);
+    report.reset();
   };
 
   const handleClose = () => {
@@ -122,6 +129,11 @@ export function UgcReportSheet({
                 }}
                 {...bodyTextInputProps()}
               />
+              {report.isError ? (
+                <Text tone="danger" size="sm" accessibilityRole="alert">
+                  {t(ugcReportErrorKey(report.error))}
+                </Text>
+              ) : null}
               <View style={{ flexDirection: "row", gap: space.sm }}>
                 <Button
                   label={t("common.cancel")}

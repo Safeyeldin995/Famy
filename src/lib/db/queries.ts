@@ -334,6 +334,39 @@ async function safeProviderDetails(providerId: string) {
   return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
 }
 
+/**
+ * Provider summary for a booking page. The marketplace details RPC is for
+ * customers browsing and refuses provider accounts, so a tutor opening their own
+ * lesson (or a dual-role account) falls back to the participant-only card.
+ * A failure here never breaks the booking page.
+ */
+export async function bookingProviderForPage(bookingId: string, providerId: string) {
+  try {
+    const details = await safeProviderDetails(providerId);
+    if (details) return details;
+  } catch {
+    // fall through to the participant card
+  }
+  const { data, error } = await supabase.rpc('booking_provider_card' as never, {
+    p_booking_id: bookingId,
+  } as never);
+  if (error) return null;
+  const row = (data as Array<{
+    provider_id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    rating_avg: number | string | null;
+    rating_count: number | string | null;
+  }> | null)?.[0];
+  if (!row) return null;
+  return {
+    id: row.provider_id,
+    profile: { full_name: row.full_name, avatar_url: row.avatar_url },
+    ratings: { rating_avg: Number(row.rating_avg ?? 0), rating_count: Number(row.rating_count ?? 0) },
+    services: [],
+  };
+}
+
 export function useProviders(opts: {
   categorySlug?: string;
   serviceId?: string;
@@ -638,8 +671,20 @@ export function useMyBookings(opts?: { serviceMode?: "in_person" | "online" }) {
       }
       const { data, error } = await query.order('start_at', { ascending: false });
       if (error) throw error;
-      const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
-      const providers = new Map((await Promise.all(providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const))));
+      // One booking per provider is enough to look its card up; a failed lookup
+      // leaves that card empty instead of failing the whole list.
+      const bookingByProvider = new Map<string, string>();
+      for (const booking of data ?? []) {
+        if (!bookingByProvider.has(booking.provider_id)) bookingByProvider.set(booking.provider_id, booking.id);
+      }
+      const providers = new Map(
+        await Promise.all(
+          [...bookingByProvider.entries()].map(
+            async ([providerId, bookingId]) =>
+              [providerId, await bookingProviderForPage(bookingId, providerId)] as const,
+          ),
+        ),
+      );
       return (data ?? []).map((booking) => ({ ...booking, provider: providers.get(booking.provider_id) ?? null }));
     },
   });
@@ -667,7 +712,7 @@ export function useBooking(id: string | undefined) {
       return {
         ...data,
         provider_profile_id: providerMeta?.profile_id ?? null,
-        provider: await safeProviderDetails(data.provider_id),
+        provider: await bookingProviderForPage(String(data.id), String(data.provider_id)),
       };
     },
   });
@@ -901,8 +946,10 @@ export function useToggleFavorite() {
 }
 
 // ---------- Notifications ----------
-export function useNotifications() {
+export function useNotifications(opts?: { enabled?: boolean; refetchInterval?: number }) {
   return useQuery({
+    enabled: opts?.enabled ?? true,
+    refetchInterval: opts?.refetchInterval,
     queryKey: ['notifications'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -917,8 +964,10 @@ export function useNotifications() {
 }
 
 // Server-backed unread count (COUNT via RLS-scoped query, not a client tally).
-export function useUnreadNotificationCount() {
+export function useUnreadNotificationCount(opts?: { enabled?: boolean; refetchInterval?: number }) {
   return useQuery({
+    enabled: opts?.enabled ?? true,
+    refetchInterval: opts?.refetchInterval,
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       const { count, error } = await supabase

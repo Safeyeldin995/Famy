@@ -88,7 +88,11 @@ function OnlineLessonsIndex() {
       {bookingsQ.isError ? (
         <QueryError onRetry={() => void bookingsQ.refetch()} />
       ) : bookingsQ.isLoading ? (
-        <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>
+        <ul className="space-y-3" aria-busy="true" aria-label={t("onlineWeb.hub.lessonsSkeleton")}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="skeleton h-20 rounded-2xl" />
+          ))}
+        </ul>
       ) : list.length === 0 ? (
         <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
           <p className="text-pro-15 text-muted-foreground">{t("onlineWeb.lessons.empty")}</p>

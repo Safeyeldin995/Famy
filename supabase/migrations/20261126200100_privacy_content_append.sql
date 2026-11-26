@@ -35,7 +35,7 @@ BEGIN
   END IF;
 
   UPDATE public.settings
-  SET value = jsonb_build_object('body_en', v_en, 'body_ar', v_ar)
+  SET value = v_row.value || jsonb_build_object('body_en', v_en, 'body_ar', v_ar)
   WHERE key = 'content_privacy';
 END;
 $$;

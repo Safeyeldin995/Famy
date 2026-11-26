@@ -37,6 +37,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
 import { Route as AccountDeleteRouteImport } from './routes/account.delete'
+import { Route as AccountStudentsRouteImport } from './routes/account.students'
 import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
@@ -65,6 +66,7 @@ import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminStudentLinksRouteImport } from './routes/admin.student-links'
+import { Route as AdminWalletsRouteImport } from './routes/admin.wallets'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -137,6 +139,7 @@ import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.d
 import { Route as ApiMobileParentGuardianEmailRouteImport } from './routes/api.mobile.parent-guardian-email'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
+import { Route as ApiOnlineSessionsPresencePollRouteImport } from './routes/api.online-sessions.presence-poll'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
@@ -352,6 +355,11 @@ const AccountDeleteRoute = AccountDeleteRouteImport.update({
   path: '/account/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountStudentsRoute = AccountStudentsRouteImport.update({
+  id: '/account/students',
+  path: '/account/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AddressesIndexRoute = AddressesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -492,6 +500,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
 const AdminStudentLinksRoute = AdminStudentLinksRouteImport.update({
   id: '/student-links',
   path: '/student-links',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminWalletsRoute = AdminWalletsRouteImport.update({
+  id: '/wallets',
+  path: '/wallets',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
@@ -858,6 +871,12 @@ const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   path: '/api/mobile/paymob-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOnlineSessionsPresencePollRoute =
+  ApiOnlineSessionsPresencePollRouteImport.update({
+    id: '/api/online-sessions/presence-poll',
+    path: '/api/online-sessions/presence-poll',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSessionCapabilitiesRoute = ApiSessionCapabilitiesRouteImport.update({
   id: '/api/session/capabilities',
   path: '/api/session/capabilities',
@@ -1274,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1300,6 +1320,7 @@ export interface FileRoutesByFullPath {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1373,6 +1394,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1472,6 +1494,7 @@ export interface FileRoutesByTo {
   '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1497,6 +1520,7 @@ export interface FileRoutesByTo {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1565,6 +1589,7 @@ export interface FileRoutesByTo {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1668,6 +1693,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRoute
   '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1694,6 +1720,7 @@ export interface FileRoutesById {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1767,6 +1794,7 @@ export interface FileRoutesById {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1874,6 +1902,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -1900,6 +1929,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1973,6 +2003,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2072,6 +2103,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -2097,6 +2129,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2165,6 +2198,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2267,6 +2301,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/__qa/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -2293,6 +2328,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2366,6 +2402,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2472,6 +2509,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
   AccountDeleteRoute: typeof AccountDeleteRoute
+  AccountStudentsRoute: typeof AccountStudentsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
@@ -2489,6 +2527,7 @@ export interface RootRouteChildren {
   ApiMobileParentGuardianEmailRoute: typeof ApiMobileParentGuardianEmailRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
+  ApiOnlineSessionsPresencePollRoute: typeof ApiOnlineSessionsPresencePollRoute
   ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
   ApiSessionReportRoute: typeof ApiSessionReportRoute
   ApiSessionTokenRoute: typeof ApiSessionTokenRoute
@@ -2700,6 +2739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/students': {
+      id: '/account/students'
+      path: '/account/students'
+      fullPath: '/account/students'
+      preLoaderRoute: typeof AccountStudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/addresses/': {
       id: '/addresses/'
       path: '/'
@@ -2894,6 +2940,13 @@ declare module '@tanstack/react-router' {
       path: '/student-links'
       fullPath: '/admin/student-links'
       preLoaderRoute: typeof AdminStudentLinksRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/wallets': {
+      id: '/admin/wallets'
+      path: '/wallets'
+      fullPath: '/admin/wallets'
+      preLoaderRoute: typeof AdminWalletsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/zones': {
@@ -3398,6 +3451,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/paymob-checkout'
       fullPath: '/api/mobile/paymob-checkout'
       preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/online-sessions/presence-poll': {
+      id: '/api/online-sessions/presence-poll'
+      path: '/api/online-sessions/presence-poll'
+      fullPath: '/api/online-sessions/presence-poll'
+      preLoaderRoute: typeof ApiOnlineSessionsPresencePollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/session/capabilities': {
@@ -3976,6 +4036,7 @@ interface AdminRouteChildren {
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStudentLinksRoute: typeof AdminStudentLinksRoute
+  AdminWalletsRoute: typeof AdminWalletsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -4010,6 +4071,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStudentLinksRoute: AdminStudentLinksRoute,
+  AdminWalletsRoute: AdminWalletsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
@@ -4410,6 +4472,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
   AccountDeleteRoute: AccountDeleteRoute,
+  AccountStudentsRoute: AccountStudentsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
@@ -4427,6 +4490,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileParentGuardianEmailRoute: ApiMobileParentGuardianEmailRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
+  ApiOnlineSessionsPresencePollRoute: ApiOnlineSessionsPresencePollRoute,
   ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
   ApiSessionReportRoute: ApiSessionReportRoute,
   ApiSessionTokenRoute: ApiSessionTokenRoute,

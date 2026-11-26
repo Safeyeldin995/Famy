@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
 import { adminDate, adminLabel, adminErrorSummary } from "@/components/admin/adminPresentation";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
@@ -318,7 +319,7 @@ function NotificationFailuresSection() {
               onClick={() =>
                 retry.mutate(r.id, {
                   onSuccess: () => toast.success(t("admin.operations.retrySuccess")),
-                  onError: (e: any) => toast.error(e?.message ?? t("admin.operations.retryError")),
+                  onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.operations.retryError"))),
                 })
               }
               className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand px-2 py-1 text-xs font-bold text-brand-foreground disabled:opacity-50"

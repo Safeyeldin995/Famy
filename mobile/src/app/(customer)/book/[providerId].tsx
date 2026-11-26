@@ -146,12 +146,15 @@ export default function Book() {
     capabilityId: initialCap,
     rebookFrom,
     serviceMode: serviceModeParam,
+    forWhom: forWhomParam,
   } = useLocalSearchParams<{
     providerId: string;
     serviceId?: string;
     capabilityId?: string;
     rebookFrom?: string;
     serviceMode?: string;
+    /** The learner picked in «الحجز لمين؟» (a family member id), issue 536. */
+    forWhom?: string;
   }>();
   const serviceMode = normalizeServiceDeliveryMode(serviceModeParam);
   return (
@@ -162,6 +165,7 @@ export default function Book() {
           providerId={providerId}
           initialService={initialService}
           initialCap={initialCap}
+          initialForWhom={forWhomParam}
           rebookFrom={rebookFrom}
           rebookInitial={rebookInitial}
           rebookNotices={rebookNotices}
@@ -176,6 +180,7 @@ function BookForm({
   providerId,
   initialService,
   initialCap,
+  initialForWhom,
   rebookFrom,
   rebookInitial,
   rebookNotices: rebookNoticesProp,
@@ -184,6 +189,7 @@ function BookForm({
   providerId: string;
   initialService?: string;
   initialCap?: string;
+  initialForWhom?: string;
   rebookFrom?: string;
   rebookInitial: RebookFormInitial | null;
   rebookNotices: import("@shared/booking/rebookPrefill").RebookPrefillNotice[];
@@ -229,7 +235,7 @@ function BookForm({
   });
   const [slot, setSlot] = useState<Slot | null>(null);
   const [addressId, setAddressId] = useState(rebookInitial?.addressId ?? "");
-  const [recipient, setRecipient] = useState(rebookInitial?.forWhom ?? "myself");
+  const [recipient, setRecipient] = useState(rebookInitial?.forWhom ?? initialForWhom ?? "myself");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
   const saveGuardian = useSaveParentGuardianContact();
@@ -463,8 +469,7 @@ function BookForm({
   const minorSelfOnline =
     isOnlineBooking && recipient === "myself" && selfAge != null && selfAge >= 12 && selfAge < 18;
   const guardianStatus = useStudentParentLinkStatus({ enabled: minorSelfOnline });
-  const needsGuardianContact =
-    minorSelfOnline && guardianStatus.isSuccess && !guardianStatus.data;
+  const needsGuardianContact = minorSelfOnline && guardianStatus.isSuccess && !guardianStatus.data;
   const supervisionReady = !supervisionRequired || !!supervisionMode;
   const addressReady = checkoutAddressReady({
     addressId: isOnlineBooking ? null : addressId || null,
@@ -486,10 +491,8 @@ function BookForm({
     [isOnlineBooking, methods.data],
   );
   const paymobOnline = resolvePaymobOnlinePaymentMethod(checkoutMethods);
-  const showApplePay =
-    !!paymobOnline && showApplePayPaymentOption(!!paymobCaps.data?.applePay);
-  const showGooglePay =
-    !!paymobOnline && showGooglePayPaymentOption(!!paymobCaps.data?.googlePay);
+  const showApplePay = !!paymobOnline && showApplePayPaymentOption(!!paymobCaps.data?.applePay);
+  const showGooglePay = !!paymobOnline && showGooglePayPaymentOption(!!paymobCaps.data?.googlePay);
   const paymentMethodReady =
     !!methodId &&
     (isPaymobWalletUiMethodId(methodId)
@@ -712,8 +715,7 @@ function BookForm({
           ...(members.data ?? [])
             .filter(
               (m) =>
-                (!isOnlineBooking ||
-                  (memberAgeFromDate(m.date_of_birth)?.years ?? 0) >= 12) &&
+                (!isOnlineBooking || (memberAgeFromDate(m.date_of_birth)?.years ?? 0) >= 12) &&
                 (!babysitting ||
                   familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok),
             )
@@ -1111,7 +1113,11 @@ function BookForm({
                   onPress={() => setInlineForm("address")}
                 />
               </View>
-              <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
+              <QueryState
+                query={bookable}
+                empty={addressOutside}
+                emptyKey="bookingUx.outsideArea"
+              />
             </>
           ) : null}
           {!tutoring && recipientUI}
@@ -1374,37 +1380,37 @@ function BookForm({
           ) : null}
           {!isOnlineBooking ? <QueryState query={methods} empty={!methods.data?.length} /> : null}
           {!isOnlineBooking ? (
-          <Choices
-            layout="cards"
-            label={t("payment.title")}
-            value={methodId}
-            onChange={setMethodId}
-            options={[
-              ...checkoutMethods.map((m) => ({
-                value: m.id,
-                label: localized(m, lang),
-                adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
-              })),
-              ...(showApplePay
-                ? [
-                    {
-                      value: PAYMOB_WALLET_APPLE_PAY_METHOD_ID,
-                      label: t("payment.applePayLabel"),
-                      adornment: <ApplePayMark height={16} />,
-                    },
-                  ]
-                : []),
-              ...(showGooglePay
-                ? [
-                    {
-                      value: PAYMOB_WALLET_GOOGLE_PAY_METHOD_ID,
-                      label: t("payment.googlePayLabel"),
-                      adornment: <GooglePayMark height={16} />,
-                    },
-                  ]
-                : []),
-            ]}
-          />
+            <Choices
+              layout="cards"
+              label={t("payment.title")}
+              value={methodId}
+              onChange={setMethodId}
+              options={[
+                ...checkoutMethods.map((m) => ({
+                  value: m.id,
+                  label: localized(m, lang),
+                  adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
+                })),
+                ...(showApplePay
+                  ? [
+                      {
+                        value: PAYMOB_WALLET_APPLE_PAY_METHOD_ID,
+                        label: t("payment.applePayLabel"),
+                        adornment: <ApplePayMark height={16} />,
+                      },
+                    ]
+                  : []),
+                ...(showGooglePay
+                  ? [
+                      {
+                        value: PAYMOB_WALLET_GOOGLE_PAY_METHOD_ID,
+                        label: t("payment.googlePayLabel"),
+                        adornment: <GooglePayMark height={16} />,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           ) : null}
         </>
       )}

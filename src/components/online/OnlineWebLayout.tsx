@@ -8,6 +8,13 @@ import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { useOnlineWebNavTabs } from "@/lib/web/useOnlineWebNavTabs";
 import { useOnlineWebSessionGate } from "@/lib/web/useOnlineWebSessionGate";
 import { OnlineWebAccountMenu } from "@/components/online/OnlineWebAccountMenu";
+import { OnlineWebNotificationsBell } from "@/components/online/OnlineWebNotificationsBell";
+import { OnlineWebFooter } from "@/components/online/OnlineWebFooter";
+
+function isTabActive(path: string, to: string): boolean {
+  if (to === ONLINE_WEB_ROUTE_IDS.home) return path === to || path === `${to}/`;
+  return path === to || path.startsWith(`${to}/`);
+}
 
 const NAV_COMPACT_MAX_PX = 400;
 
@@ -39,9 +46,9 @@ export function OnlineWebLayout() {
     }`;
 
   return (
-    <div className="min-h-dvh bg-surface-2 text-foreground">
+    <div className="flex min-h-dvh flex-col bg-surface-2 text-foreground">
       <header className="relative sticky top-0 z-40 border-b border-border/60 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-5">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
           <Link
             to={ONLINE_WEB_ROUTE_IDS.home}
             className="focus-ring flex min-w-0 items-center gap-2 shrink-0"
@@ -66,13 +73,14 @@ export function OnlineWebLayout() {
             >
               {t("site.nav.home")}
             </Link>
+            <OnlineWebNotificationsBell />
             <OnlineWebAccountMenu />
             <LanguageToggle variant="inline" />
           </div>
         </div>
 
         {compactNav ? (
-          <div className="mx-auto flex max-w-5xl items-center justify-end gap-2 px-4 pb-3 sm:px-5">
+          <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-4 pb-3 sm:px-5">
             <button
               type="button"
               className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-pro-13 font-bold"
@@ -91,7 +99,7 @@ export function OnlineWebLayout() {
               >
                 <ul className="flex flex-col gap-1">
                   {tabs.map((tab) => {
-                    const active = path === tab.to || path.startsWith(`${tab.to}/`);
+                    const active = isTabActive(path, tab.to);
                     return (
                       <li key={tab.to}>
                         <Link to={tab.to} className={`${tabLinkClass(active)} block w-full text-center`}>
@@ -106,11 +114,11 @@ export function OnlineWebLayout() {
           </div>
         ) : (
           <nav
-            className="online-web-nav-scroll mx-auto flex max-w-5xl gap-2 overflow-x-auto overscroll-x-contain px-4 pb-3 pe-6 sm:px-5"
+            className="online-web-nav-scroll mx-auto flex max-w-6xl gap-2 overflow-x-auto overscroll-x-contain px-4 pb-3 pe-6 sm:px-5"
             aria-label={t("onlineWeb.nav.label")}
           >
             {tabs.map((tab) => {
-              const active = path === tab.to || path.startsWith(`${tab.to}/`);
+              const active = isTabActive(path, tab.to);
               return (
                 <Link key={tab.to} to={tab.to} className={tabLinkClass(active)}>
                   {t(tab.key)}
@@ -120,9 +128,17 @@ export function OnlineWebLayout() {
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-5">
-        {canRenderPage ? <Outlet /> : null}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-5 lg:py-10">
+        {canRenderPage ? (
+          <Outlet />
+        ) : (
+          <div className="space-y-4" aria-busy="true">
+            <div className="skeleton h-10 w-2/3 rounded-2xl" />
+            <div className="skeleton h-48 rounded-3xl" />
+          </div>
+        )}
       </main>
+      <OnlineWebFooter />
     </div>
   );
 }

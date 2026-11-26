@@ -26,7 +26,9 @@ export type NativeDeepLinkTarget =
   | { pathname: "/wallet" }
   | { pathname: "/booking/[id]/session"; params: { id: string } }
   | { pathname: "/pro-booking/[id]/session"; params: { id: string } }
-  | { pathname: "/student-parent-link"; params?: { linkId?: string } };
+  | { pathname: "/student-parent-link"; params?: { linkId?: string } }
+  | { pathname: "/students"; params?: { confirm?: string } }
+  | { pathname: "/category/[id]"; params: { id: string } };
 
 export function workspaceHome(workspace: PushWorkspace): NativeDeepLinkTarget {
   return workspace === "provider" ? { pathname: "/dashboard" } : { pathname: "/home" };
@@ -57,11 +59,14 @@ export function mapNotificationDeepLink(
   }
 
   const onlineLesson = path.match(/^\/online\/lessons\/([^/]+)$/);
-  if (onlineLesson && workspace === "customer") {
-    return {
-      pathname: "/booking/[id]",
-      params: { id: onlineLesson[1]!, ...(openReview ? { review: "1" } : {}) },
-    };
+  if (onlineLesson) {
+    // Online booking notifications link to the web lesson page for both sides.
+    return workspace === "provider"
+      ? { pathname: "/pro-booking/[id]", params: { id: onlineLesson[1]! } }
+      : {
+          pathname: "/booking/[id]",
+          params: { id: onlineLesson[1]!, ...(openReview ? { review: "1" } : {}) },
+        };
   }
 
   const shortProvider = path.match(/^\/p\/([^/]+)$/);
@@ -112,6 +117,15 @@ export function mapNotificationDeepLink(
     return linkId
       ? { pathname: "/student-parent-link", params: { linkId } }
       : { pathname: "/student-parent-link" };
+  }
+
+  // Student profile (issue #536): the «صح؟» grade confirmation and «بلغني» tutor alerts.
+  if (path === "/account/students" && workspace === "customer") {
+    const confirm = query.get("confirm");
+    return confirm ? { pathname: "/students", params: { confirm } } : { pathname: "/students" };
+  }
+  if ((path === "/online/tutors" || path === "/category/tutoring") && workspace === "customer") {
+    return { pathname: "/category/[id]", params: { id: "tutoring" } };
   }
 
   if (path === "/notifications") {

@@ -65,4 +65,32 @@ export const paymentSituationFixtures = [
     },
     expect: "cashUnconfirmed",
   },
+  {
+    name: "refunded when a cancelled online payment was refunded to the wallet (#518)",
+    sql: ["captured", "online", "paymob", null, "cancelled", false],
+    metadata: { refund_settled_via_wallet: true, cancellation_fee: 0 },
+    ts: {
+      status: "captured",
+      payment_method_type: "online",
+      method: "paymob",
+      proof_path: null,
+      booking: { status: "cancelled" },
+      hasCashLedger: false,
+    },
+    expect: "refunded",
+  },
+  {
+    name: "partiallyRefunded when the wallet refund kept a cancellation fee (#518)",
+    sql: ["captured", "online", "paymob", null, "cancelled", false],
+    metadata: { refund_settled_via_wallet: true, cancellation_fee: 50 },
+    ts: {
+      status: "captured",
+      payment_method_type: "online",
+      method: "paymob",
+      proof_path: null,
+      booking: { status: "cancelled" },
+      hasCashLedger: false,
+    },
+    expect: "partiallyRefunded",
+  },
 ] as const;
