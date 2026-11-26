@@ -61,6 +61,7 @@ import { customerPath } from "@/lib/preview/previewPath";
 import { useProPath } from "@/lib/provider/useProPath";
 
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { TutorTeachingDataBanner } from "@/components/provider/TutorTeachingDataBanner";
 import {
   dedupeEligibilityReasons,
   mapMarketplaceEligibilityFailureReason,
@@ -765,7 +766,8 @@ function ProProfile() {
                               className={`apply-tag ${
                                 myStatus.get(s.id) === "approved"
                                   ? "apply-success"
-                                  : myStatus.get(s.id) === "pending" || myStatus.get(s.id) === "paused"
+                                  : myStatus.get(s.id) === "pending" ||
+                                      myStatus.get(s.id) === "paused"
                                     ? "apply-wait"
                                     : "apply-danger"
                               }`}
@@ -816,7 +818,8 @@ function ProProfile() {
                             )}
                           {on &&
                             isApprovedProvider &&
-                            (myStatus.get(s.id) === "approved" || myStatus.get(s.id) === "paused") && (
+                            (myStatus.get(s.id) === "approved" ||
+                              myStatus.get(s.id) === "paused") && (
                               <ProviderServiceLifecycleActions
                                 providerId={provider.id}
                                 serviceId={s.id}
@@ -921,9 +924,7 @@ function ProProfile() {
                             <ProviderServicePreparationNotesField
                               id={`preparation-${s.id}`}
                               savedNotes={myPreparationNotes.get(s.id)}
-                              draft={
-                                preparationDrafts[s.id] ?? myPreparationNotes.get(s.id) ?? ""
-                              }
+                              draft={preparationDrafts[s.id] ?? myPreparationNotes.get(s.id) ?? ""}
                               onDraftChange={(value) =>
                                 setPreparationDrafts((drafts) => ({ ...drafts, [s.id]: value }))
                               }
@@ -977,10 +978,7 @@ function ProProfile() {
                       onClick={() => setRejectedSectionOpen((v) => !v)}
                     >
                       {t("pro.serviceLifecycle.rejectedSection")}
-                      <ChevronDown
-                        size={18}
-                        className={rejectedSectionOpen ? "rotate-180" : ""}
-                      />
+                      <ChevronDown size={18} className={rejectedSectionOpen ? "rotate-180" : ""} />
                     </button>
                     {rejectedSectionOpen
                       ? rejectedServices.map((s: any) => {
@@ -1068,6 +1066,7 @@ function ProProfile() {
             ) : null}
           </div>
 
+          <TutorTeachingDataBanner />
           {teachingQ.isError ? (
             <QueryError compact onRetry={() => teachingQ.refetch()} />
           ) : (

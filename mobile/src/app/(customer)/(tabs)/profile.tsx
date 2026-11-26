@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Wallet,
   UserCheck,
+  GraduationCap,
 } from "lucide-react-native";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { reloadAppAsync } from "expo";
@@ -139,6 +140,12 @@ export default function Profile() {
             label={t("profile.family")}
             detail={t("profile.familySub")}
             onPress={() => router.push("/family-members")}
+          />
+          <CustomerMenuRow
+            Icon={GraduationCap}
+            label={t("studentMatch.page.title")}
+            detail={t("studentMatch.page.lead")}
+            onPress={() => router.push("/students")}
             last={!isMinorStudent}
           />
           {isMinorStudent ? (

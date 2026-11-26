@@ -40,8 +40,12 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/pro/online-lessons", "provider")).toEqual({
       pathname: "/pro-online-lessons",
     });
-    expect(mapNotificationDeepLink("/pro/online-lessons", "customer")).toEqual({ pathname: "/home" });
-    expect(mapNotificationDeepLink("/pro/profile", "provider")).toEqual({ pathname: "/pro-profile" });
+    expect(mapNotificationDeepLink("/pro/online-lessons", "customer")).toEqual({
+      pathname: "/home",
+    });
+    expect(mapNotificationDeepLink("/pro/profile", "provider")).toEqual({
+      pathname: "/pro-profile",
+    });
     expect(mapNotificationDeepLink("/pro/profile#price-svc", "provider")).toEqual({
       pathname: "/pro-profile",
     });
@@ -73,8 +77,8 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/booking/b1?review=1", "customer")).toEqual({
       pathname: "/booking/[id]",
       params: { id: "b1", review: "1" },
-      });
     });
+  });
 
   it("maps wallet and provider setup sections", () => {
     expect(mapNotificationDeepLink("/wallet", "customer")).toEqual({ pathname: "/wallet" });
@@ -92,9 +96,38 @@ describe("mapNotificationDeepLink", () => {
     });
   });
 
+  it("maps the student grade confirmation and tutor availability links (issue 536)", () => {
+    expect(mapNotificationDeepLink("/account/students?confirm=self", "customer")).toEqual({
+      pathname: "/students",
+      params: { confirm: "self" },
+    });
+    expect(mapNotificationDeepLink("/account/students?confirm=kid-1", "customer")).toEqual({
+      pathname: "/students",
+      params: { confirm: "kid-1" },
+    });
+    expect(mapNotificationDeepLink("/account/students", "customer")).toEqual({
+      pathname: "/students",
+    });
+    expect(mapNotificationDeepLink("/online/tutors", "customer")).toEqual({
+      pathname: "/category/[id]",
+      params: { id: "tutoring" },
+    });
+    expect(mapNotificationDeepLink("/category/tutoring", "customer")).toEqual({
+      pathname: "/category/[id]",
+      params: { id: "tutoring" },
+    });
+    expect(mapNotificationDeepLink("/account/students", "provider")).toEqual({
+      pathname: "/dashboard",
+    });
+  });
+
   it("maps list and hub routes", () => {
-    expect(mapNotificationDeepLink("/notifications", "customer")).toEqual({ pathname: "/notifications" });
-    expect(mapNotificationDeepLink("/notifications", "provider")).toEqual({ pathname: "/pro-notifications" });
+    expect(mapNotificationDeepLink("/notifications", "customer")).toEqual({
+      pathname: "/notifications",
+    });
+    expect(mapNotificationDeepLink("/notifications", "provider")).toEqual({
+      pathname: "/pro-notifications",
+    });
     expect(mapNotificationDeepLink("/bookings", "customer")).toEqual({ pathname: "/bookings" });
     expect(mapNotificationDeepLink("/pro", "provider")).toEqual({ pathname: "/dashboard" });
     expect(mapNotificationDeepLink("/pro/earnings", "provider")).toEqual({ pathname: "/earnings" });
@@ -105,11 +138,7 @@ describe("mapNotificationDeepLink", () => {
     for (const row of NOTIFICATION_TYPE_INVENTORY) {
       const samples = row.typicalDeepLink
         .split(" or ")
-        .map((s) =>
-          s
-            .replace("{id}", "sample-id")
-            .replace("{conversationId}", "conv-sample"),
-        );
+        .map((s) => s.replace("{id}", "sample-id").replace("{conversationId}", "conv-sample"));
       for (const sample of samples) {
         expect(() => mapNotificationDeepLink(sample, "customer")).not.toThrow();
         expect(() => mapNotificationDeepLink(sample, "provider")).not.toThrow();

@@ -1,7 +1,6 @@
 import { resolveStudentEducationProfile } from "@shared/tutoring/studentEducationProfile";
-import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useOnlineSessionsAvailable } from "@/lib/useOnlineSessionsAvailable";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
@@ -14,6 +13,7 @@ import {
   useCustomerEducationProfile,
   useMyProfile,
   useApprovedTeachingCapabilitiesForProviders,
+  useTeachingLevels,
 } from "@/lib/queries";
 import { localized, uniqueProviders } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -26,7 +26,7 @@ import { CustomerPageHeader } from "./CustomerPageHeader";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 import { CustomerChips, CustomerEmpty, customerStyle } from "./customer/Primitives";
 import { Button } from "./Button";
-import { Search, SlidersHorizontal } from "lucide-react-native";
+import { Bell, Search, SlidersHorizontal } from "lucide-react-native";
 import { router } from "expo-router";
 import {
   homeCategoryDbSlug,
@@ -39,12 +39,37 @@ import { colors } from "./theme";
 import { InPersonComingSoonCard } from "./customer/InPersonComingSoonCard";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
-  filterProvidersForStudentEducation,
   hasStudentEducation,
-  providerMatchesStudentEducation,
   tutoringMatchBadgeLabel,
   tutoringServiceKind,
 } from "@shared/tutoring/tutoringProviderMatch";
+import {
+  buildLearnerOptions,
+  filterProvidersByMatch,
+  findLearner,
+  initialLearnerId,
+  learnerFamilyMemberId,
+  learnerNeedsProfile,
+  matchedCapabilityFor,
+  noMatchDescription,
+  shouldAskForWhom,
+  skillLevels,
+  subjectsForService,
+} from "@shared/tutoring/studentLearnerFlow";
+import { useTeachingSubjectServices, useTeachingSubjects } from "@/lib/provider/teachingQueries";
+import { useSaveStudentEducationProfile } from "@/lib/bookingQueries";
+import {
+  useCurriculaWithStyle,
+  useRememberedLearner,
+  useRequestTutorAvailability,
+} from "@/lib/studentMatchQueries";
+import {
+  LearnerChips,
+  LevelChips,
+  StudentProfileSteps,
+  SubjectChips,
+  gradeLabelFor,
+} from "./customer/StudentMatchControls";
 
 export function Discovery({ category: group }: { category?: string }) {
   const { t, i18n } = useTranslation();
@@ -52,7 +77,6 @@ export function Discovery({ category: group }: { category?: string }) {
   const homeGroup = isHomeCategoryId(group) ? group : null;
   const category = homeGroup ? homeCategoryDbSlug(homeGroup) : group;
   const lessonGroup = homeGroup ? homeCategoryLessonSlug(homeGroup) : null;
-  const schoolTutoring = category === "tutoring" && !lessonGroup;
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [addressId, setAddressId] = useState("");
@@ -109,7 +133,41 @@ export function Discovery({ category: group }: { category?: string }) {
   const members = useActiveFamilyMembers();
   const education = useCustomerEducationProfile();
   const profile = useMyProfile();
-  const [student, setStudent] = useState("myself");
+  const [rememberedLearner, rememberLearner] = useRememberedLearner();
+  const [student, setStudentState] = useState("myself");
+  const learners = buildLearnerOptions({
+    selfFullName: profile.data?.full_name,
+    selfProfile: education.data,
+    children: (members.data ?? []).map((m) => ({
+      id: m.id,
+      full_name: m.full_name,
+      education_curriculum_id: m.education_curriculum_id,
+      education_level_id: m.education_level_id,
+    })),
+  });
+  useEffect(() => {
+    if (members.isSuccess)
+      setStudentState(initialLearnerId(learners, rememberedLearner ?? student));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members.isSuccess, members.data, rememberedLearner]);
+  const setStudent = (id: string) => {
+    setStudentState(id);
+    rememberLearner(id);
+    setSubjectId(null);
+    setSkillLevelId(null);
+    setEditingProfile(false);
+    setDemandSent(false);
+  };
+  const [subjectId, setSubjectId] = useState<string | null>(null);
+  const [skillLevelId, setSkillLevelId] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [demandSent, setDemandSent] = useState(false);
+  const curricula = useCurriculaWithStyle();
+  const levels = useTeachingLevels();
+  const subjects = useTeachingSubjects();
+  const subjectServices = useTeachingSubjectServices();
+  const saveProfile = useSaveStudentEducationProfile();
+  const requestDemand = useRequestTutorAvailability();
   const all = uniqueProviders(
     filter === "tutoring"
       ? [...(b.data ?? []), ...(a.data ?? [])]
@@ -157,23 +215,104 @@ export function Discovery({ category: group }: { category?: string }) {
     })),
   });
   const selectedServiceSlug = (services.data ?? []).find((s) => s.id === serviceId)?.slug;
-  // Quran and music match on a skill level picked at booking time (issue 536, PR 2), not on the school profile.
-  const schoolMatching =
-    schoolTutoring && !!serviceId && tutoringServiceKind(selectedServiceSlug) !== "skill";
-  // Strict matching (issue 536): once the student's system and grade are known, only matching tutors show.
-  const strictMatching =
-    schoolMatching &&
-    hasStudentEducation({
-      curriculumId: studentProfile.educationCurriculumId,
-      levelId: studentProfile.educationLevelId,
-    });
-  const ranked = schoolMatching
-    ? filterProvidersForStudentEducation(items, caps.data ?? [], {
-        serviceId: serviceId || null,
+  const kind = tutoringServiceKind(selectedServiceSlug);
+  const tutoringCategory = category === "tutoring" && !!serviceId;
+  const learner = findLearner(learners, student);
+  const serviceSubjects = subjectsForService(
+    (subjects.data ?? []) as never,
+    subjectServices.data ?? [],
+    serviceId || null,
+  );
+  const skills = skillLevels((levels.data ?? []) as never);
+  const subjectRow = serviceSubjects.find((s) => s.id === subjectId) ?? null;
+  // School tutoring and homework match on the learner's system + grade (+ subject);
+  // Quran and music match on subject + a level picked here (issue 536, PR 2).
+  const schoolMatching = tutoringCategory && kind !== "skill";
+  const needsProfile = schoolMatching && learnerNeedsProfile(learner, selectedServiceSlug);
+  const strictMatching = schoolMatching
+    ? hasStudentEducation({
         curriculumId: studentProfile.educationCurriculumId,
         levelId: studentProfile.educationLevelId,
       })
+    : tutoringCategory && kind === "skill" && !!subjectRow && !!skillLevelId;
+  const matchCriteria = strictMatching
+    ? kind === "skill"
+      ? {
+          serviceId,
+          subjectCode: subjectRow?.code ?? null,
+          curriculumId: null,
+          levelId: skillLevelId,
+        }
+      : {
+          serviceId,
+          subjectCode: kind === "homework" ? null : (subjectRow?.code ?? null),
+          curriculumId: studentProfile.educationCurriculumId,
+          levelId: studentProfile.educationLevelId,
+        }
+    : null;
+  const ranked = matchCriteria
+    ? filterProvidersByMatch(items, caps.data ?? [], matchCriteria)
     : items;
+  const currentCurriculum =
+    (curricula.data ?? []).find((c) => c.id === studentProfile.educationCurriculumId) ?? null;
+  const currentLevel =
+    (levels.data ?? []).find((l) => l.id === studentProfile.educationLevelId) ?? null;
+  const uiLang: "ar" | "en" = i18n.language === "en" ? "en" : "ar";
+  const nameOf = (row: { name_ar: string; name_en: string } | null | undefined) =>
+    row ? (uiLang === "ar" ? row.name_ar : row.name_en) : null;
+  const noMatchWhat = noMatchDescription({
+    subject:
+      kind === "homework"
+        ? nameOf((services.data ?? []).find((s) => s.id === serviceId) as never)
+        : nameOf(subjectRow),
+    grade:
+      kind === "skill"
+        ? nameOf(skills.find((l) => l.id === skillLevelId))
+        : gradeLabelFor(currentLevel as never, currentCurriculum, uiLang) || null,
+    system: kind === "skill" ? null : nameOf(currentCurriculum),
+  });
+  const notifyMe = async () => {
+    if (!serviceId || !matchCriteria) return;
+    try {
+      const res = await requestDemand.mutateAsync({
+        serviceId,
+        subjectId: kind === "homework" ? null : subjectId,
+        curriculumId: matchCriteria.curriculumId,
+        levelId: matchCriteria.levelId,
+        serviceMode: deliveryMode === "online" ? "online" : "in_person",
+        familyMemberId: learnerFamilyMemberId(student),
+      });
+      setDemandSent(true);
+      Alert.alert(
+        t(
+          res?.status === "already_requested"
+            ? "studentMatch.notifyAlready"
+            : "studentMatch.notifyDone",
+        ),
+      );
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      Alert.alert(
+        t(
+          msg.includes("DEMAND_RATE_LIMITED")
+            ? "studentMatch.notifyLimit"
+            : "studentMatch.saveFailed",
+        ),
+      );
+    }
+  };
+  const saveLearnerProfile = async (picked: { curriculumId: string; levelId: string }) => {
+    try {
+      await saveProfile.save({
+        forWhom: student,
+        education_curriculum_id: picked.curriculumId,
+        education_level_id: picked.levelId,
+      });
+      setEditingProfile(false);
+    } catch {
+      Alert.alert(t("studentMatch.saveFailed"));
+    }
+  };
   const title = lessonGroup
     ? t(lessonGroup === "quran-lessons" ? "home.quranTitle" : "home.musicTitle")
     : category
@@ -268,37 +407,93 @@ export function Discovery({ category: group }: { category?: string }) {
           />
         </QueryState>
       </View>
-      {schoolTutoring && (
+      {category === "tutoring" ? (
         <QueryState
           query={{
-            isLoading: members.isLoading || education.isLoading,
-            isError: members.isError || education.isError,
-            refetch: () => Promise.all([members.refetch(), education.refetch()]),
+            isLoading:
+              members.isLoading || education.isLoading || curricula.isLoading || levels.isLoading,
+            isError:
+              members.isError ||
+              education.isError ||
+              curricula.isError ||
+              levels.isError ||
+              subjects.isError,
+            refetch: () =>
+              Promise.all([
+                members.refetch(),
+                education.refetch(),
+                curricula.refetch(),
+                levels.refetch(),
+                subjects.refetch(),
+                subjectServices.refetch(),
+              ]),
           }}
         >
-          <BottomSheetSelect
-            label={t("studentEducation.studentPicker")}
-            value={student}
-            onChange={setStudent}
-            options={[
-              { value: "myself", label: t("bookFlow.forWhomMyself") },
-              ...(members.data ?? []).map((m) => ({
-                value: m.id,
-                label: joinUiParts(
-                  [
-                    m.full_name,
-                    t(memberAgeTranslation(m.date_of_birth).key, {
-                      count: memberAgeTranslation(m.date_of_birth).count,
-                    }),
-                  ],
-                  i18n.language,
-                ),
-              })),
-            ]}
-          />
+          <View style={{ gap: space.md }}>
+            {shouldAskForWhom(learners) ? (
+              <LearnerChips learners={learners} value={student} onChange={setStudent} />
+            ) : (
+              <LearnerChips
+                learners={learners.filter((l) => l.kind === "self")}
+                value={student}
+                onChange={setStudent}
+              />
+            )}
+            {(needsProfile || editingProfile) && schoolMatching ? (
+              <StudentProfileSteps
+                key={`${student}-${editingProfile}`}
+                title={
+                  learner?.kind === "child" && learner.firstName
+                    ? t("studentMatch.profileTitle", { name: learner.firstName })
+                    : t("studentMatch.profileTitleSelf")
+                }
+                curricula={curricula.data ?? []}
+                levels={(levels.data ?? []) as never}
+                initialCurriculumId={learner?.curriculumId}
+                initialLevelId={learner?.levelId}
+                saving={saveProfile.isPending}
+                onDone={(picked) => void saveLearnerProfile(picked)}
+                onCancel={editingProfile ? () => setEditingProfile(false) : undefined}
+              />
+            ) : (
+              <>
+                {schoolMatching && currentCurriculum ? (
+                  <Text size="sm" weight="bold" tone="brand">
+                    {joinUiParts(
+                      [
+                        nameOf(currentCurriculum),
+                        gradeLabelFor(currentLevel as never, currentCurriculum, uiLang),
+                      ].filter(Boolean) as string[],
+                      i18n.language,
+                    )}
+                  </Text>
+                ) : null}
+                {kind !== "homework" ? (
+                  <SubjectChips
+                    subjects={serviceSubjects}
+                    value={subjectId}
+                    onChange={(id) => {
+                      setSubjectId(id);
+                      setDemandSent(false);
+                    }}
+                  />
+                ) : null}
+                {kind === "skill" && subjectId ? (
+                  <LevelChips
+                    levels={skills}
+                    value={skillLevelId}
+                    onChange={(id) => {
+                      setSkillLevelId(id);
+                      setDemandSent(false);
+                    }}
+                  />
+                ) : null}
+              </>
+            )}
+          </View>
           <QueryState query={caps} />
         </QueryState>
-      )}
+      ) : null}
       {onlineChoosable ? (
         <CustomerChips
           value={deliveryMode}
@@ -327,19 +522,35 @@ export function Discovery({ category: group }: { category?: string }) {
             refetch: () => Promise.all([a.refetch(), b.refetch(), caps.refetch()]),
           }}
         >
-          {!ranked.length ? (
+          {!ranked.length && matchCriteria ? (
             <CustomerEmpty
               Icon={Search}
-              title={
-                strictMatching && studentProfile.studentFirstName
-                  ? t("studentEducation.noMatchTitle", { name: studentProfile.studentFirstName })
-                  : t("customerRound2.noProviders")
-              }
-              body={
-                strictMatching
-                  ? t("studentEducation.noMatchBody")
-                  : t("customerRound2.noProvidersBody")
-              }
+              title={t("studentMatch.noMatch", { what: noMatchWhat })}
+              body={t("studentMatch.noMatchBody")}
+            >
+              <Button
+                label={t("studentMatch.notifyMe")}
+                icon={<Bell size={14} color={colors.surface} />}
+                disabled={demandSent || requestDemand.isPending}
+                onPress={() => void notifyMe()}
+              />
+              {kind !== "skill" ? (
+                <Button
+                  variant="secondary"
+                  label={
+                    learner?.kind === "child" && learner.firstName
+                      ? t("studentMatch.editProfile", { name: learner.firstName })
+                      : t("studentMatch.editProfileSelf")
+                  }
+                  onPress={() => setEditingProfile(true)}
+                />
+              ) : null}
+            </CustomerEmpty>
+          ) : !ranked.length ? (
+            <CustomerEmpty
+              Icon={Search}
+              title={t("customerRound2.noProviders")}
+              body={t("customerRound2.noProvidersBody")}
             >
               <Button label={t("category.filters")} onPress={() => router.push("/search")} />
             </CustomerEmpty>
@@ -355,25 +566,29 @@ export function Discovery({ category: group }: { category?: string }) {
               <View key={p.id} style={{ gap: space.xs }}>
                 <ProviderCard
                   provider={p}
-                  onPress={() =>
+                  onPress={() => {
+                    const cap = matchCriteria
+                      ? matchedCapabilityFor(p.id, caps.data ?? [], matchCriteria)
+                      : null;
+                    const extra: Record<string, string> = {};
+                    if (category === "tutoring" && learnerFamilyMemberId(student))
+                      extra.forWhom = student;
+                    if (cap) {
+                      extra.capabilityId = cap.id;
+                      extra.serviceId = cap.serviceId;
+                    }
                     router.push({
                       pathname: "/provider/[id]",
                       params:
                         deliveryMode === "online"
-                          ? { id: p.id, serviceMode: "online" }
+                          ? { id: p.id, serviceMode: "online", ...extra }
                           : p.services[0]?.service?.id
-                            ? { id: p.id, serviceId: p.services[0].service.id }
-                            : { id: p.id },
-                    })
-                  }
+                            ? { id: p.id, serviceId: p.services[0].service.id, ...extra }
+                            : { id: p.id, ...extra },
+                    });
+                  }}
                 />
-                {schoolMatching &&
-                studentProfile.studentFirstName &&
-                providerMatchesStudentEducation(p.id, caps.data ?? [], {
-                  serviceId: serviceId || null,
-                  curriculumId: studentProfile.educationCurriculumId,
-                  levelId: studentProfile.educationLevelId,
-                }) ? (
+                {matchCriteria && learner?.kind === "child" && studentProfile.studentFirstName ? (
                   <Text
                     size="xs"
                     weight="bold"

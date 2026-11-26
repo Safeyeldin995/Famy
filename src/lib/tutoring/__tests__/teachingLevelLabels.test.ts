@@ -8,7 +8,7 @@ import {
 
 describe("teaching level labels", () => {
   it("writes Egyptian grades the way parents say them", () => {
-    expect(teachingLevelLabel({ levelCode: "kg", style: "eg", lang: "ar" })).toBe("KG");
+    expect(teachingLevelLabel({ levelCode: "kg", style: "eg", lang: "ar" })).toBe("كي جي");
     expect(teachingLevelLabel({ levelCode: "g3", style: "eg", lang: "ar" })).toBe("3 ابتدائي");
     expect(teachingLevelLabel({ levelCode: "g8", style: "eg", lang: "ar" })).toBe("2 إعدادي");
     expect(teachingLevelLabel({ levelCode: "g12", style: "eg", lang: "ar" })).toBe("3 ثانوي");
@@ -16,26 +16,50 @@ describe("teaching level labels", () => {
   });
 
   it("uses Year N for British (Year 2 = grade 1) and Grade N for American", () => {
-    expect(teachingLevelLabel({ levelCode: "kg", style: "british_year", lang: "ar" })).toBe("Year 1");
-    expect(teachingLevelLabel({ levelCode: "g1", style: "british_year", lang: "ar" })).toBe("Year 2");
-    expect(teachingLevelLabel({ levelCode: "g4", style: "american_grade", lang: "en" })).toBe("Grade 4");
+    expect(teachingLevelLabel({ levelCode: "kg", style: "british_year", lang: "ar" })).toBe(
+      "Year 1",
+    );
+    expect(teachingLevelLabel({ levelCode: "g1", style: "british_year", lang: "ar" })).toBe(
+      "Year 2",
+    );
+    expect(teachingLevelLabel({ levelCode: "g4", style: "american_grade", lang: "en" })).toBe(
+      "Grade 4",
+    );
     expect(teachingLevelLabel({ levelCode: "kg", style: "american_grade", lang: "en" })).toBe("KG");
   });
 
   it("groups IB grades by programme", () => {
-    expect(teachingLevelLabel({ levelCode: "g5", style: "ib_programme", lang: "en" })).toBe("PYP · Grade 5");
-    expect(teachingLevelLabel({ levelCode: "g7", style: "ib_programme", lang: "en" })).toBe("MYP · Grade 7");
-    expect(teachingLevelLabel({ levelCode: "g11", style: "ib_programme", lang: "en" })).toBe("DP · Grade 11");
+    expect(teachingLevelLabel({ levelCode: "g5", style: "ib_programme", lang: "en" })).toBe(
+      "PYP · Grade 5",
+    );
+    expect(teachingLevelLabel({ levelCode: "g7", style: "ib_programme", lang: "en" })).toBe(
+      "MYP · Grade 7",
+    );
+    expect(teachingLevelLabel({ levelCode: "g11", style: "ib_programme", lang: "en" })).toBe(
+      "DP · Grade 11",
+    );
   });
 
   it("falls back to the level's own name for skills and plain systems", () => {
     expect(
-      teachingLevelLabel({ levelCode: "skill_beginner", style: "eg", lang: "ar", fallbackName: "مبتدئ" }),
+      teachingLevelLabel({
+        levelCode: "skill_beginner",
+        style: "eg",
+        lang: "ar",
+        fallbackName: "مبتدئ",
+      }),
     ).toBe("مبتدئ");
     expect(
-      teachingLevelLabel({ levelCode: "g4", style: "plain", lang: "ar", fallbackName: "الصف الرابع" }),
+      teachingLevelLabel({
+        levelCode: "g4",
+        style: "plain",
+        lang: "ar",
+        fallbackName: "الصف الرابع",
+      }),
     ).toBe("الصف الرابع");
-    expect(teachingLevelLabel({ levelCode: "g4", style: "unknown", lang: "ar", fallbackName: "x" })).toBe("x");
+    expect(
+      teachingLevelLabel({ levelCode: "g4", style: "unknown", lang: "ar", fallbackName: "x" }),
+    ).toBe("x");
   });
 
   it("moves grades up one, except the last grade and skills", () => {
