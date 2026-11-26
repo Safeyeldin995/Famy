@@ -272,3 +272,68 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_area_request_summary() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_area_request_summary() TO authenticated;
+
+-- 5. Provider list filters for every work-queue badge ------------------------
+-- Re-derived from 20261104120000_provider_price_change_review.sql. The badge
+-- counts (admin_work_queue_counts, latest in 20261125190000) gained
+-- applications_over_sla and documents_expiring_soon (#431) and count online
+-- price changes too, but the provider list filter behind each badge did not,
+-- so those filters came up empty. Each new branch matches its count exactly.
+
+CREATE OR REPLACE FUNCTION public.admin_work_queue_provider_ids(p_queue text)
+RETURNS TABLE(provider_id uuid)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'admin') IS NOT TRUE THEN
+    RAISE EXCEPTION 'Admin authorization required.' USING ERRCODE = '42501';
+  END IF;
+  IF p_queue = 'new_applications' THEN
+    RETURN QUERY SELECT p.id FROM public.providers p
+      WHERE p.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW') AND p.resubmitted_at IS NULL
+        AND p.id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'resubmitted_applications' THEN
+    RETURN QUERY SELECT p.id FROM public.providers p
+      WHERE p.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW') AND p.resubmitted_at IS NOT NULL
+        AND p.id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'applications_over_sla' THEN
+    RETURN QUERY SELECT p.id FROM public.providers p
+      WHERE p.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW')
+        AND COALESCE(p.resubmitted_at, p.submitted_at, p.created_at)
+          < now() - (public.provider_review_sla_hours() || ' hours')::interval
+        AND p.id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'new_service_requests' THEN
+    RETURN QUERY SELECT DISTINCT ps.provider_id FROM public.provider_services ps
+      JOIN public.providers p ON p.id = ps.provider_id
+      WHERE ps.status = 'pending' AND p.onboarding_status = 'APPROVED'
+        AND ps.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'price_change_requests' THEN
+    RETURN QUERY SELECT DISTINCT ps.provider_id FROM public.provider_services ps
+      WHERE ps.status = 'approved'
+        AND (ps.pending_price_override IS NOT NULL OR ps.pending_online_price_override IS NOT NULL)
+        AND ps.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'pending_services' THEN
+    RETURN QUERY SELECT DISTINCT ps.provider_id FROM public.provider_services ps
+      WHERE ps.status = 'pending'
+        AND ps.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'pending_teaching_groups' THEN
+    RETURN QUERY SELECT DISTINCT c.provider_id FROM public.provider_teaching_capabilities c
+      WHERE c.status = 'pending'
+        AND c.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'pending_documents' THEN
+    RETURN QUERY SELECT DISTINCT d.provider_id FROM public.provider_documents d
+      WHERE d.status = 'pending'
+        AND d.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSIF p_queue = 'documents_expiring_soon' THEN
+    RETURN QUERY SELECT DISTINCT d.provider_id FROM public.provider_documents d
+      WHERE d.status = 'approved'
+        AND d.expires_at IS NOT NULL
+        AND d.expires_at <= now() + interval '30 days'
+        AND d.provider_id IN (SELECT identity.provider_id FROM public.admin_provider_identity_ids() identity);
+  ELSE
+    RAISE EXCEPTION 'Unknown provider work queue.' USING ERRCODE = '23514';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_work_queue_provider_ids(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_work_queue_provider_ids(text) TO authenticated;

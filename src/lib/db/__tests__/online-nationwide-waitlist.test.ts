@@ -196,4 +196,52 @@ describe("online lessons for all of Egypt (20261126100000)", () => {
     );
     expect(grants[0]).toEqual({ set_anon: false, sum_anon: false, trg_auth: false });
   });
+
+  it("lists the providers behind the over-SLA and expiring-documents badges", async () => {
+    await seedDraftProvider(db);
+    await asServiceRole(db, async () => {
+      await db.exec(`SELECT set_config('app.onboarding_status_transition', '1', true)`);
+      await queryRows(
+        db,
+        `UPDATE public.providers
+            SET onboarding_status = 'SUBMITTED', submitted_at = now() - interval '10 days',
+                resubmitted_at = NULL
+          WHERE id = $1`,
+        [IDS.provider],
+      );
+      await queryRows(
+        db,
+        `INSERT INTO public.provider_documents (provider_id, type, storage_path, status, expires_at)
+         VALUES ($1, 'id_card', 'docs/expiring.jpg', 'approved', now() + interval '5 days')`,
+        [IDS.provider],
+      );
+    });
+
+    for (const queue of ["applications_over_sla", "documents_expiring_soon"]) {
+      const ids = await tryAsUser(
+        db,
+        IDS.adminUser,
+        `SELECT provider_id FROM public.admin_work_queue_provider_ids($1)`,
+        [queue],
+      );
+      expect(ids.ok, queue).toBe(true);
+      const count = await tryAsUser(
+        db,
+        IDS.adminUser,
+        `SELECT item_count::int AS n FROM public.admin_work_queue_counts() WHERE queue = $1`,
+        [queue],
+      );
+      expect(count.ok, queue).toBe(true);
+      const listed = (ids.rows as { provider_id: string }[]).map((r) => r.provider_id);
+      expect(listed, queue).toContain(IDS.provider);
+      expect((count.rows as { n: number }[])[0]?.n, queue).toBeGreaterThanOrEqual(listed.length);
+    }
+
+    const denied = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT provider_id FROM public.admin_work_queue_provider_ids('applications_over_sla')`,
+    );
+    expect(denied.ok).toBe(false);
+  });
 });
