@@ -10,6 +10,10 @@ export const ONLINE_WEB_WALLET_TERMS_AR =
 export const ONLINE_WEB_ROUTE_IDS = {
   home: `${ONLINE_WEB_PREFIX}`,
   login: `${ONLINE_WEB_PREFIX}/login`,
+  signup: `${ONLINE_WEB_PREFIX}/signup`,
+  completeProfile: `${ONLINE_WEB_PREFIX}/complete-profile`,
+  forgotPassword: `${ONLINE_WEB_PREFIX}/forgot-password`,
+  resetPassword: `${ONLINE_WEB_PREFIX}/reset-password`,
   otp: `${ONLINE_WEB_PREFIX}/otp`,
   setPassword: `${ONLINE_WEB_PREFIX}/set-password`,
   authCallback: `${ONLINE_WEB_PREFIX}/auth/callback`,

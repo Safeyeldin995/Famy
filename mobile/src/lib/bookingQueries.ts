@@ -5,6 +5,7 @@ import {
   invalidateQueryKeyList,
   submitReviewInvalidationKeys,
 } from "./cacheInvalidation";
+import { logFamyEvent } from "@/lib/analytics";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
 import { slotLookupCalendar } from "../../../src/components/famio/customerDates";
@@ -408,7 +409,10 @@ export function useCreateBooking() {
         { retryDelayMs: 250 },
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.created) {
+        void logFamyEvent("booking_created");
+      }
       void qc.invalidateQueries({ queryKey: ["my-bookings"] });
       // Unpaid fees were attached to this booking.
       void qc.invalidateQueries({ queryKey: ["customer-fee-debts"] });

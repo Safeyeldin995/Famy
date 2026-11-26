@@ -6,6 +6,11 @@ initSentryServer();
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleQaMetaRequest } from "./lib/qa-meta-endpoint";
+import {
+  appleAppSiteAssociation,
+  assetLinksDocument,
+  wellKnownResponse,
+} from "./lib/appLinks/wellKnown.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -103,6 +108,15 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const pathname = new URL(request.url).pathname;
+      if (pathname === "/.well-known/assetlinks.json") {
+        return wellKnownResponse(assetLinksDocument(process.env), "application/json; charset=utf-8");
+      }
+      if (pathname === "/.well-known/apple-app-site-association") {
+        return wellKnownResponse(
+          appleAppSiteAssociation(process.env),
+          "application/json; charset=utf-8",
+        );
+      }
       const qaMeta = handleQaMetaRequest(request, process.env);
       if (qaMeta) return applyHtmlSecurityHeaders(qaMeta, pathname);
 

@@ -50,6 +50,8 @@ export default defineConfig({
       "src/lib/__tests__/customerCasesPure.test.ts",
       "src/lib/__tests__/bookingPolling.test.ts",
       "src/lib/__tests__/adminAccountRouting.test.ts",
+      "src/lib/__tests__/redirectSystemPath.test.ts",
+      "src/lib/__tests__/resolveOnlineLessonLink.test.ts",
       "src/lib/provider/__tests__/gates.test.ts",
       "src/lib/provider/__tests__/onboardingErrors.test.ts",
       "src/lib/provider/__tests__/providerAccountBack.test.ts",

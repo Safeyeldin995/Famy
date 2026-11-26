@@ -1,63 +1,89 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Presentation } from "lucide-react";
 import { PrimaryButton } from "@/components/famio/ui";
+import { PhoneNumberField } from "@/components/famio/PhoneNumberField";
 import { useApp } from "@/lib/store";
-import { otpService, normalizePhone } from "@/lib/otp/OtpService";
-import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
+import { otpService } from "@/lib/otp/OtpService";
+import { egyptMobileE164 } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 import { interpretSignupSendForLoginPhoneContinue } from "@/lib/auth/loginPhoneContinue";
+import {
+  emailAuthErrorKey,
+  isValidEmail,
+  resendOnlineSignupConfirmation,
+  signInOnlineWithEmail,
+} from "@/lib/auth/onlineWebAuth";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
-import { safeOnlineWebReturnTo } from "@/lib/web/onlineWebSession";
-import { useAuth } from "@/lib/auth/useAuth";
+import { useOnlineWebAuthRedirect } from "@/lib/web/useOnlineWebAuthRedirect";
+import {
+  OnlineAuthCard,
+  OnlineAuthDivider,
+  OnlineGoogleButton,
+  OnlinePasswordField,
+  OnlineTextField,
+} from "@/components/online/OnlineWebAuthParts";
 
-type Step = "phone" | "password";
+export type OnlineSignInAudience = "student" | "tutor";
+type Method = "phone" | "email";
+type PhoneStep = "phone" | "password";
 
-export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
+export function OnlineWebSignIn({
+  returnTo,
+  audience = "student",
+}: {
+  returnTo: string;
+  audience?: OnlineSignInAudience;
+}) {
+  useOnlineWebAuthRedirect(returnTo);
+  const isTutor = audience === "tutor";
   const nav = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  useEffect(() => {
-    stashOnlineWebReturnTo(returnTo);
-  }, [returnTo]);
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-    nav({ href: safeOnlineWebReturnTo(returnTo, ONLINE_WEB_ROUTE_IDS.home), replace: true });
-  }, [authLoading, isAuthenticated, returnTo, nav]);
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
 
-  const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
+  const [method, setMethod] = useState<Method>("phone");
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>("phone");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [tutorNotRegistered, setTutorNotRegistered] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState(false);
 
-  const signInWithPassword = async () => {
-    if (password.length < 1) return;
+  const e164 = egyptMobileE164(phone);
+  const showError = (m: string) => {
+    setErrorMsg(m);
+    toast.error(m, { duration: 8000 });
+  };
+  const resetErrors = () => {
+    setErrorMsg(null);
+    setTutorNotRegistered(false);
+    setUnconfirmedEmail(false);
+  };
+
+  const signInWithPhonePassword = async () => {
+    if (!e164 || password.length < 1) return;
     setLoading(true);
-    const e164 = normalizePhone(phone);
     const res = await otpService.signInWithPassword(e164, password);
     setLoading(false);
     if (!res.ok) {
-      const m = t("auth.invalidCredentials");
-      setErrorMsg(m);
-      toast.error(m);
+      showError(t("auth.invalidCredentials"));
       return;
     }
     setProfile({ phone: e164 });
     setAuthed(true);
-    nav({ href: safeOnlineWebReturnTo(returnTo, ONLINE_WEB_ROUTE_IDS.home), replace: true });
   };
 
   const continueWithPhone = async () => {
-    const e164 = normalizePhone(phone);
+    if (!e164) return;
     setLoading(true);
-    const send = await startPhoneOtpFlow(e164, "signup", "customer", { languageCode: i18n.language });
+    const send = await startPhoneOtpFlow(e164, "signup", "customer", {
+      languageCode: i18n.language,
+    });
     setLoading(false);
     const interpreted = interpretSignupSendForLoginPhoneContinue(
       send.ok
@@ -70,145 +96,269 @@ export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
             firebaseAuthCode: send.firebaseAuthCode,
           },
     );
-    if (interpreted.kind === "flow_mismatch_signup") {
-      const m = t("auth.noAccount");
-      setErrorMsg(m);
-      toast.error(m, { duration: 8000 });
-      return;
-    }
     if (interpreted.kind === "registered") {
-      setStep("password");
+      setPhoneStep("password");
       return;
     }
     if (interpreted.kind === "proceed_signup_otp") {
+      if (isTutor) {
+        // Tutors join through the provider application, never as a new student account.
+        setTutorNotRegistered(true);
+        setErrorMsg(t("onlineWeb.auth.tutorNotRegistered"));
+        return;
+      }
       stashOnlineWebReturnTo(returnTo);
       setProfile({ phone: e164 });
       nav({ to: ONLINE_WEB_ROUTE_IDS.otp });
       return;
     }
-    const m = phoneOtpFlowErrorMessage(
-      interpreted.error as Parameters<typeof phoneOtpFlowErrorMessage>[0],
-      t,
-      interpreted.retryAfter,
-      interpreted.firebaseAuthCode,
+    if (interpreted.kind === "flow_mismatch_signup") {
+      showError(t("auth.noAccount"));
+      return;
+    }
+    showError(
+      phoneOtpFlowErrorMessage(
+        interpreted.error as Parameters<typeof phoneOtpFlowErrorMessage>[0],
+        t,
+        interpreted.retryAfter,
+        interpreted.firebaseAuthCode,
+      ),
     );
-    setErrorMsg(m);
-    toast.error(m, { duration: 8000 });
+  };
+
+  const signInWithEmail = async () => {
+    if (!isValidEmail(email) || password.length < 1) return;
+    setLoading(true);
+    const res = await signInOnlineWithEmail(email, password);
+    setLoading(false);
+    if (!res.ok) {
+      if (res.error === "email_not_confirmed") setUnconfirmedEmail(true);
+      showError(t(emailAuthErrorKey(res.error)));
+      return;
+    }
+    setAuthed(true);
+  };
+
+  const resendConfirmation = async () => {
+    setLoading(true);
+    const res = await resendOnlineSignupConfirmation(email);
+    setLoading(false);
+    if (!res.ok) {
+      showError(t(emailAuthErrorKey(res.error)));
+      return;
+    }
+    toast.success(t("onlineWeb.auth.confirmationResent"));
   };
 
   const submit = async () => {
-    if (loading || !phoneValid) return;
-    setErrorMsg(null);
-    if (step === "password") {
-      await signInWithPassword();
+    if (loading) return;
+    resetErrors();
+    if (method === "email") {
+      await signInWithEmail();
+      return;
+    }
+    if (phoneStep === "password") {
+      await signInWithPhonePassword();
       return;
     }
     await continueWithPhone();
   };
 
-  const fieldClass =
-    "flex h-14 items-center rounded-2xl border border-border/80 bg-white transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15";
+  const canSubmit =
+    !loading &&
+    (method === "email"
+      ? isValidEmail(email) && password.length > 0
+      : !!e164 && (phoneStep === "phone" || password.length > 0));
 
-  const primaryDisabled = !phoneValid || loading || (step === "password" && password.length < 1);
-  const primaryLabel =
-    loading && step === "password"
-      ? t("common.signingIn")
-      : loading
-        ? t("common.sending")
-        : step === "password"
-          ? t("auth.signIn")
-          : t("auth.continue");
+  const primaryLabel = loading
+    ? method === "phone" && phoneStep === "phone"
+      ? t("common.sending")
+      : t("common.signingIn")
+    : method === "phone" && phoneStep === "phone"
+      ? t("auth.continue")
+      : t("auth.signIn");
+
+  const switchMethod = (next: Method) => {
+    setMethod(next);
+    setPhoneStep("phone");
+    setPassword("");
+    resetErrors();
+  };
 
   return (
-    <div className="mx-auto max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-sm">
+    <OnlineAuthCard>
       <div>
-        <Link
-          to={ONLINE_WEB_ROUTE_IDS.home}
-          className="focus-ring text-pro-14 font-bold text-brand"
-        >
+        <Link to={ONLINE_WEB_ROUTE_IDS.home} className="focus-ring text-pro-14 font-bold text-brand">
           {t("common.back")}
         </Link>
-        <h1 className="mt-4 text-pro-24 font-extrabold">
-          {step === "password" ? t("auth.welcomeBack") : t("onlineWeb.signIn.title")}
+        <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-pro-12 font-bold text-brand">
+          {isTutor ? (
+            <Presentation className="h-4 w-4" aria-hidden />
+          ) : (
+            <GraduationCap className="h-4 w-4" aria-hidden />
+          )}
+          {isTutor ? t("onlineWeb.auth.tutorBadge") : t("onlineWeb.auth.studentBadge")}
+        </span>
+        <h1 className="mt-3 text-pro-24 font-extrabold text-balance">
+          {isTutor ? t("onlineWeb.auth.tutorTitle") : t("onlineWeb.auth.studentTitle")}
         </h1>
         <p className="mt-2 text-pro-14 text-muted-foreground">
-          {step === "password" ? t("auth.signInSubtitle") : t("onlineWeb.signIn.lead")}
+          {isTutor ? t("onlineWeb.auth.tutorLead") : t("onlineWeb.auth.studentLead")}
         </p>
       </div>
 
-      {errorMsg ? (
-        <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-pro-13 font-semibold text-destructive">
-          {errorMsg}
-        </p>
+      {!isTutor ? (
+        <div
+          role="tablist"
+          aria-label={t("onlineWeb.auth.methodLabel")}
+          className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1"
+        >
+          {(["phone", "email"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={method === m}
+              onClick={() => switchMethod(m)}
+              className={`focus-ring min-h-11 rounded-xl text-pro-13 font-bold transition-colors ${
+                method === m ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              {m === "phone" ? t("onlineWeb.auth.methodPhone") : t("onlineWeb.auth.methodEmail")}
+            </button>
+          ))}
+        </div>
       ) : null}
 
-      <div className="space-y-4">
-        <label className="block space-y-2">
-          <span className="text-pro-13 font-bold text-muted-foreground">{t("auth.phone")}</span>
-          <div className={fieldClass}>
-            <span className="px-4 text-pro-15 font-bold text-muted-foreground" dir="ltr">
-              +20
-            </span>
-            <input
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              value={phone}
-              disabled={step === "password"}
-              onChange={(e) => setPhone(e.target.value)}
-              className="min-h-11 flex-1 bg-transparent pe-4 text-pro-16 outline-none"
-              aria-label={t("auth.phone")}
-            />
-          </div>
-        </label>
+      {errorMsg ? (
+        <div className="space-y-2 rounded-2xl bg-destructive/10 px-4 py-3">
+          <p className="text-pro-13 font-semibold text-destructive">{errorMsg}</p>
+          {tutorNotRegistered ? (
+            <a
+              href="/login?mode=signup"
+              className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-extrabold text-brand"
+            >
+              {t("onlineWeb.auth.becomeTutor")}
+            </a>
+          ) : null}
+          {unconfirmedEmail ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => void resendConfirmation()}
+              className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-extrabold text-brand"
+            >
+              {t("onlineWeb.auth.resendConfirmation")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
-        {step === "password" ? (
-          <label className="block space-y-2">
-            <span className="text-pro-13 font-bold text-muted-foreground">{t("auth.password")}</span>
-            <div className={fieldClass}>
-              <input
-                type={showPw ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="min-h-11 flex-1 bg-transparent px-4 text-pro-16 outline-none"
-                aria-label={t("auth.password")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                className="focus-ring px-4 text-muted-foreground"
-                aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-              >
-                {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-          </label>
-        ) : null}
-
-        {step === "password" ? (
-          <button
-            type="button"
-            onClick={() => {
-              setStep("phone");
-              setPassword("");
-              setErrorMsg(null);
-            }}
-            className="focus-ring text-pro-13 font-bold text-brand"
-          >
-            {t("auth.changePhone")}
-          </button>
-        ) : null}
-      </div>
-
-      <PrimaryButton
-        type="button"
-        disabled={primaryDisabled}
-        className="h-12 w-full"
-        onClick={() => void submit()}
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
       >
-        {primaryLabel}
-      </PrimaryButton>
-    </div>
+        {method === "phone" ? (
+          <>
+            <PhoneNumberField
+              id="online-login-phone"
+              label={t("auth.phoneNumber")}
+              value={phone}
+              disabled={phoneStep === "password" || loading}
+              onChange={(v) => {
+                setPhone(v);
+                if (errorMsg) resetErrors();
+              }}
+            />
+            {phoneStep === "password" ? (
+              <>
+                <OnlinePasswordField
+                  id="online-login-password"
+                  label={t("auth.password")}
+                  value={password}
+                  onChange={setPassword}
+                  autoComplete="current-password"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhoneStep("phone");
+                      setPassword("");
+                      resetErrors();
+                    }}
+                    className="focus-ring min-h-11 text-pro-13 font-bold text-brand"
+                  >
+                    {t("auth.changePhone")}
+                  </button>
+                  <Link to="/auth/forgot" className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand">
+                    {t("auth.forgot")}
+                  </Link>
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <OnlineTextField
+              id="online-login-email"
+              label={t("onlineWeb.auth.email")}
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="email"
+              placeholder={t("onlineWeb.auth.emailHint")}
+              ltr
+            />
+            <OnlinePasswordField
+              id="online-login-email-password"
+              label={t("auth.password")}
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+            />
+            <Link
+              to={ONLINE_WEB_ROUTE_IDS.forgotPassword}
+              className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand"
+            >
+              {t("auth.forgot")}
+            </Link>
+          </>
+        )}
+
+        <PrimaryButton type="submit" disabled={!canSubmit} className="h-12 w-full">
+          {primaryLabel}
+        </PrimaryButton>
+      </form>
+
+      {!isTutor ? (
+        <>
+          <OnlineGoogleButton returnTo={returnTo} />
+          <p className="text-center text-pro-14 text-muted-foreground">
+            {t("onlineWeb.auth.noAccount")}{" "}
+            <Link
+              to={ONLINE_WEB_ROUTE_IDS.signup}
+              search={{ returnTo }}
+              className="focus-ring font-extrabold text-brand"
+            >
+              {t("onlineWeb.auth.createAccount")}
+            </Link>
+          </p>
+        </>
+      ) : null}
+
+      <OnlineAuthDivider />
+      <Link
+        to={ONLINE_WEB_ROUTE_IDS.login}
+        search={isTutor ? { returnTo } : { returnTo, as: "tutor" }}
+        className="focus-ring flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2 px-4 py-3 text-pro-14 font-bold text-foreground"
+      >
+        <span>{isTutor ? t("onlineWeb.auth.areYouStudent") : t("onlineWeb.auth.areYouTutor")}</span>
+        <span className="text-brand">{t("onlineWeb.auth.signInHere")}</span>
+      </Link>
+    </OnlineAuthCard>
   );
 }

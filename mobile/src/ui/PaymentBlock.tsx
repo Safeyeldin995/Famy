@@ -14,6 +14,7 @@ import {
   useCreatePayment,
   type PaymentMethodRow,
 } from "@/lib/bookingQueries";
+import { logPaymentSuccessOnce } from "@/lib/analyticsPaymentSuccess";
 import { supabase } from "@/lib/supabase";
 import {
   clearPayment,
@@ -102,6 +103,11 @@ export function PaymentBlock({
   const type = p?.payment_method_type ?? legacy?.method_type;
   const statusRef = useRef<string | undefined>(undefined);
   statusRef.current = p?.status;
+  useEffect(() => {
+    if (p?.status === "captured" && p?.id) {
+      void logPaymentSuccessOnce(p.id);
+    }
+  }, [p?.status, p?.id]);
   useEffect(
     () =>
       runPaymobReturnPolling({

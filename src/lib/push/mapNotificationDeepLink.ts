@@ -23,6 +23,9 @@ export type NativeDeepLinkTarget =
   | { pathname: "/chat/[id]"; params: { id: string } }
   | { pathname: "/pro-chat/[id]"; params: { id: string } }
   | { pathname: "/provider/[id]"; params: { id: string } }
+  | { pathname: "/wallet" }
+  | { pathname: "/booking/[id]/session"; params: { id: string } }
+  | { pathname: "/pro-booking/[id]/session"; params: { id: string } }
   | { pathname: "/student-parent-link"; params?: { linkId?: string } };
 
 export function workspaceHome(workspace: PushWorkspace): NativeDeepLinkTarget {
@@ -38,12 +41,45 @@ export function mapNotificationDeepLink(
   if (!deepLink || deepLink === "/") return home;
 
   const withoutHash = deepLink.split("#")[0] ?? "/";
-  const path = withoutHash.split("?")[0]?.replace(/\/+$/, "") || "/";
+  const pathAndQuery = withoutHash.split("?") as [string, string | undefined];
+  const path = pathAndQuery[0]?.replace(/\/+$/, "") || "/";
+  const query = new URLSearchParams(pathAndQuery[1] ?? "");
+  const openReview = query.get("review") === "1";
+
+  const onlineLessonRoom = path.match(/^\/online\/lessons\/([^/]+)\/room$/);
+  if (onlineLessonRoom) {
+    const id = onlineLessonRoom[1]!;
+    return workspace === "provider"
+      ? { pathname: "/pro-booking/[id]/session", params: { id } }
+      : workspace === "customer"
+        ? { pathname: "/booking/[id]/session", params: { id } }
+        : home;
+  }
+
+  const onlineLesson = path.match(/^\/online\/lessons\/([^/]+)$/);
+  if (onlineLesson && workspace === "customer") {
+    return {
+      pathname: "/booking/[id]",
+      params: { id: onlineLesson[1]!, ...(openReview ? { review: "1" } : {}) },
+    };
+  }
+
+  const shortProvider = path.match(/^\/p\/([^/]+)$/);
+  if (shortProvider && workspace === "customer") {
+    return { pathname: "/provider/[id]", params: { id: shortProvider[1]! } };
+  }
+
+  if (path === "/wallet" && workspace === "customer") {
+    return { pathname: "/wallet" };
+  }
 
   const customerBooking = path.match(/^\/booking\/([^/]+)$/);
   if (customerBooking) {
     return workspace === "customer"
-      ? { pathname: "/booking/[id]", params: { id: customerBooking[1]! } }
+      ? {
+          pathname: "/booking/[id]",
+          params: { id: customerBooking[1]!, ...(openReview ? { review: "1" } : {}) },
+        }
       : home;
   }
 

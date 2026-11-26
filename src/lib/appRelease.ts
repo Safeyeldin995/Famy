@@ -1,3 +1,5 @@
+import { sanitizeStoreUrlForClient } from "./storeLinks";
+
 /**
  * App release gate: minimum / latest app versions and maintenance mode.
  * Stored in `settings.app_release`; shared by the mobile launch check and the admin form.
@@ -165,11 +167,7 @@ export function appStoreUpdateUrl(
   storeLinks: { play_url?: unknown; app_store_url?: unknown } | null | undefined,
 ): string | null {
   if (platform === "ios") {
-    const url = storeLinks?.app_store_url;
-    return typeof url === "string" && url.startsWith("https://") ? url : null;
+    return sanitizeStoreUrlForClient("ios", storeLinks);
   }
-  const url = storeLinks?.play_url;
-  return typeof url === "string" && url.startsWith("https://")
-    ? url
-    : "market://details?id=com.famy.app";
+  return sanitizeStoreUrlForClient("android", storeLinks) ?? "market://details?id=com.famy.app";
 }
