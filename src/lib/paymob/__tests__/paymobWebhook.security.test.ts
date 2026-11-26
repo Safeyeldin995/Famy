@@ -162,6 +162,27 @@ describe("Paymob webhook security", () => {
     );
   });
 
+  it("routes a void transaction of its own to the refund path, never capture (#547 audit)", async () => {
+    const h = harness();
+    h.obj.has_parent_transaction = true;
+    h.obj.id = 556;
+    (h.obj as Record<string, unknown>).is_void = true;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).toHaveBeenCalledTimes(1);
+    expect(h.rpc).toHaveBeenCalledWith(
+      "paymob_apply_refund_webhook",
+      expect.objectContaining({ p_paymob_transaction_id: 556, p_refund_kind: "transaction" }),
+    );
+  });
+
+  it("ignores any other child transaction that is not a capture (#547 audit)", async () => {
+    const h = harness();
+    h.obj.has_parent_transaction = true;
+    h.obj.id = 557;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
   it("never routes a capture of an authorization to the refund path", async () => {
     const h = harness();
     h.obj.has_parent_transaction = true;
