@@ -48,6 +48,7 @@ import {
   shouldAskForWhom,
 } from "@/lib/tutoring/studentLearnerFlow";
 import { chipClass } from "@/components/student/StudentProfileSteps";
+import { memberAgeFromDate } from "@/lib/familyMemberAge";
 
 type Props = {
   providerId: string;
@@ -110,6 +111,15 @@ export function OnlineLessonRequestForm({
   // The 12+ birth date and the under-18 parent contact belong to the student, i.e. the
   // account owner when booking for «أنا». A child's age is checked by the server from the child's record.
   const bookingForSelf = learnerId === MYSELF_LEARNER_ID;
+  // Online lessons are 12+ for children too (the server refuses younger children), so say it
+  // before the parent fills the form instead of failing at submit.
+  const selectedChild = bookingForSelf
+    ? null
+    : (membersQ.data ?? []).find((m) => m.id === learnerId) ?? null;
+  const childAge = selectedChild?.date_of_birth
+    ? memberAgeFromDate(selectedChild.date_of_birth)
+    : null;
+  const childTooYoung = Boolean(selectedChild && childAge && childAge.years < 12);
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -341,6 +351,11 @@ export function OnlineLessonRequestForm({
           </div>
         </div>
       ) : null}
+      {childTooYoung ? (
+        <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-pro-14 text-destructive">
+          {t("bookFlow.errors.ONLINE_AGE_MINIMUM")}
+        </p>
+      ) : null}
       {bookingForSelf && guardian.isMinorStudent && guardian.needsNewContact ? (
         <OnlineWebParentContactFields
           parentPhone={parentPhone}
@@ -481,7 +496,7 @@ export function OnlineLessonRequestForm({
 
       <PrimaryButton
         className="h-12 w-full"
-        disabled={!selectedSlot || !selectedCapability || create.isPending}
+        disabled={!selectedSlot || !selectedCapability || create.isPending || childTooYoung}
         onClick={() => void submit()}
       >
         {t("onlineWeb.walkthrough.requestLesson")}

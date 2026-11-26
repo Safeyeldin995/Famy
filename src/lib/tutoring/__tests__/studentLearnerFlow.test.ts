@@ -248,6 +248,13 @@ describe("misc", () => {
         education_level_id: "g1",
       }),
     ).toBe(false);
+    // A partly filled profile is never overwritten.
+    expect(
+      shouldApplyPendingGuestProfile(pending, {
+        education_curriculum_id: "american",
+        education_level_id: null,
+      }),
+    ).toBe(false);
   });
 
   it("flags tutors whose approved tutoring service has no approved teaching data", () => {

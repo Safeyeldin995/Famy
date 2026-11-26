@@ -282,7 +282,8 @@ export function shouldApplyPendingGuestProfile(
     | undefined,
 ): boolean {
   if (!pending) return false;
-  return !selfProfile?.education_curriculum_id || !selfProfile?.education_level_id;
+  // Never overwrite: apply only when the saved profile has neither a system nor a grade.
+  return !selfProfile?.education_curriculum_id && !selfProfile?.education_level_id;
 }
 
 /**

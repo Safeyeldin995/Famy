@@ -153,7 +153,8 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
 
   // After sign-up: save the guest picks to the student's own profile once, if it is still empty.
   useEffect(() => {
-    if (!isAuthenticated || educationQ.isLoading || upsertSelf.isPending) return;
+    // Wait for a successful read: a failed read must not look like an empty profile.
+    if (!isAuthenticated || !educationQ.isSuccess || upsertSelf.isPending) return;
     const pending = parsePendingGuestProfile(readStorage(PENDING_GUEST_PROFILE_KEY));
     if (!shouldApplyPendingGuestProfile(pending, educationQ.data)) {
       if (pending) writeStorage(PENDING_GUEST_PROFILE_KEY, null);
@@ -164,7 +165,7 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
       education_curriculum_id: pending!.curriculumId,
       education_level_id: pending!.levelId,
     });
-  }, [isAuthenticated, educationQ.isLoading, educationQ.data, upsertSelf]);
+  }, [isAuthenticated, educationQ.isSuccess, educationQ.data, upsertSelf]);
 
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [skillLevelId, setSkillLevelId] = useState<string | null>(null);
