@@ -28,7 +28,7 @@ describe("customer_apply_wallet_at_checkout", () => {
     const topUp = await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL, gen_random_uuid()::text)",
       [IDS.customer],
     );
     expect(topUp.error).toBeUndefined();
@@ -79,7 +79,7 @@ describe("customer_apply_wallet_at_checkout", () => {
     await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL, gen_random_uuid()::text)",
       [IDS.customer],
     );
     const applied = await tryAsUser(
@@ -143,7 +143,7 @@ describe("customer_apply_wallet_at_checkout", () => {
     await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL, gen_random_uuid()::text)",
       [IDS.customer],
     );
     await tryAsUser(
@@ -167,7 +167,7 @@ describe("customer_apply_wallet_at_checkout", () => {
     await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL, gen_random_uuid()::text)",
       [IDS.customer],
     );
     await tryAsUser(

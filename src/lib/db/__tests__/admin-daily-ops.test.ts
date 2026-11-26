@@ -150,11 +150,12 @@ describe("admin daily operations RPCs", () => {
 
   it.each(paymentSituationFixtures)("$name matches SQL admin_payment_situation", async (fixture) => {
     const [status, methodType, method, proof, bookingStatus, hasLedger] = fixture.sql;
+    const metadata = "metadata" in fixture ? JSON.stringify(fixture.metadata) : "{}";
     const rows = await asUser(db, IDS.adminUser, () =>
       queryRows<{ situation: string }>(
         db,
-        `SELECT public.admin_payment_situation($1, $2, $3, $4, $5, $6, '{}'::jsonb) AS situation`,
-        [status, methodType, method, proof, bookingStatus, hasLedger],
+        `SELECT public.admin_payment_situation($1, $2, $3, $4, $5, $6, $7::jsonb) AS situation`,
+        [status, methodType, method, proof, bookingStatus, hasLedger, metadata],
       ),
     );
     expect(rows[0]?.situation).toBe(fixture.expect);

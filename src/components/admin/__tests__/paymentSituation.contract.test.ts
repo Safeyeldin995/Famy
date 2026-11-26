@@ -3,7 +3,9 @@ import { paymentSituation } from "@/components/admin/paymentSituation";
 import { paymentSituationFixtures } from "@/lib/payments/paymentSituationFixtures";
 
 describe("paymentSituation contract fixtures", () => {
-  it.each(paymentSituationFixtures)("$name", ({ ts, expect: situation }) => {
+  it.each(paymentSituationFixtures)("$name", (fixture) => {
+    const { ts, expect: situation } = fixture;
+    const metadata = "metadata" in fixture ? { ...fixture.metadata } : null;
     expect(
       paymentSituation(
         {
@@ -12,6 +14,7 @@ describe("paymentSituation contract fixtures", () => {
           method: ts.method,
           proof_path: ts.proof_path,
           booking: ts.booking,
+          metadata,
         },
         ts.hasCashLedger,
       ),
