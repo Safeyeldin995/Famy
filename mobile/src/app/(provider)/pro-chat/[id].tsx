@@ -25,6 +25,8 @@ import { ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { ChatThreadSkeleton } from "@/ui/Skeleton";
+import { ChatThreadSafetyMenu } from "@/ui/ugc/ChatThreadSafetyMenu";
+import { UgcReportSheet } from "@/ui/ugc/UgcReportSheet";
 
 export default function ProviderChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,6 +40,7 @@ export default function ProviderChatScreen() {
   const markRead = useMarkBookingMessagesRead();
   const [draft, setDraft] = useState("");
   const [warning, setWarning] = useState<string | null>(null);
+  const [reportMessageId, setReportMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     const bookingId = conv.data?.booking_id;
@@ -63,7 +66,8 @@ export default function ProviderChatScreen() {
           return;
         }
         const msg = e instanceof Error ? e.message : "";
-        if (msg === "contact_masked")
+        if (msg.includes("user_blocked")) setWarning(t("ugc.blockedThreadNote"));
+        else if (msg === "contact_masked")
           setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
         else setWarning(t("messages.sendFailed"));
       },
@@ -100,15 +104,6 @@ export default function ProviderChatScreen() {
         ) : (
           <>
             <View style={styles.header}>
-              <Avatar raw={otherAvatar} size={44} />
-              <View style={styles.headerText}>
-                <Text weight="heavy" size="lg">
-                  {otherName}
-                </Text>
-                <Text tone="muted" size="sm">
-                  {t("messages.chatNotice")}
-                </Text>
-              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t("common.back")}
@@ -121,6 +116,18 @@ export default function ProviderChatScreen() {
                   <ArrowLeft size={22} color={colors.foreground} />
                 )}
               </Pressable>
+              <Avatar raw={otherAvatar} size={44} />
+              <View style={styles.headerText}>
+                <Text weight="heavy" size="lg">
+                  {otherName}
+                </Text>
+                <Text tone="muted" size="sm">
+                  {t("messages.chatNotice")}
+                </Text>
+              </View>
+              {conv.data ? (
+                <ChatThreadSafetyMenu conversationId={conv.data.id} afterBlockTo="/pro-messages" />
+              ) : null}
             </View>
             <View style={styles.notice}>
               <ShieldCheck size={14} color={colors.success} />
@@ -138,6 +145,11 @@ export default function ProviderChatScreen() {
                   mine={!!meId && item.sender_id === meId}
                   otherAvatar={otherAvatar}
                   otherName={otherName}
+                  onReport={
+                    item.message_type === "text" && item.sender_id !== meId
+                      ? () => setReportMessageId(item.id)
+                      : undefined
+                  }
                 />
               )}
               ListEmptyComponent={
@@ -161,6 +173,15 @@ export default function ProviderChatScreen() {
           </>
         )}
       </KeyboardAvoidingView>
+      {conv.data && reportMessageId ? (
+        <UgcReportSheet
+          visible
+          subjectType="chat_message"
+          conversationId={conv.data.id}
+          messageId={reportMessageId}
+          onClose={() => setReportMessageId(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

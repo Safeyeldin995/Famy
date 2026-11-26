@@ -59,6 +59,7 @@ import { Route as AdminPriceChangeRequestsRouteImport } from './routes/admin.pri
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminReportsUgcRouteImport } from './routes/admin.reports-ugc'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -165,6 +166,7 @@ import { Route as PreviewAdminPerformanceRouteImport } from './routes/preview.ad
 import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
 import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
 import { Route as PreviewAdminReportsRouteImport } from './routes/preview.admin.reports'
+import { Route as PreviewAdminReportsUgcRouteImport } from './routes/preview.admin.reports-ugc'
 import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
 import { Route as PreviewAdminSettingsRouteImport } from './routes/preview.admin.settings'
 import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zones'
@@ -459,6 +461,11 @@ const AdminProvidersRoute = AdminProvidersRouteImport.update({
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsUgcRoute = AdminReportsUgcRouteImport.update({
+  id: '/reports-ugc',
+  path: '/reports-ugc',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminServiceRequestsRoute = AdminServiceRequestsRouteImport.update({
@@ -997,6 +1004,11 @@ const PreviewAdminReportsRoute = PreviewAdminReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminReportsUgcRoute = PreviewAdminReportsUgcRouteImport.update({
+  id: '/reports-ugc',
+  path: '/reports-ugc',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAdminServicesRoute = PreviewAdminServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -1276,6 +1288,7 @@ export interface FileRoutesByFullPath {
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/reports': typeof AdminReportsRouteWithChildren
+  '/admin/reports-ugc': typeof AdminReportsUgcRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1379,6 +1392,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
   '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
+  '/preview/admin/reports-ugc': typeof PreviewAdminReportsUgcRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1470,6 +1484,7 @@ export interface FileRoutesByTo {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/reports-ugc': typeof AdminReportsUgcRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1565,6 +1580,7 @@ export interface FileRoutesByTo {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/reports-ugc': typeof PreviewAdminReportsUgcRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1664,6 +1680,7 @@ export interface FileRoutesById {
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/reports': typeof AdminReportsRouteWithChildren
+  '/admin/reports-ugc': typeof AdminReportsUgcRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1767,6 +1784,7 @@ export interface FileRoutesById {
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
   '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
+  '/preview/admin/reports-ugc': typeof PreviewAdminReportsUgcRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1867,6 +1885,7 @@ export interface FileRouteTypes {
     | '/admin/promo-codes'
     | '/admin/providers'
     | '/admin/reports'
+    | '/admin/reports-ugc'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -1970,6 +1989,7 @@ export interface FileRouteTypes {
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
     | '/preview/admin/reports'
+    | '/preview/admin/reports-ugc'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -2061,6 +2081,7 @@ export interface FileRouteTypes {
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/reports-ugc'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -2156,6 +2177,7 @@ export interface FileRouteTypes {
     | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
+    | '/preview/admin/reports-ugc'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -2254,6 +2276,7 @@ export interface FileRouteTypes {
     | '/admin/promo-codes'
     | '/admin/providers'
     | '/admin/reports'
+    | '/admin/reports-ugc'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -2357,6 +2380,7 @@ export interface FileRouteTypes {
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
     | '/preview/admin/reports'
+    | '/preview/admin/reports-ugc'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -2816,6 +2840,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports-ugc': {
+      id: '/admin/reports-ugc'
+      path: '/reports-ugc'
+      fullPath: '/admin/reports-ugc'
+      preLoaderRoute: typeof AdminReportsUgcRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/service-requests': {
@@ -3560,6 +3591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminReportsRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/reports-ugc': {
+      id: '/preview/admin/reports-ugc'
+      path: '/reports-ugc'
+      fullPath: '/preview/admin/reports-ugc'
+      preLoaderRoute: typeof PreviewAdminReportsUgcRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/admin/services': {
       id: '/preview/admin/services'
       path: '/services'
@@ -3913,6 +3951,7 @@ interface AdminRouteChildren {
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
   AdminReportsRoute: typeof AdminReportsRouteWithChildren
+  AdminReportsUgcRoute: typeof AdminReportsUgcRoute
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -3945,6 +3984,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
   AdminReportsRoute: AdminReportsRouteWithChildren,
+  AdminReportsUgcRoute: AdminReportsUgcRoute,
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
@@ -4129,6 +4169,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
   PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
   PreviewAdminReportsRoute: typeof PreviewAdminReportsRouteWithChildren
+  PreviewAdminReportsUgcRoute: typeof PreviewAdminReportsUgcRoute
   PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
   PreviewAdminSettingsRoute: typeof PreviewAdminSettingsRoute
   PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
@@ -4154,6 +4195,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
   PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
   PreviewAdminReportsRoute: PreviewAdminReportsRouteWithChildren,
+  PreviewAdminReportsUgcRoute: PreviewAdminReportsUgcRoute,
   PreviewAdminServicesRoute: PreviewAdminServicesRoute,
   PreviewAdminSettingsRoute: PreviewAdminSettingsRoute,
   PreviewAdminZonesRoute: PreviewAdminZonesRoute,
@@ -4379,3 +4421,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

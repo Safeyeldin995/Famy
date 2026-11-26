@@ -21,6 +21,9 @@ Used only inside a live online lesson so the student and teacher can see and hea
 **Account deletion**
 Profile → Delete account (customers) and Pro profile → Delete account (providers). The web page is https://famy-chi.vercel.app/account/delete
 
+**User-generated content (chat and reviews)**
+Booking chat includes in-thread actions to report a message or conversation and to block the other party; public provider reviews can be reported from the provider profile. Reports go to Famy admin for review. Blocking hides the conversation and prevents new messages and new bookings between the two users.
+
 **Demo accounts (fill in Play Console / ASC only — do not commit real credentials)**
 - **Customer:** phone + password for a customer with at least one active or recent booking; set the service address pin inside a served zone when booking.
 - **Provider:** phone + password for an approved provider with online tutoring enabled and at least one booking to show.

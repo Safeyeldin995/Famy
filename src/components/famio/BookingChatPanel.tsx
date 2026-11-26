@@ -109,7 +109,10 @@ export function BookingChatPanel({ bookingId, status, viewer, compactUnavailable
     send.mutate(trimmed, {
       onSuccess: () => { setText(""); setWarning(null); },
       onError: (e: any) => {
+        const msg = String(e?.message ?? "");
         if (e?.message === "contact_masked") setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        else if (msg.includes("user_blocked")) setWarning(t("ugc.blockedThreadNote"));
+        else if (msg.includes("chat_closed")) setWarning(t("bookingChat.closedThreadNote"));
         else setWarning(t("bookingChat.sendFailed", "Couldn't send. Please try again."));
       },
     });

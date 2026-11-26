@@ -48,6 +48,7 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     key: "online_lesson_issue_reports",
     route: "/admin/online-lesson-issues",
   },
+  { key: "ugc_reports", route: "/admin/reports-ugc" },
 ];
 
 export function AdminWorkQueue({ counts }: { counts: Record<AdminWorkQueueKey, number> }) {
