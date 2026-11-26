@@ -1980,6 +1980,7 @@ const ar: Translation = {
       UNAUTHORIZED: "غير مصرح لك بإنشاء هذا الحجز",
       ONLINE_BIRTH_DATE_REQUIRED: "ضيف تاريخ ميلادك في ملفك الشخصي قبل ما تحجز درس أونلاين",
       ONLINE_AGE_MINIMUM: "الدروس الأونلاين متاحة من سن 12",
+      PARENT_SUPERVISION_REQUIRED: "أكد إنك هتبقى موجود مع ابنك أو متابع الحصة قبل الحجز",
       ONLINE_REGION_CLOSED: "الدروس الأونلاين مش متاحة في محافظتك دلوقتي",
       USER_BLOCKED: "مش متاح تحجز مع مقدم الخدمة ده",
       PROVIDER_SETTLEMENT_BLOCKED: "المدرس ده مش بياخد حجوزات جديدة دلوقتي، اختار مدرس تاني",
@@ -2059,6 +2060,7 @@ const ar: Translation = {
       providerLine: {
         cameras: "المتابعة: كاميرات مراقبة",
         adult_present: "المتابعة: فرد بالغ موجود",
+        parent_online: "الطالب طفل، ولي الأمر متابع",
       },
     },
     forWhomTitle: "لمن هذا الحجز؟",
@@ -5632,6 +5634,9 @@ Object.assign(ar, {
         "ممكن يكون وقف الدروس الأونلاين مؤقتا، ارجع لقايمة المدرسين واختار مدرس تاني",
     },
     request: {
+      parentSupervision: "هبقى موجود مع ابني أو متابع الحصة",
+      parentSupervisionHint:
+        "ابنك أقل من 12 سنة، فلازم تكون معاه أو متابعه طول الحصة، والمدرس هيعرف إن ولي الأمر متابع",
       title: "اطلب درس أونلاين",
       pickDay: "اختار اليوم",
       pickTime: "اختار المعاد",
