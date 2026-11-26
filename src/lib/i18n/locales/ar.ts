@@ -4689,7 +4689,7 @@ const ar: Translation = {
     pending_documents: "مستندات في انتظار المراجعة",
     open_cases: "شكاوى ودعم مفتوح",
     bookings_needing_action: "حجوزات فيها مشكلة",
-    online_session_reviews: "مراجعات جلسات أونلاين",
+    online_session_reviews: "حصص أونلاين محتاجة مراجعة",
     bookings_lifecycle_attention: "حجوزات محتاجة متابعة للجلسة",
     payments_pending_review: "تحويلات بانتظار المراجعة",
     online_lesson_issue_reports: "بلاغات الحصص الأونلاين",

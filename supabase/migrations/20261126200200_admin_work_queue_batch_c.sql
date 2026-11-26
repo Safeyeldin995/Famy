@@ -1,5 +1,8 @@
--- Batch C (#515, #520, #529): work queue counts align with admin lists.
--- Re-derived from 20261125190000_admin_audit_batch.sql.
+-- Batch C (#515, #520, #529): admin work-queue counts match the lists they open.
+-- Re-derived from the latest definition (20261126160000_student_learning_profile.sql),
+-- keeping every key from #541/#543. Changes:
+--   * open_cases also counts open / info_requested no-show reports (the cases list shows them)
+--   * online session reviews are their own queue key instead of being added to bookings_needing_action
 
 CREATE OR REPLACE FUNCTION public.admin_work_queue_counts()
 RETURNS TABLE(queue text, item_count bigint)
@@ -104,8 +107,14 @@ BEGIN
       WHERE p.onboarding_status = 'APPROVED'
         AND public.provider_cash_debt_blocked(p.id)
         AND p.id IN (SELECT provider_id FROM public.admin_provider_identity_ids())
-    );
+    )
+  UNION ALL
+  SELECT 'tutors_missing_teaching_data'::text,
+    (SELECT count(*) FROM public.admin_tutors_missing_teaching_data_ids());
 END;
 $$;
+
 REVOKE ALL ON FUNCTION public.admin_work_queue_counts() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_work_queue_counts() TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
