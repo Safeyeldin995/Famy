@@ -26,8 +26,10 @@ describe("presence poll helpers", () => {
   });
 
   it("treats a missing room as an empty room, not a failure", () => {
-    expect(isRoomNotFoundError({ status: 404 })).toBe(true);
+    expect(isRoomNotFoundError({ status: 404, code: "not_found" })).toBe(true);
     expect(isRoomNotFoundError({ code: "not_found" })).toBe(true);
+    // A bare 404 (wrong URL / proxy page) is a failed poll, never "empty room".
+    expect(isRoomNotFoundError({ status: 404 })).toBe(false);
     expect(isRoomNotFoundError(new Error("timeout"))).toBe(false);
   });
 
@@ -38,7 +40,7 @@ describe("presence poll helpers", () => {
       activeBookingIds: async () => ["a", "b", "c"],
       listParticipants: async (room) => {
         if (room === lessonRoomName("a")) return [{ identity: "provider:p", state: 2 }];
-        if (room === lessonRoomName("b")) throw Object.assign(new Error("nf"), { status: 404 });
+        if (room === lessonRoomName("b")) throw Object.assign(new Error("nf"), { status: 404, code: "not_found" });
         throw new Error("network down");
       },
       record,

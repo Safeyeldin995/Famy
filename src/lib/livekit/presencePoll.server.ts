@@ -40,11 +40,16 @@ export function presenceFromParticipants(participants: PresenceParticipant[]): P
   return snapshot;
 }
 
-/** A room that does not exist simply means nobody is in it. */
+/**
+ * A room that does not exist simply means nobody is in it. Only LiveKit's own
+ * Twirp "not_found" code counts: a bare HTTP 404 (e.g. a wrong LIVEKIT_URL or
+ * a proxy page) must stay a failed poll, otherwise a misconfiguration would
+ * look like "nobody attended" and trigger automatic refunds.
+ */
 export function isRoomNotFoundError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const e = error as { status?: unknown; code?: unknown };
-  return e.status === 404 || e.code === "not_found";
+  const e = error as { code?: unknown };
+  return e.code === "not_found";
 }
 
 export type PresencePollDeps = {

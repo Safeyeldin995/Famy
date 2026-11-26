@@ -142,8 +142,8 @@ BEGIN
   FROM public.settings s
   WHERE s.key = 'online_presence_poll';
 
-  IF v_url IS NULL THEN
-    RAISE NOTICE 'famy_invoke_online_presence_poll skipped: settings.online_presence_poll.url missing';
+  IF v_url IS NULL OR v_url !~ '^https://[^/?#]+/api/online-sessions/presence-poll$' THEN
+    RAISE NOTICE 'famy_invoke_online_presence_poll skipped: settings.online_presence_poll.url missing or invalid';
     RETURN;
   END IF;
 
