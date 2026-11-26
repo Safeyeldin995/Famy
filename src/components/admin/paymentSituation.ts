@@ -21,6 +21,7 @@ export type PaymentSituation =
   | "failed"
   | "refunded"
   | "partiallyRefunded" // refunded after keeping the cancellation fee for the provider
+  | "paymobNeedsAction" // Paymob capture shortfall, gateway refund flag, or unmapped order
   | "other";
 
 export type PaymentSituationInput = {
@@ -47,10 +48,27 @@ function methodType(p: PaymentSituationInput) {
  * @param hasCashLedger whether the booking already has Famy's cash share on the
  *   provider ledger (cash_collected_platform_share).
  */
+function paymobNeedsAdminReview(metadata?: Record<string, unknown> | null) {
+  if (!metadata || typeof metadata !== "object") return false;
+  if (metadata.paymob_resolved_at) return false;
+  const shortfall = Number(metadata.capture_shortfall);
+  if (Number.isFinite(shortfall) && shortfall > 0.005) return true;
+  if (metadata.gateway_refund_recorded_at) return true;
+  if (metadata.needs_admin_review === true) return true;
+  if (metadata.unmapped_paymob_capture === true) return true;
+  return false;
+}
+
 export function paymentSituation(
   p: PaymentSituationInput,
   hasCashLedger = false,
 ): PaymentSituation {
+  const meta =
+    typeof p.metadata === "object" && p.metadata !== null
+      ? (p.metadata as Record<string, unknown>)
+      : null;
+  if (paymobNeedsAdminReview(meta)) return "paymobNeedsAction";
+
   const status = p.status ?? "";
   const booking = p.booking?.status ?? "";
   const type = methodType(p);
@@ -97,6 +115,7 @@ export function situationTone(s: PaymentSituation): SituationTone {
     case "review":
     case "cashUnconfirmed":
     case "refundDue":
+    case "paymobNeedsAction":
       return "action";
     case "awaitingProof":
     case "awaitingCard":

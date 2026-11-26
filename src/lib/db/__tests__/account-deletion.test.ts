@@ -26,7 +26,9 @@ describe("account deletion migration", () => {
     expect(sql).toContain("account_deletion_check");
     expect(sql).toContain("anonymize_account");
     expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.account_deletion_check() TO authenticated");
-    expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.anonymize_account(uuid) TO service_role");
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.anonymize_account\((uuid(, boolean)?|uuid, boolean)\) TO service_role/,
+    );
     expect(sql).not.toMatch(/has_role\s*\(\s*v_uid\s*,\s*'admin'/);
     expect(sql).toContain("FROM public.user_roles WHERE user_id = v_uid AND role = 'admin'");
   });

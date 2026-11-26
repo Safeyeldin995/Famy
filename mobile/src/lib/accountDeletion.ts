@@ -1,8 +1,8 @@
 import { appConfig, supabase } from "./supabase";
 
-export async function requestMobileAccountDeletion(): Promise<
-  { ok: true } | { ok: false; error: string }
-> {
+export async function requestMobileAccountDeletion(options?: {
+  confirmWalletForfeit?: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
   const {
     data: { session },
     error: sessionError,
@@ -11,13 +11,21 @@ export async function requestMobileAccountDeletion(): Promise<
     return { ok: false, error: "unauthorized" };
   }
 
-  const response = await fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/account/delete`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json",
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/account/delete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        confirm_wallet_forfeit: options?.confirmWalletForfeit === true,
+      }),
+    });
+  } catch {
+    return { ok: false, error: "deletion_failed" };
+  }
 
   let body: { ok?: boolean; error?: string } = {};
   try {

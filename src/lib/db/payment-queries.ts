@@ -4,28 +4,60 @@
  * Payment method selection is validated and snapshotted server-side — see
  * tg_snapshot_payment_method in 20260714120000_configurable_payment_methods.sql.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invalidateAdminPaymentQueue } from '@/lib/db/admin-payment-invalidation';
-import { supabase } from '@/integrations/supabase/client';
-import { bookingAmountDue } from '@/lib/payments/amountDue';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateAdminPaymentQueue } from "@/lib/db/admin-payment-invalidation";
+import { supabase } from "@/integrations/supabase/client";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
+import {
+  BOOKING_PAYMENT_QUERY_LIMIT,
+  BOOKING_PAYMENT_QUERY_STATUSES,
+  pickBookingPaymentRow,
+} from "@/lib/payments/bookingPaymentVisibility";
 
-export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
+export type PaymentStatus = "pending" | "pending_review" | "captured" | "rejected";
 
-export function useBookingPayment(bookingId: string | undefined) {
+/** Redacted payment fields returned by `provider_booking_payment` (Json RPC). */
+export type ProviderBookingPayment = {
+  id?: string;
+  booking_id?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  payment_method_type?: string;
+  method?: string;
+  payment_method_code?: string;
+  has_proof?: boolean;
+  captured_at?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  payment_method_name_en?: string;
+  payment_method_name_ar?: string;
+};
+
+export function useBookingPayment(
+  bookingId: string | undefined,
+  options?: { providerSafe?: boolean },
+) {
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ['payment', bookingId],
+    queryKey: ["payment", bookingId, options?.providerSafe ? "provider" : "full"],
     queryFn: async () => {
+      if (options?.providerSafe) {
+        const { data, error } = await (supabase.rpc as any)("provider_booking_payment", {
+          p_booking_id: bookingId!,
+        });
+        if (error) throw error;
+        return data as ProviderBookingPayment;
+      }
       const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('booking_id', bookingId!)
-        .in('status', ['pending', 'pending_review', 'captured', 'partially_refunded'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .from("payments")
+        .select("*")
+        .eq("booking_id", bookingId!)
+        .in("status", [...BOOKING_PAYMENT_QUERY_STATUSES])
+        .order("created_at", { ascending: false })
+        .limit(BOOKING_PAYMENT_QUERY_LIMIT);
       if (error) throw error;
-      return data;
+      return pickBookingPaymentRow(data);
     },
   });
 }
@@ -45,8 +77,8 @@ export function mapPaymentInsertError(error: unknown): string {
     return "Booking not found for this payment.";
   }
   if (
-    message === "You cannot record payment for this booking."
-    || message === "Booking total is not available yet."
+    message === "You cannot record payment for this booking." ||
+    message === "Booking total is not available yet."
   ) {
     return message;
   }
@@ -68,35 +100,38 @@ export function useCreatePayment() {
       bookingId: string;
       paymentMethodId: string;
       /** Only used to pick the initial status (manual_transfer = pending_review; cash/online = pending); the row's actual method details are copied server-side from payment_method_id. */
-      methodType: 'cash' | 'manual_transfer' | 'online';
+      methodType: "cash" | "manual_transfer" | "online";
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('auth required');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("auth required");
 
       const { data: booking, error: bookingErr } = await supabase
-        .from('bookings')
-        .select('price_total, carried_fees_amount, currency, customer_id')
-        .eq('id', input.bookingId)
+        .from("bookings")
+        .select("price_total, carried_fees_amount, currency, customer_id")
+        .eq("id", input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
-        throw new Error('You cannot record payment for this booking.');
+        throw new Error("You cannot record payment for this booking.");
       }
       // Includes earlier unpaid cancellation fees added to this booking.
       const amount = bookingAmountDue(booking);
       if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error('Booking total is not available yet.');
+        throw new Error("Booking total is not available yet.");
       }
 
-      const status: PaymentStatus = input.methodType === 'manual_transfer' ? 'pending_review' : 'pending';
+      const status: PaymentStatus =
+        input.methodType === "manual_transfer" ? "pending_review" : "pending";
       const { data, error } = await supabase
-        .from('payments')
+        .from("payments")
         .insert({
           booking_id: input.bookingId,
-          customer_id: user.id,
+          customer_id: booking.customer_id,
           payment_method_id: input.paymentMethodId,
           amount,
-          currency: booking.currency ?? 'EGP',
+          currency: booking.currency ?? "EGP",
           status: status as any,
         } as any)
         .select()
@@ -104,17 +139,17 @@ export function useCreatePayment() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['payment', v.bookingId] }),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ["payment", v.bookingId] }),
   });
 }
 
 /** Uploads a receipt to payment-proofs at `folder/<name>-<time>.<ext>` and returns its path. */
 export async function uploadPaymentProofFile(folder: string, name: string, file: File) {
-  if (file.size > 10 * 1024 * 1024) throw new Error('fileTooLarge');
-  const ext = (file.name.split('.').pop() || 'bin').replace(/[^a-z0-9]/gi, '') || 'bin';
+  if (file.size > 10 * 1024 * 1024) throw new Error("fileTooLarge");
+  const ext = (file.name.split(".").pop() || "bin").replace(/[^a-z0-9]/gi, "") || "bin";
   const path = `${folder}/${name}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from('payment-proofs')
+    .from("payment-proofs")
     .upload(path, file, { contentType: file.type, upsert: false });
   if (error) throw error;
   return path;
@@ -123,16 +158,24 @@ export async function uploadPaymentProofFile(folder: string, name: string, file:
 export function useUploadPaymentProof() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ paymentId, bookingId, file }: { paymentId: string; bookingId: string; file: File }) => {
-      const path = await uploadPaymentProofFile(bookingId, 'proof', file);
+    mutationFn: async ({
+      paymentId,
+      bookingId,
+      file,
+    }: {
+      paymentId: string;
+      bookingId: string;
+      file: File;
+    }) => {
+      const path = await uploadPaymentProofFile(bookingId, "proof", file);
       const { error } = await supabase
-        .from('payments')
+        .from("payments")
         .update({ proof_path: path, proof_uploaded_at: new Date().toISOString() })
-        .eq('id', paymentId);
+        .eq("id", paymentId);
       if (error) throw error;
       return path;
     },
-    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['payment', v.bookingId] }),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ["payment", v.bookingId] }),
   });
 }
 
@@ -141,31 +184,25 @@ export function useCapturePayment() {
   return useMutation({
     mutationFn: async ({ paymentId, bookingId }: { paymentId: string; bookingId: string }) => {
       const { data: booking, error: bookingErr } = await supabase
-        .from('bookings')
-        .select('status')
-        .eq('id', bookingId)
+        .from("bookings")
+        .select("status")
+        .eq("id", bookingId)
         .single();
       if (bookingErr) throw bookingErr;
-      if (booking.status !== 'completed') {
-        throw new Error('Payment cannot be captured until the booking is completed.');
+      if (booking.status !== "completed") {
+        throw new Error("Payment cannot be captured until the booking is completed.");
       }
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('payments')
-        .update({
-          status: 'captured' as any,
-          captured_at: new Date().toISOString(),
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-        })
-        .eq('id', paymentId);
+      const { error } = await (supabase.rpc as any)("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "capture",
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ['payment', v.bookingId] });
-      qc.invalidateQueries({ queryKey: ['provider-earnings'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      qc.invalidateQueries({ queryKey: ["payment", v.bookingId] });
+      qc.invalidateQueries({ queryKey: ["provider-earnings"] });
+      qc.invalidateQueries({ queryKey: ["admin", "payments"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard-kpis"] });
       invalidateAdminPaymentQueue(qc);
     },
   });
@@ -174,23 +211,25 @@ export function useCapturePayment() {
 export function useRejectPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ paymentId, reason }: { paymentId: string; bookingId: string; reason?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('payments')
-        .update({
-          status: 'rejected' as any,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-          rejection_reason: reason ?? null,
-        })
-        .eq('id', paymentId);
+    mutationFn: async ({
+      paymentId,
+      reason,
+    }: {
+      paymentId: string;
+      bookingId: string;
+      reason?: string;
+    }) => {
+      const { error } = await (supabase.rpc as any)("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "reject",
+        p_rejection_reason: reason ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ['payment', v.bookingId] });
-      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      qc.invalidateQueries({ queryKey: ["payment", v.bookingId] });
+      qc.invalidateQueries({ queryKey: ["admin", "payments"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard-kpis"] });
       invalidateAdminPaymentQueue(qc);
     },
   });
@@ -198,7 +237,7 @@ export function useRejectPayment() {
 
 export async function getSignedProofUrl(path: string) {
   const { data, error } = await supabase.storage
-    .from('payment-proofs')
+    .from("payment-proofs")
     .createSignedUrl(path, 60 * 10);
   if (error) throw error;
   return data.signedUrl;

@@ -62,6 +62,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminStudentLinksRouteImport } from './routes/admin.student-links'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -75,12 +76,18 @@ import { Route as FamilyMembersNewRouteImport } from './routes/family-members.ne
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
 import { Route as OnlineIndexRouteImport } from './routes/online.index'
+import { Route as OnlineCompleteProfileRouteImport } from './routes/online.complete-profile'
+import { Route as OnlineForgotPasswordRouteImport } from './routes/online.forgot-password'
 import { Route as OnlineLessonsRouteImport } from './routes/online.lessons'
 import { Route as OnlineLoginRouteImport } from './routes/online.login'
 import { Route as OnlineOtpRouteImport } from './routes/online.otp'
+import { Route as OnlineResetPasswordRouteImport } from './routes/online.reset-password'
 import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
+import { Route as OnlineSignupRouteImport } from './routes/online.signup'
 import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
 import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
+import { Route as PIdRouteImport } from './routes/p.$id'
+import { Route as ParentGuardianFlagRouteImport } from './routes/parent-guardian.flag'
 import { Route as PayFeesReturnRouteImport } from './routes/pay.fees-return'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
@@ -119,15 +126,19 @@ import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-change.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as AdminReportsIndexRouteImport } from './routes/admin.reports.index'
+import { Route as AdminReportsOnlineRouteImport } from './routes/admin.reports.online'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
+import { Route as ApiMobileParentGuardianEmailRouteImport } from './routes/api.mobile.parent-guardian-email'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
+import { Route as OnlineAuthCallbackRouteImport } from './routes/online.auth.callback'
 import { Route as OnlineLessonsIndexRouteImport } from './routes/online.lessons.index'
 import { Route as OnlineLessonsBookingIdRouteImport } from './routes/online.lessons.$bookingId'
 import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
@@ -190,6 +201,8 @@ import { Route as OnlineTutorsProviderIdIndexRouteImport } from './routes/online
 import { Route as OnlineTutorsProviderIdRequestRouteImport } from './routes/online.tutors.$providerId.request'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as PreviewAdminReportsIndexRouteImport } from './routes/preview.admin.reports.index'
+import { Route as PreviewAdminReportsOnlineRouteImport } from './routes/preview.admin.reports.online'
 import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
 import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
 import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
@@ -463,6 +476,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStudentLinksRoute = AdminStudentLinksRouteImport.update({
+  id: '/student-links',
+  path: '/student-links',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
@@ -528,6 +546,16 @@ const OnlineIndexRoute = OnlineIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineCompleteProfileRoute = OnlineCompleteProfileRouteImport.update({
+  id: '/complete-profile',
+  path: '/complete-profile',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineForgotPasswordRoute = OnlineForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineLessonsRoute = OnlineLessonsRouteImport.update({
   id: '/lessons',
   path: '/lessons',
@@ -543,9 +571,19 @@ const OnlineOtpRoute = OnlineOtpRouteImport.update({
   path: '/otp',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineResetPasswordRoute = OnlineResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineSetPasswordRoute = OnlineSetPasswordRouteImport.update({
   id: '/set-password',
   path: '/set-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineSignupRoute = OnlineSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => OnlineRoute,
 } as any)
 const OnlineTutorsRoute = OnlineTutorsRouteImport.update({
@@ -557,6 +595,16 @@ const OnlineWalletRoute = OnlineWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
   getParentRoute: () => OnlineRoute,
+} as any)
+const PIdRoute = PIdRouteImport.update({
+  id: '/p/$id',
+  path: '/p/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParentGuardianFlagRoute = ParentGuardianFlagRouteImport.update({
+  id: '/parent-guardian/flag',
+  path: '/parent-guardian/flag',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PayFeesReturnRoute = PayFeesReturnRouteImport.update({
   id: '/pay/fees-return',
@@ -750,6 +798,16 @@ const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReportsIndexRoute = AdminReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminReportsRoute,
+} as any)
+const AdminReportsOnlineRoute = AdminReportsOnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
+  getParentRoute: () => AdminReportsRoute,
+} as any)
 const AdminServiceRequestIdRoute = AdminServiceRequestIdRouteImport.update({
   id: '/service-request/$id',
   path: '/service-request/$id',
@@ -770,6 +828,12 @@ const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
   path: '/api/mobile/debt-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileParentGuardianEmailRoute =
+  ApiMobileParentGuardianEmailRouteImport.update({
+    id: '/api/mobile/parent-guardian-email',
+    path: '/api/mobile/parent-guardian-email',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobilePaymobCapabilitiesRoute =
   ApiMobilePaymobCapabilitiesRouteImport.update({
     id: '/api/mobile/paymob-capabilities',
@@ -795,6 +859,11 @@ const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   id: '/api/session/token',
   path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineAuthCallbackRoute = OnlineAuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => OnlineRoute,
 } as any)
 const OnlineLessonsIndexRoute = OnlineLessonsIndexRouteImport.update({
   id: '/',
@@ -1118,6 +1187,18 @@ const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminReportsIndexRoute =
+  PreviewAdminReportsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => PreviewAdminReportsRoute,
+  } as any)
+const PreviewAdminReportsOnlineRoute =
+  PreviewAdminReportsOnlineRouteImport.update({
+    id: '/online',
+    path: '/online',
+    getParentRoute: () => PreviewAdminReportsRoute,
+  } as any)
 const PreviewProAccountDeleteRoute = PreviewProAccountDeleteRouteImport.update({
   id: '/account/delete',
   path: '/account/delete',
@@ -1194,10 +1275,11 @@ export interface FileRoutesByFullPath {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
+  '/admin/reports': typeof AdminReportsRouteWithChildren
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1209,12 +1291,18 @@ export interface FileRoutesByFullPath {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/lessons': typeof OnlineLessonsRouteWithChildren
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1257,15 +1345,18 @@ export interface FileRoutesByFullPath {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
@@ -1287,7 +1378,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1309,6 +1400,7 @@ export interface FileRoutesByFullPath {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/admin/reports/': typeof AdminReportsIndexRoute
   '/online/lessons/': typeof OnlineLessonsIndexRoute
   '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
@@ -1326,11 +1418,13 @@ export interface FileRoutesByFullPath {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
   '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
+  '/preview/admin/reports/': typeof PreviewAdminReportsIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1376,10 +1470,10 @@ export interface FileRoutesByTo {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1391,10 +1485,16 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
@@ -1434,15 +1534,18 @@ export interface FileRoutesByTo {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
@@ -1462,7 +1565,6 @@ export interface FileRoutesByTo {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1484,6 +1586,7 @@ export interface FileRoutesByTo {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/admin/reports': typeof AdminReportsIndexRoute
   '/online/lessons': typeof OnlineLessonsIndexRoute
   '/online/tutors': typeof OnlineTutorsIndexRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
@@ -1501,11 +1604,13 @@ export interface FileRoutesByTo {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdIndexRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdIndexRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsIndexRoute
   '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1558,10 +1663,11 @@ export interface FileRoutesById {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
-  '/admin/reports': typeof AdminReportsRoute
+  '/admin/reports': typeof AdminReportsRouteWithChildren
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/student-links': typeof AdminStudentLinksRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1573,12 +1679,18 @@ export interface FileRoutesById {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/lessons': typeof OnlineLessonsRouteWithChildren
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
+  '/p/$id': typeof PIdRoute
+  '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
@@ -1621,15 +1733,18 @@ export interface FileRoutesById {
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/reports/online': typeof AdminReportsOnlineRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
@@ -1651,7 +1766,7 @@ export interface FileRoutesById {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
-  '/preview/admin/reports': typeof PreviewAdminReportsRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRouteWithChildren
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1673,6 +1788,7 @@ export interface FileRoutesById {
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
+  '/admin/reports/': typeof AdminReportsIndexRoute
   '/online/lessons/': typeof OnlineLessonsIndexRoute
   '/online/tutors/': typeof OnlineTutorsIndexRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
@@ -1690,11 +1806,13 @@ export interface FileRoutesById {
   '/online/tutors/$providerId/request': typeof OnlineTutorsProviderIdRequestRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/admin/reports/online': typeof PreviewAdminReportsOnlineRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/online/lessons/$bookingId/': typeof OnlineLessonsBookingIdIndexRoute
   '/online/tutors/$providerId/': typeof OnlineTutorsProviderIdIndexRoute
+  '/preview/admin/reports/': typeof PreviewAdminReportsIndexRoute
   '/admin/provider_/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
   '/preview/admin/provider_/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
@@ -1752,6 +1870,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1763,12 +1882,18 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/lessons'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/tutors'
     | '/online/wallet'
+    | '/p/$id'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1811,15 +1936,18 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
@@ -1863,6 +1991,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/admin/reports/'
     | '/online/lessons/'
     | '/online/tutors/'
     | '/preview/addresses/'
@@ -1880,11 +2009,13 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
     | '/online/lessons/$bookingId/'
     | '/online/tutors/$providerId/'
+    | '/preview/admin/reports/'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   fileRoutesByTo: FileRoutesByTo
@@ -1930,10 +2061,10 @@ export interface FileRouteTypes {
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
-    | '/admin/reports'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1945,10 +2076,16 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/wallet'
+    | '/p/$id'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/bookings'
     | '/preview/family-members'
@@ -1988,15 +2125,18 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/provider/lessons'
     | '/online/provider/requests'
     | '/preview/account/delete'
@@ -2016,7 +2156,6 @@ export interface FileRouteTypes {
     | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
-    | '/preview/admin/reports'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -2038,6 +2177,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/admin/reports'
     | '/online/lessons'
     | '/online/tutors'
     | '/preview/addresses'
@@ -2055,11 +2195,13 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
     | '/online/lessons/$bookingId'
     | '/online/tutors/$providerId'
+    | '/preview/admin/reports'
     | '/admin/provider/$id/statement/print'
     | '/preview/admin/provider/$id/statement/print'
   id:
@@ -2115,6 +2257,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/student-links'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2126,12 +2269,18 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/lessons'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/tutors'
     | '/online/wallet'
+    | '/p/$id'
+    | '/parent-guardian/flag'
     | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
@@ -2174,15 +2323,18 @@ export interface FileRouteTypes {
     | '/admin/customer/$id'
     | '/admin/price-change/$id'
     | '/admin/provider/$id'
+    | '/admin/reports/online'
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
@@ -2226,6 +2378,7 @@ export interface FileRouteTypes {
     | '/pro/booking/$id'
     | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
+    | '/admin/reports/'
     | '/online/lessons/'
     | '/online/tutors/'
     | '/preview/addresses/'
@@ -2243,11 +2396,13 @@ export interface FileRouteTypes {
     | '/online/tutors/$providerId/request'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/admin/reports/online'
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
     | '/online/lessons/$bookingId/'
     | '/online/tutors/$providerId/'
+    | '/preview/admin/reports/'
     | '/admin/provider_/$id/statement/print'
     | '/preview/admin/provider_/$id/statement/print'
   fileRoutesById: FileRoutesById
@@ -2288,11 +2443,14 @@ export interface RootRouteChildren {
   BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
+  PIdRoute: typeof PIdRoute
+  ParentGuardianFlagRoute: typeof ParentGuardianFlagRoute
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiLivekitWebhookRoute: typeof ApiLivekitWebhookRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
+  ApiMobileParentGuardianEmailRoute: typeof ApiMobileParentGuardianEmailRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
   ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
@@ -2681,6 +2839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/student-links': {
+      id: '/admin/student-links'
+      path: '/student-links'
+      fullPath: '/admin/student-links'
+      preLoaderRoute: typeof AdminStudentLinksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/zones': {
       id: '/admin/zones'
       path: '/zones'
@@ -2772,6 +2937,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineIndexRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/complete-profile': {
+      id: '/online/complete-profile'
+      path: '/complete-profile'
+      fullPath: '/online/complete-profile'
+      preLoaderRoute: typeof OnlineCompleteProfileRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/forgot-password': {
+      id: '/online/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/online/forgot-password'
+      preLoaderRoute: typeof OnlineForgotPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/lessons': {
       id: '/online/lessons'
       path: '/lessons'
@@ -2793,11 +2972,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineOtpRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/reset-password': {
+      id: '/online/reset-password'
+      path: '/reset-password'
+      fullPath: '/online/reset-password'
+      preLoaderRoute: typeof OnlineResetPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/set-password': {
       id: '/online/set-password'
       path: '/set-password'
       fullPath: '/online/set-password'
       preLoaderRoute: typeof OnlineSetPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/signup': {
+      id: '/online/signup'
+      path: '/signup'
+      fullPath: '/online/signup'
+      preLoaderRoute: typeof OnlineSignupRouteImport
       parentRoute: typeof OnlineRoute
     }
     '/online/tutors': {
@@ -2813,6 +3006,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/online/wallet'
       preLoaderRoute: typeof OnlineWalletRouteImport
       parentRoute: typeof OnlineRoute
+    }
+    '/p/$id': {
+      id: '/p/$id'
+      path: '/p/$id'
+      fullPath: '/p/$id'
+      preLoaderRoute: typeof PIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parent-guardian/flag': {
+      id: '/parent-guardian/flag'
+      path: '/parent-guardian/flag'
+      fullPath: '/parent-guardian/flag'
+      preLoaderRoute: typeof ParentGuardianFlagRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pay/fees-return': {
       id: '/pay/fees-return'
@@ -3080,6 +3287,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProviderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports/': {
+      id: '/admin/reports/'
+      path: '/'
+      fullPath: '/admin/reports/'
+      preLoaderRoute: typeof AdminReportsIndexRouteImport
+      parentRoute: typeof AdminReportsRoute
+    }
+    '/admin/reports/online': {
+      id: '/admin/reports/online'
+      path: '/online'
+      fullPath: '/admin/reports/online'
+      preLoaderRoute: typeof AdminReportsOnlineRouteImport
+      parentRoute: typeof AdminReportsRoute
+    }
     '/admin/service-request/$id': {
       id: '/admin/service-request/$id'
       path: '/service-request/$id'
@@ -3106,6 +3327,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/debt-checkout'
       fullPath: '/api/mobile/debt-checkout'
       preLoaderRoute: typeof ApiMobileDebtCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/parent-guardian-email': {
+      id: '/api/mobile/parent-guardian-email'
+      path: '/api/mobile/parent-guardian-email'
+      fullPath: '/api/mobile/parent-guardian-email'
+      preLoaderRoute: typeof ApiMobileParentGuardianEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/paymob-capabilities': {
@@ -3142,6 +3370,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/session/token'
       preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/online/auth/callback': {
+      id: '/online/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/online/auth/callback'
+      preLoaderRoute: typeof OnlineAuthCallbackRouteImport
+      parentRoute: typeof OnlineRoute
     }
     '/online/lessons/': {
       id: '/online/lessons/'
@@ -3577,6 +3812,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminProviderIdRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/reports/': {
+      id: '/preview/admin/reports/'
+      path: '/'
+      fullPath: '/preview/admin/reports/'
+      preLoaderRoute: typeof PreviewAdminReportsIndexRouteImport
+      parentRoute: typeof PreviewAdminReportsRoute
+    }
+    '/preview/admin/reports/online': {
+      id: '/preview/admin/reports/online'
+      path: '/online'
+      fullPath: '/preview/admin/reports/online'
+      preLoaderRoute: typeof PreviewAdminReportsOnlineRouteImport
+      parentRoute: typeof PreviewAdminReportsRoute
+    }
     '/preview/pro/account/delete': {
       id: '/preview/pro/account/delete'
       path: '/account/delete'
@@ -3631,6 +3880,20 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
   AddressesRouteChildren,
 )
 
+interface AdminReportsRouteChildren {
+  AdminReportsOnlineRoute: typeof AdminReportsOnlineRoute
+  AdminReportsIndexRoute: typeof AdminReportsIndexRoute
+}
+
+const AdminReportsRouteChildren: AdminReportsRouteChildren = {
+  AdminReportsOnlineRoute: AdminReportsOnlineRoute,
+  AdminReportsIndexRoute: AdminReportsIndexRoute,
+}
+
+const AdminReportsRouteWithChildren = AdminReportsRoute._addFileChildren(
+  AdminReportsRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminAreaRequestsRoute: typeof AdminAreaRequestsRoute
   AdminAuditLogRoute: typeof AdminAuditLogRoute
@@ -3649,10 +3912,11 @@ interface AdminRouteChildren {
   AdminPriceChangeRequestsRoute: typeof AdminPriceChangeRequestsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
-  AdminReportsRoute: typeof AdminReportsRoute
+  AdminReportsRoute: typeof AdminReportsRouteWithChildren
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStudentLinksRoute: typeof AdminStudentLinksRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -3680,10 +3944,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPriceChangeRequestsRoute: AdminPriceChangeRequestsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
-  AdminReportsRoute: AdminReportsRoute,
+  AdminReportsRoute: AdminReportsRouteWithChildren,
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminStudentLinksRoute: AdminStudentLinksRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
@@ -3784,25 +4049,35 @@ const OnlineTutorsRouteWithChildren = OnlineTutorsRoute._addFileChildren(
 )
 
 interface OnlineRouteChildren {
+  OnlineCompleteProfileRoute: typeof OnlineCompleteProfileRoute
+  OnlineForgotPasswordRoute: typeof OnlineForgotPasswordRoute
   OnlineLessonsRoute: typeof OnlineLessonsRouteWithChildren
   OnlineLoginRoute: typeof OnlineLoginRoute
   OnlineOtpRoute: typeof OnlineOtpRoute
+  OnlineResetPasswordRoute: typeof OnlineResetPasswordRoute
   OnlineSetPasswordRoute: typeof OnlineSetPasswordRoute
+  OnlineSignupRoute: typeof OnlineSignupRoute
   OnlineTutorsRoute: typeof OnlineTutorsRouteWithChildren
   OnlineWalletRoute: typeof OnlineWalletRoute
   OnlineIndexRoute: typeof OnlineIndexRoute
+  OnlineAuthCallbackRoute: typeof OnlineAuthCallbackRoute
   OnlineProviderLessonsRoute: typeof OnlineProviderLessonsRoute
   OnlineProviderRequestsRoute: typeof OnlineProviderRequestsRoute
 }
 
 const OnlineRouteChildren: OnlineRouteChildren = {
+  OnlineCompleteProfileRoute: OnlineCompleteProfileRoute,
+  OnlineForgotPasswordRoute: OnlineForgotPasswordRoute,
   OnlineLessonsRoute: OnlineLessonsRouteWithChildren,
   OnlineLoginRoute: OnlineLoginRoute,
   OnlineOtpRoute: OnlineOtpRoute,
+  OnlineResetPasswordRoute: OnlineResetPasswordRoute,
   OnlineSetPasswordRoute: OnlineSetPasswordRoute,
+  OnlineSignupRoute: OnlineSignupRoute,
   OnlineTutorsRoute: OnlineTutorsRouteWithChildren,
   OnlineWalletRoute: OnlineWalletRoute,
   OnlineIndexRoute: OnlineIndexRoute,
+  OnlineAuthCallbackRoute: OnlineAuthCallbackRoute,
   OnlineProviderLessonsRoute: OnlineProviderLessonsRoute,
   OnlineProviderRequestsRoute: OnlineProviderRequestsRoute,
 }
@@ -3825,6 +4100,19 @@ const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
 const PreviewAddressesRouteWithChildren =
   PreviewAddressesRoute._addFileChildren(PreviewAddressesRouteChildren)
 
+interface PreviewAdminReportsRouteChildren {
+  PreviewAdminReportsOnlineRoute: typeof PreviewAdminReportsOnlineRoute
+  PreviewAdminReportsIndexRoute: typeof PreviewAdminReportsIndexRoute
+}
+
+const PreviewAdminReportsRouteChildren: PreviewAdminReportsRouteChildren = {
+  PreviewAdminReportsOnlineRoute: PreviewAdminReportsOnlineRoute,
+  PreviewAdminReportsIndexRoute: PreviewAdminReportsIndexRoute,
+}
+
+const PreviewAdminReportsRouteWithChildren =
+  PreviewAdminReportsRoute._addFileChildren(PreviewAdminReportsRouteChildren)
+
 interface PreviewAdminRouteChildren {
   PreviewAdminAuditLogRoute: typeof PreviewAdminAuditLogRoute
   PreviewAdminBookingsRoute: typeof PreviewAdminBookingsRoute
@@ -3840,7 +4128,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminPerformanceRoute: typeof PreviewAdminPerformanceRoute
   PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
   PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
-  PreviewAdminReportsRoute: typeof PreviewAdminReportsRoute
+  PreviewAdminReportsRoute: typeof PreviewAdminReportsRouteWithChildren
   PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
   PreviewAdminSettingsRoute: typeof PreviewAdminSettingsRoute
   PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
@@ -3865,7 +4153,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminPerformanceRoute: PreviewAdminPerformanceRoute,
   PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
   PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
-  PreviewAdminReportsRoute: PreviewAdminReportsRoute,
+  PreviewAdminReportsRoute: PreviewAdminReportsRouteWithChildren,
   PreviewAdminServicesRoute: PreviewAdminServicesRoute,
   PreviewAdminSettingsRoute: PreviewAdminSettingsRoute,
   PreviewAdminZonesRoute: PreviewAdminZonesRoute,
@@ -4066,11 +4354,14 @@ const rootRouteChildren: RootRouteChildren = {
   BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
+  PIdRoute: PIdRoute,
+  ParentGuardianFlagRoute: ParentGuardianFlagRoute,
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiLivekitWebhookRoute: ApiLivekitWebhookRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
+  ApiMobileParentGuardianEmailRoute: ApiMobileParentGuardianEmailRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
   ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
@@ -4088,13 +4379,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

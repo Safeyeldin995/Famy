@@ -1,7 +1,7 @@
 import { AdminPreviewContext, AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useAdminWorkQueueCounts } from "@/lib/db/admin-queries";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
+import { useAdminStudentParentFlagCount } from "@/lib/db/student-parent-link-queries";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
@@ -82,7 +83,14 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
     titleKey: "admin.layout.group.customers",
     titleFallback: "Customers",
-    items: [{ to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound }],
+    items: [
+      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
+      {
+        to: "/admin/student-links",
+        labelKey: "admin.layout.nav.studentLinks",
+        icon: UserRound,
+      },
+    ],
   },
   {
     titleKey: "admin.layout.group.finance",
@@ -90,6 +98,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     items: [
       { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
       { to: "/admin/reports", labelKey: "admin.layout.nav.reports", icon: FileText },
+      { to: "/admin/reports/online", labelKey: "admin.layout.nav.onlineReports", icon: Video },
       { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
@@ -135,6 +144,12 @@ export function AdminShell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const queue = useAdminWorkQueueCounts();
+  const studentParentFlags = useAdminStudentParentFlagCount();
+  const navBadgeExtras = {
+    pendingSettlements: 0,
+    providersAtCashLimit: 0,
+    studentParentFlags: studentParentFlags.data ?? 0,
+  };
   const mobileTabs = useRef<HTMLElement>(null);
   useEffect(() => {
     let active = true;
@@ -229,7 +244,9 @@ export function AdminShell({
                 aria-expanded={mobileNavOpen}
                 aria-controls="admin-mobile-nav"
                 aria-label={
-                  mobileNavOpen ? t("admin.layout.closeMenu", "Close menu") : t("admin.layout.openMenu", "Open menu")
+                  mobileNavOpen
+                    ? t("admin.layout.closeMenu", "Close menu")
+                    : t("admin.layout.openMenu", "Open menu")
                 }
               >
                 {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -302,7 +319,7 @@ export function AdminShell({
                       const href = tab.to;
                       const badge =
                         queue.data != null
-                          ? adminNavBadgeCount(tab.to, queue.data)
+                          ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
                           : 0;
                       return (
                         <li key={tab.to}>
@@ -360,7 +377,7 @@ export function AdminShell({
                         const active = isActive(tab);
                         const badge =
                           queue.data != null
-                            ? adminNavBadgeCount(tab.to, queue.data)
+                            ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
                             : 0;
                         return (
                           <li key={tab.to}>

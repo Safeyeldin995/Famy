@@ -704,82 +704,10 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_work_queue_counts() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_work_queue_counts() TO authenticated;
 
--- ---------------------------------------------------------------------------
--- 10) Payment queue counts (#503 base + fee/unmapped in needs_action)
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.admin_payment_queue_counts()
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_refunds bigint;
-  v_receipts bigint;
-  v_cash bigint;
-  v_needs_action bigint;
-  v_fee_payments bigint;
-  v_unmapped bigint;
-BEGIN
-  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
-    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
-  END IF;
-
-  WITH situated AS (
-    SELECT public.admin_payment_situation(
-      p.status::text,
-      p.payment_method_type,
-      p.method::text,
-      p.proof_path,
-      b.status::text,
-      EXISTS (
-        SELECT 1
-        FROM public.provider_ledger_entries e
-        WHERE e.booking_id = p.booking_id
-          AND e.kind = 'cash_collected_platform_share'
-      ),
-      p.metadata
-    ) AS situation
-    FROM public.payments p
-    JOIN public.bookings b ON b.id = p.booking_id
-  )
-  SELECT
-    count(*) FILTER (WHERE situation = 'refundDue'),
-    count(*) FILTER (WHERE situation = 'review'),
-    count(*) FILTER (WHERE situation = 'cashUnconfirmed'),
-    count(*) FILTER (WHERE situation IN ('refundDue', 'review', 'cashUnconfirmed', 'paymobNeedsAction'))
-  INTO v_refunds, v_receipts, v_cash, v_needs_action
-  FROM situated;
-
-  SELECT count(*)
-  INTO v_fee_payments
-  FROM public.customer_debt_settlements s
-  WHERE s.status = 'pending_review';
-
-  SELECT count(*)
-  INTO v_unmapped
-  FROM public.paymob_unmapped_captures u
-  WHERE u.needs_admin_review AND u.reconciled_payment_id IS NULL;
-
-  v_needs_action := COALESCE(v_needs_action, 0)
-    + COALESCE(v_fee_payments, 0)
-    + COALESCE(v_unmapped, 0);
-
-  RETURN jsonb_build_object(
-    'refunds_due', COALESCE(v_refunds, 0),
-    'receipts_ready', COALESCE(v_receipts, 0),
-    'cash_to_confirm', COALESCE(v_cash, 0),
-    'needs_action', COALESCE(v_needs_action, 0),
-    'fee_payments', COALESCE(v_fee_payments, 0)
-  );
-END;
-$$;
-REVOKE ALL ON FUNCTION public.admin_payment_queue_counts() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_payment_queue_counts() TO authenticated;
+-- admin_payment_queue_counts: owned by 20261125140300_audit_security_money_batch (#503 on main).
 
 -- ---------------------------------------------------------------------------
--- 11) settings guard: booking_expiry
+-- 10) settings guard: booking_expiry
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.tg_validate_settings_booking_expiry()
 RETURNS trigger

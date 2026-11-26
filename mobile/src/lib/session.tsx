@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { handleUserBannedSession, isUserBannedAuthError } from "@/lib/auth/bannedAccountSession";
 import { clearMobileAuthCookies } from "@/lib/auth/mobileAuthCookies";
 import { resolveWorkspace, type Workspace } from "./workspace";
+import { logFamyEvent } from "@/lib/analytics";
 import { supabase } from "./supabase";
 
 type SessionState = { session: Session | null; ready: boolean };
@@ -44,6 +45,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       if (previousUserId !== undefined && (userId !== previousUserId || event === "SIGNED_OUT")) {
         qc.clear();
+      }
+      if (event === "SIGNED_IN" && session?.user?.created_at) {
+        const createdMs = Date.parse(session.user.created_at);
+        if (Number.isFinite(createdMs) && Date.now() - createdMs < 5 * 60 * 1000) {
+          void logFamyEvent("sign_up");
+        }
       }
       previousUserId = userId;
       setState({ session, ready: true });

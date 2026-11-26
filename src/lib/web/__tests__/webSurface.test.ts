@@ -27,6 +27,7 @@ describe("isWebSurfacePathAllowed", () => {
     expect(isWebSurfacePathAllowed("/provider/abc-123", {}, off)).toBe(true);
     expect(isWebSurfacePathAllowed("/api/mobile/otp/send", {}, off)).toBe(true);
     expect(isWebSurfacePathAllowed("/account/delete", {}, off)).toBe(true);
+    expect(isWebSurfacePathAllowed("/parent-guardian/flag", { token: "x" }, off)).toBe(true);
   });
 
   it("allows the online-lesson web tree under /online/*", () => {

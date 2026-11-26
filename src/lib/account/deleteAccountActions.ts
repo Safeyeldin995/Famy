@@ -7,9 +7,9 @@ export async function fetchAccountDeletionCheck(): Promise<AccountDeletionCheck>
   return (data ?? { ok: false, reason: "not_authenticated" }) as AccountDeletionCheck;
 }
 
-export async function requestAccountDeletion(): Promise<
-  { ok: true } | { ok: false; error: string }
-> {
+export async function requestAccountDeletion(options?: {
+  confirmWalletForfeit?: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
   const {
     data: { session },
     error: sessionError,
@@ -24,6 +24,9 @@ export async function requestAccountDeletion(): Promise<
       Authorization: `Bearer ${session.access_token}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      confirm_wallet_forfeit: options?.confirmWalletForfeit === true,
+    }),
   });
 
   let body: { ok?: boolean; error?: string } = {};

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { bookingDurationUnitKey } from "../bookingDuration";
+import { bookingDurationUnitKey, formatBookingDurationLabel } from "../bookingDuration";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("booking detail duration on Android Hermes", () => {
@@ -19,5 +19,20 @@ describe("booking detail duration on Android Hermes", () => {
     expect(bookingDurationUnitKey(1, "en")).toBe("bookingDuration.hour");
     expect(bookingDurationUnitKey(1.5, "en")).toBe("bookingDuration.hours");
     expect(bookingDurationUnitKey(3.5, "ar")).toBe("bookingDuration.hour");
+  });
+
+  it("formats 90 minutes as one hour and thirty minutes", () => {
+    const start = "2026-10-14T10:00:00.000Z";
+    const end = "2026-10-14T11:30:00.000Z";
+    const t = (key: string) =>
+      (
+        {
+          "bookingDuration.hour": "hour",
+          "bookingDuration.hours": "hours",
+          "bookingDuration.minute": "minute",
+          "bookingDuration.minutes": "minutes",
+        } as Record<string, string>
+      )[key] ?? key;
+    expect(formatBookingDurationLabel(start, end, "en", t)).toBe("1 hour · 30 minutes");
   });
 });

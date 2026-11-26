@@ -14,6 +14,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { ui, moneyTextStyle } from "@/ui/Page";
 import { money } from "@/lib/presentation";
+import { hapticSuccess } from "@/ui/haptics";
 
 type Props = {
   bookingId: string;
@@ -107,6 +108,7 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
         (payload?.card_amount != null && Number(payload.card_amount) <= 0.01);
       if (captured) {
         await paymentQ.refetch();
+        hapticSuccess();
         onPaid();
         return;
       }
@@ -119,6 +121,7 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
           proofPath: refetched.data?.proof_path,
         })
       ) {
+        hapticSuccess();
         onPaid();
       }
     } catch {

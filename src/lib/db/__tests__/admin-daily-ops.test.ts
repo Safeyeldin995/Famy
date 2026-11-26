@@ -153,7 +153,7 @@ describe("admin daily operations RPCs", () => {
     const rows = await asUser(db, IDS.adminUser, () =>
       queryRows<{ situation: string }>(
         db,
-        `SELECT public.admin_payment_situation($1, $2, $3, $4, $5, $6) AS situation`,
+        `SELECT public.admin_payment_situation($1, $2, $3, $4, $5, $6, '{}'::jsonb) AS situation`,
         [status, methodType, method, proof, bookingStatus, hasLedger],
       ),
     );

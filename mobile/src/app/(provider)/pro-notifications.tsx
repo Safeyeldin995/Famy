@@ -84,7 +84,12 @@ export default function ProNotifications() {
     />
   );
   return (
-    <Page title={t("notifs.title")} header={header} queries={[q]} contentStyle={{ paddingTop: space.sm }}>
+    <Page
+      title={t("notifs.title")}
+      header={header}
+      queries={[q]}
+      contentStyle={{ paddingTop: space.sm }}
+    >
       <ActionError error={mark.error || all.error} />
       <QueryState query={q}>
         {!items.length ? (

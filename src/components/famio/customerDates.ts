@@ -11,6 +11,41 @@ export function customerDayKey(date = new Date()): string {
   return cairoCalendar.format(date);
 }
 
+const CAIRO_WEEKDAY: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+export function cairoWeekday(date: Date): number {
+  const short = new Intl.DateTimeFormat("en-US", {
+    timeZone: CUSTOMER_TIME_ZONE,
+    weekday: "short",
+  }).format(date);
+  return CAIRO_WEEKDAY[short] ?? date.getDay();
+}
+
+/** Picker Y-M-D — must match `cairoWallTime` / date-field calendar semantics. */
+export function pickerCalendarDayKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Vacation/exception lookup aligned with how slots are generated for this flow. */
+export function slotLookupCalendar(
+  date: Date,
+  cairoWallSlots: boolean,
+): { dateStr: string; weekday: number } {
+  if (cairoWallSlots) {
+    return { dateStr: pickerCalendarDayKey(date), weekday: date.getDay() };
+  }
+  return { dateStr: customerDayKey(date), weekday: cairoWeekday(date) };
+}
+
 export function customerYesterdayKey(now = new Date()): string {
   const [year, month, day] = customerDayKey(now).split("-").map(Number);
   // Calendar subtraction at noon avoids midnight/DST and device-timezone boundaries.

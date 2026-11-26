@@ -13,6 +13,7 @@ import {
 import {
   useAdminPaymentQueue,
   useAdminPaymentQueueCounts,
+  useAdminResolvePaymobFlag,
   type PaymentQueueTab,
 } from "@/lib/db/admin-daily-ops-queries";
 import {
@@ -74,8 +75,10 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const reject = useRejectPayment();
   const recordCash = useRecordHistoricCash();
   const recordRefund = useRecordPaymentRefund();
+  const resolvePaymob = useAdminResolvePaymobFlag();
   const [cashSheet, setCashSheet] = useState(false);
   const [refundSheet, setRefundSheet] = useState(false);
+  const [resolveSheet, setResolveSheet] = useState(false);
   // The customer's cancellation fee (if any) stays with the provider, and earlier unpaid fees
   // the booking carried stay with Famy for theirs; only the rest is refunded.
   const refundFee = useAdminRefundBreakdown(p.id, refundSheet);
@@ -90,8 +93,13 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const [action, setAction] = useState<"confirm" | "reject" | null>(null);
   // A receipt on a cancelled booking is a refund, not a review.
   const reviewable = canReviewTransfer(p) && situation !== "refundDue";
+  const unmappedTx = Number((p.metadata as Record<string, unknown> | undefined)?.paymob_transaction_id);
   const busy =
-    capture.isPending || reject.isPending || recordCash.isPending || recordRefund.isPending;
+    capture.isPending ||
+    reject.isPending ||
+    recordCash.isPending ||
+    recordRefund.isPending ||
+    resolvePaymob.isPending;
   useEffect(() => {
     if (!p.proof_path || !reviewable) return;
     let active = true;
@@ -221,7 +229,39 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
         >
           {t("admin.paymentSituation.confirmCash")}
         </button>
+      ) : situation === "paymobNeedsAction" ? (
+        <button
+          className={`${adminControl} bg-brand text-brand-foreground`}
+          disabled={busy}
+          onClick={() => setResolveSheet(true)}
+        >
+          {t("admin.paymentSituation.resolvePaymob")}
+        </button>
       ) : null}
+      {resolveSheet && (
+        <AdminReasonSheet
+          title={t("admin.paymentSituation.resolvePaymob")}
+          description={t("admin.paymentSituation.resolvePaymobHint")}
+          busy={busy}
+          onClose={() => setResolveSheet(false)}
+          onConfirm={(note) =>
+            resolvePaymob.mutate(
+              {
+                paymentId: typeof p.id === "string" ? p.id : null,
+                unmappedTransactionId: Number.isFinite(unmappedTx) && unmappedTx > 0 ? unmappedTx : null,
+                note,
+              },
+              {
+                onSuccess: () => {
+                  setResolveSheet(false);
+                  toast.success(t("adminOps.saved"));
+                },
+                onError: failure,
+              },
+            )
+          }
+        />
+      )}
       {refundSheet && (
         <AdminReasonSheet
           title={t("admin.paymentSituation.recordRefund")}

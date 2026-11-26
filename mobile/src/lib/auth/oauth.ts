@@ -10,6 +10,7 @@ import {
   resolvePostOAuthNavigationTarget,
   type OAuthProvider,
 } from "@shared/auth/oauthShared";
+import { formatAppleFullName } from "@shared/auth/appleFullName";
 import { mobileAppleSignInConfiguredFromEnv } from "./mobileAppleSignIn";
 import { supabase } from "@/lib/supabase";
 
@@ -83,6 +84,32 @@ export async function signInWithAppleNative() {
     nonce: rawNonce,
   });
   if (error) throw error;
+
+  const fullName = formatAppleFullName(credential.fullName);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const metadataPatch: Record<string, string> = {};
+
+  if (fullName) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!profile?.full_name?.trim()) {
+      await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
+      metadataPatch.full_name = fullName;
+    }
+  }
+
+  if (Object.keys(metadataPatch).length > 0) {
+    await supabase.auth.updateUser({
+      data: { ...user.user_metadata, ...metadataPatch },
+    });
+  }
 }
 
 export type PostMobileOAuthRoute =
