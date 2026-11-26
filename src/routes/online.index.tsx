@@ -14,6 +14,12 @@ import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
+import { OnlineStudentHome, OnlineTutorHome } from "@/components/online/OnlineHomeDashboards";
+import {
+  OnlineCurriculaGrid,
+  OnlineLandingFaq,
+  OnlineTutorRecruit,
+} from "@/components/online/OnlineLandingSections";
 
 export const Route = createFileRoute("/online/")({
   head: ({ matches }) =>
@@ -22,7 +28,7 @@ export const Route = createFileRoute("/online/")({
       {
         ar: {
           title: "دروس أونلاين | فامي",
-          description: "احجز درس خصوصي أونلاين مع مدربين فامي الموثوقين من الكمبيوتر.",
+          description: "احجز درس خصوصي أونلاين مع مدرسين فامي الموثوقين من الموبايل أو الكمبيوتر، في كل مصر.",
         },
         en: {
           title: "Online lessons | Famy",
@@ -47,7 +53,6 @@ const WHY = [
   { key: "whyRefund", Icon: Wallet },
 ] as const;
 
-const SUBJECTS = ["subjectSchool", "subjectHomework", "subjectQuran", "subjectMusic"] as const;
 
 function OnlineHome() {
   const { t } = useTranslation();
@@ -97,6 +102,26 @@ function OnlineHome() {
       ) : null}
     </div>
   );
+
+  if (sessionSettled && isTutor && myProviderQ.data?.id) {
+    return (
+      <div className="space-y-12">
+        <OnlineTutorHome providerId={myProviderQ.data.id} />
+        <OnlineLandingFaq />
+      </div>
+    );
+  }
+
+  if (sessionSettled && isAuthenticated) {
+    return (
+      <div className="space-y-12 lg:space-y-14">
+        <OnlineStudentHome />
+        <OnlineCurriculaGrid signedIn />
+        <OnlineLandingFaq />
+        <p className="text-pro-13 leading-relaxed text-muted-foreground">{walletTerms}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12 lg:space-y-16">
@@ -154,19 +179,11 @@ function OnlineHome() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-pro-22 font-extrabold text-foreground">{t("onlineWeb.home.subjectsTitle")}</h2>
-        <ul className="flex flex-wrap gap-2">
-          {SUBJECTS.map((key) => (
-            <li
-              key={key}
-              className="rounded-full border border-border bg-surface px-4 py-2 text-pro-14 font-bold text-foreground"
-            >
-              {t(`onlineWeb.home.${key}`)}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <OnlineCurriculaGrid signedIn={false} />
+
+      <OnlineLandingFaq />
+
+      <OnlineTutorRecruit />
 
       <section className="rounded-3xl bg-ink p-6 text-ink-foreground sm:p-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
