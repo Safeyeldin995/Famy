@@ -27,7 +27,12 @@ import {
   useUpdateReleaseFeatureSettings,
   useAppReleaseSettingsAdmin,
   useUpdateAppReleaseSettings,
+  useStoreLinksSettingsAdmin,
+  useUpdateStoreLinksSettings,
+  type StoreLinksSettings,
+  DEFAULT_STORE_LINKS,
 } from "@/lib/db/settings-queries";
+import { validateStoreLinksSettings } from "@/lib/storeLinks";
 import {
   DEFAULT_APP_RELEASE,
   validateAppReleaseSettings,
@@ -1025,6 +1030,84 @@ function ReleaseFeaturesSection() {
   );
 }
 
+function StoreLinksSection() {
+  const { t } = useTranslation();
+  const q = useStoreLinksSettingsAdmin();
+  const update = useUpdateStoreLinksSettings();
+  const [form, setForm] = useState<StoreLinksSettings>(DEFAULT_STORE_LINKS);
+  useEffect(() => {
+    if (q.data) setForm(q.data);
+  }, [q.data]);
+  const saved = useSavedFlash(update.isPending, !update.isError);
+  const errors = validateStoreLinksSettings(form);
+  const urlError = (field: keyof StoreLinksSettings) =>
+    errors.some((e) => e.field === field) ? t("admin.settings.storeLinksInvalidUrl") : null;
+
+  return (
+    <SectionCard
+      title={t("admin.settings.storeLinksTitle")}
+      subtitle={t("admin.settings.storeLinksSubtitle")}
+    >
+      {q.isLoading ? (
+        <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError
+          message={t("admin.settings.storeLinksLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.storeLinksPlay")}</span>
+            <input
+              dir="ltr"
+              inputMode="url"
+              value={form.play_url}
+              onChange={(e) => setForm((f) => ({ ...f, play_url: e.target.value.trim() }))}
+              placeholder="https://play.google.com/store/apps/details?id=com.famy.app"
+              aria-invalid={!!urlError("play_url")}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+            {urlError("play_url") ? (
+              <span className="block text-xs text-destructive">{urlError("play_url")}</span>
+            ) : null}
+          </label>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.storeLinksApple")}</span>
+            <input
+              dir="ltr"
+              inputMode="url"
+              value={form.app_store_url}
+              onChange={(e) => setForm((f) => ({ ...f, app_store_url: e.target.value.trim() }))}
+              placeholder="https://apps.apple.com/app/id0000000000"
+              aria-invalid={!!urlError("app_store_url")}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+            {urlError("app_store_url") ? (
+              <span className="block text-xs text-destructive">{urlError("app_store_url")}</span>
+            ) : null}
+          </label>
+        </div>
+      )}
+      <SaveButton
+        pending={update.isPending}
+        saved={saved}
+        onClick={() => {
+          if (errors.length > 0) {
+            toast.error(urlError(errors[0].field) ?? t("admin.settings.storeLinksSaveError"));
+            return;
+          }
+          update.mutate(form, {
+            onSuccess: () => toast.success(t("admin.settings.storeLinksSaved")),
+            onError: () => toast.error(t("admin.settings.storeLinksSaveError")),
+          });
+        }}
+      />
+    </SectionCard>
+  );
+}
+
 function AppReleaseSection() {
   const { t } = useTranslation();
   const q = useAppReleaseSettingsAdmin();
@@ -1172,6 +1255,7 @@ function AdminSettings() {
       </div>
       <ReleaseFeaturesSection />
       <AppReleaseSection />
+      <StoreLinksSection />
       <BillingSection />
       <ProviderSettlementSettingsSection />
       <CancellationPolicySection />

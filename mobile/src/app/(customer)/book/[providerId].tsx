@@ -44,6 +44,7 @@ import {
   useBookingConfig,
   useSaveStudentEducationProfile,
 } from "@/lib/bookingQueries";
+import { logFamyEvent } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 import { stashPayment, clearPayment, startPaymob } from "@/lib/mobilePayments";
 import { buildBookingRequest, buildBookingQuote } from "@shared/booking/bookingRequest";
@@ -550,6 +551,7 @@ function BookForm({
   });
   async function submit() {
     if (submitting.current || missing || blocked || !service || !currentSlot) return;
+    void logFamyEvent("start_booking");
     submitting.current = true;
     setBusy(true);
     setError("");

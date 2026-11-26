@@ -48,6 +48,26 @@ describe("mapNotificationDeepLink", () => {
     expect(mapNotificationDeepLink("/pro/onboarding", "customer")).toEqual({ pathname: "/home" });
   });
 
+  it("maps online lesson join, wallet, short provider share, and review query", () => {
+    expect(mapNotificationDeepLink("/online/lessons/b1/room", "customer")).toEqual({
+      pathname: "/booking/[id]/session",
+      params: { id: "b1" },
+    });
+    expect(mapNotificationDeepLink("/online/lessons/b1/room", "provider")).toEqual({
+      pathname: "/pro-booking/[id]/session",
+      params: { id: "b1" },
+    });
+    expect(mapNotificationDeepLink("/wallet", "customer")).toEqual({ pathname: "/wallet" });
+    expect(mapNotificationDeepLink("/p/prov-1", "customer")).toEqual({
+      pathname: "/provider/[id]",
+      params: { id: "prov-1" },
+    });
+    expect(mapNotificationDeepLink("/booking/b1?review=1", "customer")).toEqual({
+      pathname: "/booking/[id]",
+      params: { id: "b1", review: "1" },
+      });
+    });
+
   it("maps wallet and provider setup sections", () => {
     expect(mapNotificationDeepLink("/wallet", "customer")).toEqual({ pathname: "/wallet" });
     expect(mapNotificationDeepLink("/wallet", "provider")).toEqual({ pathname: "/dashboard" });
