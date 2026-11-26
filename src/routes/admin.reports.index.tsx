@@ -10,6 +10,7 @@ import {
 import { useAdminReports } from "@/lib/db/admin-daily-ops-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminControl, adminScreen } from "@/components/admin/operations";
+import { adminDate } from "@/components/admin/adminPresentation";
 import { formatEGP } from "@/lib/utils";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { downloadReportsCsv } from "@/lib/admin/reportsExport";
@@ -65,8 +66,7 @@ function AdminReportsPage() {
     [t],
   );
 
-  const formatBucket = (iso: string) =>
-    new Date(iso).toLocaleString(lang, { timeZone: "Africa/Cairo", dateStyle: "medium" });
+  const formatBucket = (iso: string) => adminDate(iso, lang, false);
 
   const formatMetric = (key: (typeof METRIC_KEYS)[number], value: number) => {
     if (
@@ -92,8 +92,8 @@ function AdminReportsPage() {
               <li key={key}>
                 <strong className="text-foreground">{columnLabels[key]}:</strong>{" "}
                 {t("admin.reports.basisLine", {
-                  basis: basis.basis,
-                  timestamp: basis.timestamp,
+                  basis: t(`admin.reports.dateBasis.${basis.basis}`, { defaultValue: basis.basis }),
+                  timestamp: adminDate(basis.timestamp, lang),
                 })}
               </li>
             );

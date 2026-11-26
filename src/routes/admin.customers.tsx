@@ -2,11 +2,11 @@ import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminCustomerCard } from "@/components/admin/AdminCustomerCard";
 import { adminDate } from "@/components/admin/adminPresentation";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminCustomers, type AdminCustomerFilter } from "@/lib/db/admin-queries";
 import { formatEGP } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   AdminPage,
   AdminSearchBar,
@@ -31,23 +31,31 @@ const FILTER_KEYS: { key: AdminCustomerFilter; labelKey: string }[] = [
   { key: "no_bookings", labelKey: "admin.customers.filterNoBookings" },
 ];
 
+function useDebounced(value: string, ms: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), ms);
+    return () => window.clearTimeout(id);
+  }, [value, ms]);
+  return debounced;
+}
+
 function CustomerManagement() {
   const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<AdminCustomerFilter>("all");
   const [query, setQuery] = useState("");
-  const q = useAdminCustomers(filter);
+  const [page, setPage] = useState(0);
+  const debouncedQuery = useDebounced(query, 300);
+  const q = useAdminCustomers(filter, debouncedQuery, page);
 
-  const rows = useMemo(() => {
-    const all = q.data ?? [];
-    const needle = query.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((c: any) => {
-      const name = String(c.full_name ?? "").toLowerCase();
-      const phone = String(c.phone ?? "").toLowerCase();
-      const id = String(c.id ?? "").toLowerCase();
-      return name.includes(needle) || phone.includes(needle) || id.includes(needle);
-    });
-  }, [q.data, query]);
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedQuery, filter]);
+
+  const rows = (q.data?.items ?? []) as any[];
+  const total = q.data?.total ?? 0;
+  const pageSize = 50;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <AdminPage title={t("admin.customers.title")} subtitle={t("admin.customers.subtitle")}>
@@ -128,6 +136,31 @@ function CustomerManagement() {
             ))}
           </AdminTableBody>
         </AdminTable>
+        {total > pageSize ? (
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {t("admin.auditLog.pageOf", { page: page + 1, totalPages, total })}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
+              >
+                <ChevronLeft className="rtl-flip h-3.5 w-3.5" /> {t("admin.auditLog.prev")}
+              </button>
+              <button
+                type="button"
+                disabled={page + 1 >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
+              >
+                {t("admin.auditLog.next")} <ChevronRight className="rtl-flip h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </AdminQueryState>
     </AdminPage>
   );

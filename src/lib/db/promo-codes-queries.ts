@@ -147,30 +147,12 @@ export function useSetPromoCodeScope() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ promoCodeId, categoryIds, serviceIds }: { promoCodeId: string; categoryIds: string[]; serviceIds: string[] }) => {
-      const del1 = await supabase.from('promo_code_categories').delete().eq('promo_code_id', promoCodeId);
-      if (del1.error) throw del1.error;
-      const del2 = await supabase.from('promo_code_services').delete().eq('promo_code_id', promoCodeId);
-      if (del2.error) throw del2.error;
-      if (categoryIds.length > 0) {
-        const ins1 = await supabase.from('promo_code_categories').insert(categoryIds.map((category_id) => ({ promo_code_id: promoCodeId, category_id })));
-        if (ins1.error) throw ins1.error;
-      }
-      if (serviceIds.length > 0) {
-        const ins2 = await supabase.from('promo_code_services').insert(serviceIds.map((service_id) => ({ promo_code_id: promoCodeId, service_id })));
-        if (ins2.error) throw ins2.error;
-      }
-      const [storedCategories, storedServices] = await Promise.all([
-        supabase.from('promo_code_categories').select('category_id').eq('promo_code_id', promoCodeId),
-        supabase.from('promo_code_services').select('service_id').eq('promo_code_id', promoCodeId),
-      ]);
-      if (storedCategories.error) throw storedCategories.error;
-      if (storedServices.error) throw storedServices.error;
-      const actualCategories = (storedCategories.data ?? []).map((r) => r.category_id).sort();
-      const actualServices = (storedServices.data ?? []).map((r) => r.service_id).sort();
-      if (JSON.stringify(actualCategories) !== JSON.stringify([...categoryIds].sort()) ||
-          JSON.stringify(actualServices) !== JSON.stringify([...serviceIds].sort())) {
-        throw new Error('Promo code scope did not persist.');
-      }
+      const { error } = await (supabase.rpc as any)('admin_set_promo_code_scope', {
+        p_promo_code_id: promoCodeId,
+        p_category_ids: categoryIds,
+        p_service_ids: serviceIds,
+      });
+      if (error) throw error;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['admin', 'promo-codes', vars.promoCodeId, 'scope'] });

@@ -1,7 +1,7 @@
 import { AdminPreviewContext, AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
@@ -36,12 +36,6 @@ import {
   Flag,
 } from "lucide-react";
 import { useAdminWorkQueueCounts } from "@/lib/db/admin-queries";
-import {
-  useAdminFinanceProviders,
-  useAdminFinanceSummary,
-  useSettlementClosedPeriod,
-} from "@/lib/db/admin-finance-queries";
-import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount, adminNavBadgeUrgentCount } from "@/lib/admin/adminNavBadges";
 import { useAdminStudentParentFlagCount } from "@/lib/db/student-parent-link-queries";
 import type { LucideIcon } from "lucide-react";
@@ -154,32 +148,17 @@ export function AdminShell({
   const nav = useNavigate();
   const role = useMyRole();
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-  if (/\/statement\/print\/?$/.test(rawPathname)) {
-    return (
-      <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>
-    );
-  }
+  const isStatementPrint = /\/statement\/print\/?$/.test(rawPathname);
   const pathname = normalizeAdminPathname(rawPathname)
     .replace(/^\/admin\/provider\//, "/admin/providers/")
     .replace(/^\/admin\/customer\//, "/admin/customers/");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const queue = useAdminWorkQueueCounts();
-  const settlementPeriod = useSettlementClosedPeriod();
-  const [financeAnchor] = useState(() => new Date());
-  const financeRange = useMemo(
-    () =>
-      settlementPeriod.data != null
-        ? financeRangeForPreset("thisWeek", settlementPeriod.data, financeAnchor)
-        : null,
-    [settlementPeriod.data, financeAnchor],
-  );
-  const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
-  const financeProviders = useAdminFinanceProviders();
   const studentParentFlags = useAdminStudentParentFlagCount();
   const navBadgeExtras = {
-    pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,
-    providersAtCashLimit: (financeProviders.data ?? []).filter((row) => row.at_limit).length,
+    pendingSettlements: 0,
+    providersAtCashLimit: 0,
     studentParentFlags: studentParentFlags.data ?? 0,
   };
   const mobileTabs = useRef<HTMLElement>(null);
@@ -235,6 +214,13 @@ export function AdminShell({
         </Link>
       </div>
     );
+  }
+
+  if (isStatementPrint) {
+    const printBody = (
+      <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>
+    );
+    return previewMode ? printBody : <AdminMfaGate>{printBody}</AdminMfaGate>;
   }
 
   const flatTabs = ADMIN_NAV_GROUPS.flatMap((g) => g.items);

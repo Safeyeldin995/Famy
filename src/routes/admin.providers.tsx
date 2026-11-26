@@ -1,6 +1,6 @@
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useAdminProviders,
@@ -8,13 +8,22 @@ import {
   useAdminIdentityConflicts,
   type AdminProviderFilter,
 } from "@/lib/db/admin-queries";
-import { Search, ChevronRight, ShieldCheck } from "lucide-react";
+import { Search, ChevronRight, ShieldCheck, ChevronLeft } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
 import { currentLang } from "@/lib/i18n";
 import { isProviderWorkQueueKey } from "@/lib/db/admin-work-queue";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
+
+function useDebounced(value: string, ms: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), ms);
+    return () => window.clearTimeout(id);
+  }, [value, ms]);
+  return debounced;
+}
 
 const FILTER_KEYS: { key: AdminProviderFilter; labelKey: string }[] = [
   { key: "pending", labelKey: "admin.providers.filterPending" },
@@ -31,21 +40,20 @@ function ProviderManagement() {
   const queue = isProviderWorkQueueKey(queueParam) ? queueParam : undefined;
   const [filter, setFilter] = useState<AdminProviderFilter>("pending");
   const [query, setQuery] = useState("");
-  const q = useAdminProviders(queue ? "all" : filter, queue);
+  const [page, setPage] = useState(0);
+  const debouncedQuery = useDebounced(query, 300);
+  const q = useAdminProviders(queue ? "all" : filter, queue, debouncedQuery, page);
   const conflictsQ = useAdminIdentityConflicts();
   const setActive = useSetProviderActive();
 
-  const rows = useMemo(() => {
-    const all = q.data ?? [];
-    const needle = query.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((p: any) => {
-      const name = String(p.profile?.full_name ?? "").toLowerCase();
-      const phone = String(p.profile?.phone ?? "").toLowerCase();
-      const city = String(p.city ?? "").toLowerCase();
-      return name.includes(needle) || phone.includes(needle) || city.includes(needle);
-    });
-  }, [q.data, query]);
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedQuery, filter, queue]);
+
+  const rows = (q.data?.items ?? []) as any[];
+  const total = q.data?.total ?? 0;
+  const pageSize = 50;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="px-5 py-5 space-y-4">
@@ -149,6 +157,7 @@ function ProviderManagement() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.providers.noResults")}</p>
       ) : (
+        <>
         <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
           {rows.map((p: any) => {
             const suspended = p.is_verified && !p.is_active;
@@ -252,6 +261,30 @@ function ProviderManagement() {
             );
           })}
         </ul>
+        {total > pageSize ? (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{t("admin.auditLog.pageOf", { page: page + 1, totalPages, total })}</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
+              >
+                <ChevronLeft className="rtl-flip h-3.5 w-3.5" /> {t("admin.auditLog.prev")}
+              </button>
+              <button
+                type="button"
+                disabled={page + 1 >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
+              >
+                {t("admin.auditLog.next")} <ChevronRight className="rtl-flip h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+        </>
       )}
     </div>
   );

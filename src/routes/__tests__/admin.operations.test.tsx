@@ -17,7 +17,12 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/preview/previewPath", () => ({ adminPath: (p: string) => p }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "ar" }));
 vi.mock("@/lib/db/admin-queries", () => ({
-  useAdminPayments: () => ({ data: h.payments, isLoading: false, isError: false, refetch: vi.fn() }),
+  useAdminPaymentsList: () => ({
+    data: { items: h.payments, total: h.payments.length },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useAdminCashLedgerBookings: () => ({ data: new Set<string>() }),
   useRecordHistoricCash: () => ({ mutate: vi.fn(), isPending: false }),
   useRecordPaymentRefund: () => ({ mutate: vi.fn(), isPending: false }),

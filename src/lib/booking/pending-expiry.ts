@@ -25,7 +25,7 @@ export function parseBookingExpirySettings(value: unknown): BookingExpirySetting
   const autoHours = Number(row.auto_complete_hours);
   return {
     pending_ttl_hours:
-      Number.isFinite(ttl) && ttl >= 0 ? ttl : DEFAULT_BOOKING_EXPIRY_SETTINGS.pending_ttl_hours,
+      Number.isFinite(ttl) && ttl >= 1 ? ttl : DEFAULT_BOOKING_EXPIRY_SETTINGS.pending_ttl_hours,
     min_hours_before_start:
       Number.isFinite(minBefore) && minBefore >= 0
         ? minBefore

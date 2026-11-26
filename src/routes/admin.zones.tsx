@@ -36,6 +36,15 @@ import {
 
 export const Route = createFileRoute("/admin/zones")({ component: AdminZones });
 
+function useDebounced(value: string, ms: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), ms);
+    return () => window.clearTimeout(id);
+  }, [value, ms]);
+  return debounced;
+}
+
 type BoundaryType = "polygon" | "circle";
 
 type ZoneForm = {
@@ -408,13 +417,21 @@ function ZoneCombinationsSummary({
 function CoveragePanel({ zoneId }: { zoneId: string }) {
   const { t, i18n } = useTranslation();
   const servicesQ = useAdminServices();
-  const providersQ = useAdminProviders("verified");
+  const [providerSearch, setProviderSearch] = useState("");
+  const debouncedProviderSearch = useDebounced(providerSearch, 300);
+  const providerListLimit = debouncedProviderSearch.trim() ? 50 : 300;
+  const providersQ = useAdminProviders(
+    "verified",
+    undefined,
+    debouncedProviderSearch,
+    0,
+    providerListLimit,
+  );
   const zoneServicesQ = useZoneServiceCoverage(zoneId);
   const zoneProvidersQ = useZoneProviderCoverage(zoneId);
   const setService = useSetZoneService();
   const setProvider = useSetZoneProvider();
 
-  const [providerSearch, setProviderSearch] = useState("");
   const enabledServices = zoneServicesQ.data ?? new Set<string>();
   const coveredProviders = zoneProvidersQ.data ?? new Set<string>();
 
@@ -471,18 +488,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
           className="mt-2 min-h-11 w-full rounded-xl border px-3"
         />
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-          {(providersQ.data ?? [])
-            .filter(
-              (p: any) =>
-                // Empty search lists everyone (so a provider without a name
-                // can still be linked); typing narrows by name.
-                coveredProviders.has(p.id) ||
-                !providerSearch.trim() ||
-                (p.profile?.full_name ?? "")
-                  .toLocaleLowerCase()
-                  .includes(providerSearch.trim().toLocaleLowerCase()),
-            )
-            .map((p: any) => (
+          {((providersQ.data?.items ?? []) as any[]).map((p: any) => (
               <li key={p.id}>
                 <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-2">
                   <input
