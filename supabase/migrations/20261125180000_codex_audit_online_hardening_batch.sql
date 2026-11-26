@@ -187,7 +187,8 @@ BEGIN
   IF v_customer IS NULL THEN
     RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
   END IF;
-  IF p_customer_id IS NOT NULL
+  IF auth.uid() IS NOT NULL
+     AND p_customer_id IS NOT NULL
      AND p_customer_id IS DISTINCT FROM auth.uid()
      AND NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Forbidden.' USING ERRCODE = '42501';
