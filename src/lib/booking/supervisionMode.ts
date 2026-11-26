@@ -12,6 +12,17 @@ export function isSupervisionMode(value: string | null | undefined): value is Su
   return value === "cameras" || value === "adult_present";
 }
 
+/** Online lesson for a child: the parent confirmed they are with the child or supervising. */
+export const PARENT_ONLINE_SUPERVISION = "parent_online" as const;
+export type BookingSupervisionValue = SupervisionMode | typeof PARENT_ONLINE_SUPERVISION;
+
+/** Any supervision value worth showing on a booking (in-person choice or online parent note). */
+export function hasSupervisionNote(
+  value: string | null | undefined,
+): value is BookingSupervisionValue {
+  return isSupervisionMode(value) || value === PARENT_ONLINE_SUPERVISION;
+}
+
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 export function supervisionModeOptionLabel(mode: SupervisionMode, t: TranslateFn): string {
@@ -22,6 +33,6 @@ export function supervisionModeProviderLabel(
   mode: string | null | undefined,
   t: TranslateFn,
 ): string | null {
-  if (!isSupervisionMode(mode)) return null;
+  if (!hasSupervisionNote(mode)) return null;
   return t(`bookFlow.supervision.providerLine.${mode}`);
 }

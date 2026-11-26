@@ -12,8 +12,8 @@ import { localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import type { BookingParty } from "@/lib/provider/parties";
 import {
-  isSupervisionMode,
   supervisionModeProviderLabel,
+  hasSupervisionNote,
 } from "@shared/booking/supervisionMode";
 import {
   providerHomeActiveBookingNeedsAction,
@@ -113,7 +113,7 @@ export function ProviderBookingCard({
           </Text>
         </View>
         <Text weight="bold">{localized(booking.service, language)}</Text>
-        {area || child || isSupervisionMode(booking.supervision_mode) ? (
+        {area || child || hasSupervisionNote(booking.supervision_mode) ? (
           <Text tone="muted" size="sm">
             {joinUiParts(
               [

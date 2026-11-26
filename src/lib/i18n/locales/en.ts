@@ -2023,6 +2023,8 @@ const en = {
       ONLINE_BIRTH_DATE_REQUIRED:
         "Add a date of birth on your profile before booking an online lesson.",
       ONLINE_AGE_MINIMUM: "Online lessons are available from age 12.",
+      PARENT_SUPERVISION_REQUIRED:
+        "Confirm you'll be with your child or supervising the lesson before booking.",
       ONLINE_REGION_CLOSED: "Online lessons aren't available in your governorate right now.",
       USER_BLOCKED: "You can't book with this provider.",
       PROVIDER_SETTLEMENT_BLOCKED:
@@ -2104,6 +2106,7 @@ const en = {
       providerLine: {
         cameras: "Supervision: security cameras",
         adult_present: "Supervision: adult family member present",
+        parent_online: "The student is a child; a parent is supervising",
       },
     },
     forWhomTitle: "Who is this for?",
@@ -5788,6 +5791,9 @@ Object.assign(en, {
         "They may have paused online lessons. Go back to the tutors list and choose another tutor.",
     },
     request: {
+      parentSupervision: "I'll be with my child or supervising the lesson",
+      parentSupervisionHint:
+        "Your child is under 12, so you need to be with them or supervising the whole lesson. The tutor will see that a parent is supervising.",
       title: "Request an online lesson",
       pickDay: "Choose a day",
       pickTime: "Choose a time",

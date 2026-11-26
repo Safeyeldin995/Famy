@@ -49,6 +49,8 @@ import {
 } from "@/lib/tutoring/studentLearnerFlow";
 import { chipClass } from "@/components/student/StudentProfileSteps";
 import { memberAgeFromDate } from "@/lib/familyMemberAge";
+import { ONLINE_PARENT_SUPERVISION_MODE } from "@/lib/online/onlineBookingLearnerAge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Props = {
   providerId: string;
@@ -111,15 +113,20 @@ export function OnlineLessonRequestForm({
   // The 12+ birth date and the under-18 parent contact belong to the student, i.e. the
   // account owner when booking for «أنا». A child's age is checked by the server from the child's record.
   const bookingForSelf = learnerId === MYSELF_LEARNER_ID;
-  // Online lessons are 12+ for children too (the server refuses younger children), so say it
-  // before the parent fills the form instead of failing at submit.
+  // A parent may book an online lesson for their own child under 12 once they confirm they will
+  // be with the child or supervising (the server stores it as supervision_mode 'parent_online').
   const selectedChild = bookingForSelf
     ? null
     : (membersQ.data ?? []).find((m) => m.id === learnerId) ?? null;
   const childAge = selectedChild?.date_of_birth
     ? memberAgeFromDate(selectedChild.date_of_birth)
     : null;
-  const childTooYoung = Boolean(selectedChild && childAge && childAge.years < 12);
+  const childNeedsParentSupervision = Boolean(selectedChild && childAge && childAge.years < 12);
+  const [parentSupervised, setParentSupervised] = useState(false);
+  useEffect(() => {
+    setParentSupervised(false);
+  }, [learnerId]);
+  const parentSupervisionMissing = childNeedsParentSupervision && !parentSupervised;
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -282,7 +289,8 @@ export function OnlineLessonRequestForm({
           curriculumCode: selectedCapability.curriculumCode,
           levelCode: selectedCapability.levelCode,
         },
-        supervisionMode: null,
+        supervisionMode:
+          childNeedsParentSupervision && parentSupervised ? ONLINE_PARENT_SUPERVISION_MODE : null,
       });
       const result = await create.mutateAsync({
         ...payload,
@@ -351,10 +359,23 @@ export function OnlineLessonRequestForm({
           </div>
         </div>
       ) : null}
-      {childTooYoung ? (
-        <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-pro-14 text-destructive">
-          {t("bookFlow.errors.ONLINE_AGE_MINIMUM")}
-        </p>
+      {childNeedsParentSupervision ? (
+        <label className="flex items-start gap-3 rounded-2xl border border-border bg-muted/40 p-3 text-pro-14">
+          <Checkbox
+            checked={parentSupervised}
+            onCheckedChange={(v) => setParentSupervised(v === true)}
+            aria-label={t("onlineWeb.request.parentSupervision")}
+            className="mt-0.5 h-5 w-5"
+          />
+          <span className="space-y-1">
+            <span className="block font-bold text-foreground">
+              {t("onlineWeb.request.parentSupervision")}
+            </span>
+            <span className="block text-pro-13 text-muted-foreground">
+              {t("onlineWeb.request.parentSupervisionHint")}
+            </span>
+          </span>
+        </label>
       ) : null}
       {bookingForSelf && guardian.isMinorStudent && guardian.needsNewContact ? (
         <OnlineWebParentContactFields
@@ -496,7 +517,7 @@ export function OnlineLessonRequestForm({
 
       <PrimaryButton
         className="h-12 w-full"
-        disabled={!selectedSlot || !selectedCapability || create.isPending || childTooYoung}
+        disabled={!selectedSlot || !selectedCapability || create.isPending || parentSupervisionMissing}
         onClick={() => void submit()}
       >
         {t("onlineWeb.walkthrough.requestLesson")}

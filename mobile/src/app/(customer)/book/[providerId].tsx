@@ -8,7 +8,7 @@ import { BookingVisitRequirements } from "@/ui/customer/BookingVisitRequirements
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
-import { colors, space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { TutoringCapabilityCascade } from "@/ui/customer/TutoringCapabilityCascade";
 import {
   capabilityPickFromCapability,
@@ -129,7 +129,11 @@ import {
   onlineLessonBookMissing,
   ONLINE_LESSON_BOOK_STEPS,
 } from "@shared/booking/onlineLessonBookSteps";
-import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
+import {
+  onlineBookingLearnerAgeIssue,
+  onlineBookingSupervisionMode,
+  onlineLearnerReady,
+} from "@shared/online/onlineBookingLearnerAge";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
 import {
@@ -239,6 +243,11 @@ function BookForm({
   const [guardianPhone, setGuardianPhone] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
   const saveGuardian = useSaveParentGuardianContact();
+  const [parentSupervised, setParentSupervised] = useState(false);
+  // The supervision confirmation belongs to the child it was given for.
+  useEffect(() => {
+    setParentSupervised(false);
+  }, [recipient]);
   const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">(
     rebookInitial?.supervisionMode ?? "",
   );
@@ -461,7 +470,10 @@ function BookForm({
         members.data ?? [],
       )
     : null;
-  const onlineRecipientReady = recipientReady && !onlineLearnerAgeIssue;
+  // A parent booking for their own child under 12 confirms they will be with the child or
+  // supervising; students booking for themselves stay 12+.
+  const onlineRecipientReady =
+    recipientReady && onlineLearnerReady(onlineLearnerAgeIssue, parentSupervised);
   // Students aged 12-17 booking for themselves add a parent's phone and email (same rule as
   // the website). Optional: the lesson request is never blocked by it.
   const selfDob = profile.data?.date_of_birth ?? null;
@@ -601,8 +613,11 @@ function BookForm({
         eitherRequirements: either,
         requirementChoices: choices,
         selectedCapability: capability,
-        supervisionMode:
-          supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
+        supervisionMode: isOnlineBooking
+          ? onlineBookingSupervisionMode(onlineLearnerAgeIssue, parentSupervised)
+          : supervisionRequired && isSupervisionMode(supervisionMode)
+            ? supervisionMode
+            : null,
       });
       idempotency.current = resolveIdempotencyKey(
         idempotency.current,
@@ -771,6 +786,33 @@ function BookForm({
       ) : null}
       {isOnlineBooking && onlineLearnerAgeIssue === "age_minimum" ? (
         <Text tone="danger">{t("bookFlow.errors.ONLINE_AGE_MINIMUM")}</Text>
+      ) : null}
+      {isOnlineBooking && onlineLearnerAgeIssue === "parent_supervision_required" ? (
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: parentSupervised }}
+          accessibilityLabel={t("onlineWeb.request.parentSupervision")}
+          onPress={() => setParentSupervised((v) => !v)}
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: space.sm,
+            padding: space.md,
+            minHeight: 44,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: parentSupervised ? colors.brand : colors.border,
+            backgroundColor: colors.surface,
+          }}
+        >
+          <Text size="xxl">{parentSupervised ? "☑" : "☐"}</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text weight="bold">{t("onlineWeb.request.parentSupervision")}</Text>
+            <Text tone="muted" size="sm">
+              {t("onlineWeb.request.parentSupervisionHint")}
+            </Text>
+          </View>
+        </Pressable>
       ) : null}
     </View>
   );

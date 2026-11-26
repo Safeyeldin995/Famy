@@ -7,6 +7,7 @@ import {
 } from "@/lib/earnings/aggregateProviderEarnings";
 import { bookingTeachingSummary } from "@/lib/tutoring/bookingTeachingSummary";
 import { currentLang } from "@/lib/i18n";
+import { PARENT_ONLINE_SUPERVISION } from "@/lib/booking/supervisionMode";
 
 export type OnlineProviderBookingSummaryRow = {
   session_duration_min?: number | null;
@@ -26,6 +27,7 @@ export type OnlineProviderBookingSummaryRow = {
   teaching_curriculum_name_en?: string | null;
   teaching_level_name_ar?: string | null;
   teaching_level_name_en?: string | null;
+  supervision_mode?: string | null;
 };
 
 type Props = {
@@ -58,6 +60,11 @@ export function OnlineProviderBookingSummary({ booking, compact = false }: Props
   return (
     <div className="space-y-1.5 text-pro-13 text-muted-foreground">
       {serviceName ? <p className="text-pro-14 font-bold text-foreground">{serviceName}</p> : null}
+      {booking.supervision_mode === PARENT_ONLINE_SUPERVISION ? (
+        <p className="font-bold text-foreground">
+          {t("bookFlow.supervision.providerLine.parent_online")}
+        </p>
+      ) : null}
       {teaching ? (
         <p>
           <span className="font-bold">{t("pro.booking.subject")}: </span>
