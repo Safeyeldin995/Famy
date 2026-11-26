@@ -8,6 +8,7 @@ import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { useOnlineWebNavTabs } from "@/lib/web/useOnlineWebNavTabs";
 import { useOnlineWebSessionGate } from "@/lib/web/useOnlineWebSessionGate";
 import { OnlineWebAccountMenu } from "@/components/online/OnlineWebAccountMenu";
+import { OnlineWebNotificationsBell } from "@/components/online/OnlineWebNotificationsBell";
 
 const NAV_COMPACT_MAX_PX = 400;
 
@@ -66,6 +67,7 @@ export function OnlineWebLayout() {
             >
               {t("site.nav.home")}
             </Link>
+            <OnlineWebNotificationsBell />
             <OnlineWebAccountMenu />
             <LanguageToggle variant="inline" />
           </div>

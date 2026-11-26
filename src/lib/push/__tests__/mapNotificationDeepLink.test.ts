@@ -53,6 +53,14 @@ describe("mapNotificationDeepLink", () => {
       pathname: "/booking/[id]/session",
       params: { id: "b1" },
     });
+    expect(mapNotificationDeepLink("/online/lessons/b1", "provider")).toEqual({
+      pathname: "/pro-booking/[id]",
+      params: { id: "b1" },
+    });
+    expect(mapNotificationDeepLink("/online/lessons/b1", "customer")).toEqual({
+      pathname: "/booking/[id]",
+      params: { id: "b1" },
+    });
     expect(mapNotificationDeepLink("/online/lessons/b1/room", "provider")).toEqual({
       pathname: "/pro-booking/[id]/session",
       params: { id: "b1" },

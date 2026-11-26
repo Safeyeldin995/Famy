@@ -13,6 +13,7 @@ import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onli
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useMyProvider } from "@/lib/db/provider-queries";
 
 export const Route = createFileRoute("/online/")({
   head: ({ matches }) =>
@@ -54,22 +55,43 @@ function OnlineHome() {
   const walletTerms =
     currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms");
 
+  const myProviderQ = useMyProvider();
+  const isTutor = isAuthenticated && Boolean(myProviderQ.data?.id);
+  // The primary action follows the session: browse (student), requests (tutor),
+  // or sign in (visitor). Never ask a signed-in user to sign in.
+  const primary = !isAuthenticated
+    ? {
+        to: ONLINE_WEB_ROUTE_IDS.login,
+        search: { returnTo: ONLINE_WEB_ROUTE_IDS.tutors },
+        label: t("onlineWeb.home.browseTutorsSignIn"),
+      }
+    : isTutor
+      ? { to: ONLINE_WEB_ROUTE_IDS.providerRequests, search: undefined, label: t("onlineWeb.home.tutorRequests") }
+      : { to: ONLINE_WEB_ROUTE_IDS.tutors, search: undefined, label: t("onlineWeb.home.browseTutors") };
+  const secondary = !isAuthenticated
+    ? { to: ONLINE_WEB_ROUTE_IDS.login, search: { returnTo: undefined }, label: t("onlineWeb.home.signIn") }
+    : isTutor
+      ? { to: ONLINE_WEB_ROUTE_IDS.providerLessons, search: undefined, label: t("onlineWeb.home.tutorLessons") }
+      : { to: ONLINE_WEB_ROUTE_IDS.lessons, search: undefined, label: t("onlineWeb.nav.lessons") };
+  const sessionSettled = !loading && (!isAuthenticated || !myProviderQ.isLoading);
+
+  const primaryCta = sessionSettled ? (
+    <Link to={primary.to} search={primary.search as never}>
+      <PrimaryButton className="h-12 px-7">{primary.label}</PrimaryButton>
+    </Link>
+  ) : (
+    <PrimaryButton className="h-12 px-7" disabled aria-busy="true">
+      {t("common.loading")}
+    </PrimaryButton>
+  );
+
   const ctas = (
     <div className="flex flex-wrap gap-3">
-      <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}>
-        <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
-      </Link>
-      {!loading && !isAuthenticated ? (
-        <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
+      {primaryCta}
+      {sessionSettled ? (
+        <Link to={secondary.to} search={secondary.search as never}>
           <PrimaryButton variant="outline" className="h-12 px-7">
-            {t("onlineWeb.home.signIn")}
-          </PrimaryButton>
-        </Link>
-      ) : null}
-      {!loading && isAuthenticated ? (
-        <Link to={ONLINE_WEB_ROUTE_IDS.lessons}>
-          <PrimaryButton variant="outline" className="h-12 px-7">
-            {t("onlineWeb.nav.lessons")}
+            {secondary.label}
           </PrimaryButton>
         </Link>
       ) : null}
@@ -152,13 +174,7 @@ function OnlineHome() {
             <h2 className="text-pro-22 font-extrabold">{t("onlineWeb.home.ctaTitle")}</h2>
             <p className="text-pro-16 opacity-80">{t("onlineWeb.home.ctaBody")}</p>
           </div>
-          <Link
-            to={ONLINE_WEB_ROUTE_IDS.login}
-            search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}
-            className="shrink-0"
-          >
-            <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
-          </Link>
+          <div className="shrink-0">{primaryCta}</div>
         </div>
       </section>
 

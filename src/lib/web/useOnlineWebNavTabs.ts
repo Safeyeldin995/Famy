@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { ONLINE_WEB_ROUTE_IDS } from "./onlineWebSurface";
 
@@ -22,19 +21,13 @@ function isOnlineWalkthroughPath(): boolean {
 
 export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
   const walkthrough = isOnlineWalkthroughPath();
-  const sessionQ = useQuery({
-    queryKey: ["online-web-session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return Boolean(data.session);
-    },
-    staleTime: 30_000,
-  });
+  // Follow the live auth state (a cached session check went stale after sign-in).
+  const { isAuthenticated } = useAuth();
   const providerQ = useMyProvider();
 
   return useMemo(() => {
-    const signedIn = walkthrough || sessionQ.data;
-    const isProvider = walkthrough || Boolean(providerQ.data?.id);
+    const signedIn = walkthrough || isAuthenticated;
+    const isProvider = walkthrough || (isAuthenticated && Boolean(providerQ.data?.id));
 
     if (walkthrough) {
       return [
@@ -75,5 +68,5 @@ export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
       );
     }
     return tabs;
-  }, [walkthrough, sessionQ.data, providerQ.data?.id]);
+  }, [walkthrough, isAuthenticated, providerQ.data?.id]);
 }

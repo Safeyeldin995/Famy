@@ -177,6 +177,12 @@ export function BookingDetailContent({
   const reviewQ = useBookingReview(status === "completed" ? id : undefined);
   const submitReview = useSubmitReview();
   const nav = useNavigate();
+  // Online lessons have their own page on the web (/online/lessons/<id>).
+  useEffect(() => {
+    if (real && String((real as { service_mode?: string }).service_mode) === "online") {
+      void nav({ to: "/online/lessons/$bookingId", params: { bookingId: id }, search: { paymob_return: undefined }, replace: true });
+    }
+  }, [real, id, nav]);
   const devicesQ = useMyPushSubscriptions();
   const [pushPromptOpen, setPushPromptOpen] = useState(false);
 
