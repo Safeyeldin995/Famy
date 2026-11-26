@@ -11,6 +11,7 @@ import { useProviderDocuments } from "@/lib/provider/profileQueries";
 import { useMyProvider } from "@/lib/provider/queries";
 import { DocumentUploadCard } from "@/ui/provider/DocumentUploadCard";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { ProviderAccountMenu } from "@/ui/provider/ProviderAccountMenu";
 import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { proCard } from "@/ui/provider/cards";
@@ -29,7 +30,9 @@ export default function ProDocumentsScreen() {
   return (
     <Page
       title={t("providerDocuments.title")}
-      header={<ProviderHeader title={t("providerDocuments.title")} />}
+      header={
+        <ProviderHeader title={t("providerDocuments.title")} action={<ProviderAccountMenu />} />
+      }
       queries={[p, docsQ]}
       contentStyle={{ gap: space.lg, paddingTop: space.xs }}
     >
@@ -86,7 +89,9 @@ export default function ProDocumentsScreen() {
             )
             .map((doc: { id: string; type: string; status: string; rejected_reason?: string }) => (
               <View key={doc.id} style={proCard.card}>
-                <Text weight="bold">{doc.type}</Text>
+                <Text weight="bold">
+                  {t(`providerDocuments.${doc.type}`, { defaultValue: doc.type })}
+                </Text>
                 <Text tone="muted">{t(`providerDocuments.${doc.status}`)}</Text>
               </View>
             ))}

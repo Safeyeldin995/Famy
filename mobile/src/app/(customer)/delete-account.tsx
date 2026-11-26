@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View, TextInput, StyleSheet } from "react-native";
 import { Page, ActionError } from "@/ui/Page";
@@ -12,12 +12,18 @@ import { requestMobileAccountDeletion } from "@/lib/accountDeletion";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { bodyTextInputProps } from "@/ui/a11y";
 
-type DeletionCheck = { ok: boolean; reason?: string };
+type DeletionCheck = { ok: boolean; reason?: string; wallet_forfeit_amount?: number };
 
-export default function DeleteAccountScreen() {
+function leaveTo(backTo: Href) {
+  if (router.canGoBack()) router.back();
+  else router.navigate(backTo);
+}
+
+export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { backTo?: Href }) {
   const { t } = useTranslation();
   const [check, setCheck] = useState<DeletionCheck | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [walletForfeitConfirmed, setWalletForfeitConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -28,40 +34,58 @@ export default function DeleteAccountScreen() {
     [confirmText, confirmWord],
   );
 
+  const runDeletionCheck = async () => {
+    setCheck(null);
+    const { data, error } = await supabase.rpc("account_deletion_check");
+    if (error) {
+      setCheck({ ok: false, reason: "not_authenticated" });
+      return;
+    }
+    setCheck((data ?? { ok: false, reason: "not_authenticated" }) as DeletionCheck);
+  };
+
   useEffect(() => {
-    void (async () => {
-      const { data, error } = await supabase.rpc("account_deletion_check");
-      if (error) {
-        setCheck({ ok: false, reason: "not_authenticated" });
-        return;
-      }
-      setCheck((data ?? { ok: false, reason: "not_authenticated" }) as DeletionCheck);
-    })();
+    void runDeletionCheck();
   }, []);
 
   const blockedReason = !check?.ok ? check?.reason : undefined;
+  const walletForfeitAmount =
+    check?.ok && check.wallet_forfeit_amount != null ? Number(check.wallet_forfeit_amount) : 0;
+  const needsWalletForfeitConfirm = walletForfeitAmount > 0.005;
 
   const onDelete = async () => {
     if (!confirmMatches || !check?.ok) return;
+    if (needsWalletForfeitConfirm && !walletForfeitConfirmed) return;
     setBusy(true);
     setActionError(false);
     setErrorKey(null);
-    const result = await requestMobileAccountDeletion();
-    if (!result.ok) {
-      setErrorKey(`accountDeletion.errors.${result.error}`);
-      setActionError(true);
+    try {
+      const result = await requestMobileAccountDeletion({
+        confirmWalletForfeit: needsWalletForfeitConfirm && walletForfeitConfirmed,
+      });
+      if (!result.ok) {
+        setErrorKey(`accountDeletion.errors.${result.error}`);
+        setActionError(true);
+        return;
+      }
+      await revokeActivePushToken();
+      await supabase.auth.signOut();
+      router.replace("/login");
+    } finally {
       setBusy(false);
-      return;
     }
-    await revokeActivePushToken();
-    await supabase.auth.signOut();
-    router.replace("/login");
   };
 
   return (
     <Page
       title={t("accountDeletion.title")}
-      header={<CustomerPageHeader title={t("accountDeletion.title")} backTo="/profile" />}
+      header={
+        <CustomerPageHeader
+          title={t("accountDeletion.title")}
+          backTo={backTo}
+          onBack={() => leaveTo(backTo)}
+        />
+      }
       contentStyle={{ gap: space.xxl }}
     >
       <Text tone="muted">{t("accountDeletion.intro")}</Text>
@@ -85,16 +109,45 @@ export default function DeleteAccountScreen() {
         </Text>
       )}
       {blockedReason === "not_authenticated" && (
-        <Text tone="danger">{t("accountDeletion.errors.unauthorized")}</Text>
+        <>
+          <Text tone="danger">{t("accountDeletion.errors.unauthorized")}</Text>
+          <Button
+            variant="secondary"
+            label={t("common.retry")}
+            onPress={() => void runDeletionCheck()}
+          />
+        </>
       )}
       {blockedReason === "active_bookings" ? (
         <Text tone="danger">{t("accountDeletion.blockedActiveBookings")}</Text>
+      ) : null}
+      {blockedReason === "funds_owed_to_user" ? (
+        <Text tone="danger">{t("accountDeletion.blockedFundsOwed")}</Text>
       ) : null}
       {blockedReason === "unpaid_balance" ? (
         <Text tone="danger">{t("accountDeletion.blockedUnpaid")}</Text>
       ) : null}
       {blockedReason === "admin" ? (
         <Text tone="danger">{t("accountDeletion.blockedAdmin")}</Text>
+      ) : null}
+      {check?.ok && needsWalletForfeitConfirm ? (
+        <View style={styles.warnCard}>
+          <Text weight="bold">
+            {t("accountDeletion.walletForfeitWarning", {
+              amount: walletForfeitAmount.toFixed(2),
+            })}
+          </Text>
+          <Text
+            tone="brand"
+            size="sm"
+            onPress={() => setWalletForfeitConfirmed((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: walletForfeitConfirmed }}
+          >
+            {walletForfeitConfirmed ? "☑ " : "☐ "}
+            {t("accountDeletion.walletForfeitConfirm")}
+          </Text>
+        </View>
       ) : null}
       {check?.ok ? (
         <>
@@ -118,14 +171,19 @@ export default function DeleteAccountScreen() {
       <Button
         style={{ backgroundColor: colors.destructive }}
         label={busy ? t("accountDeletion.deleting") : t("accountDeletion.deleteButton")}
-        disabled={!check?.ok || !confirmMatches || busy}
+        disabled={
+          !check?.ok ||
+          !confirmMatches ||
+          busy ||
+          (needsWalletForfeitConfirm && !walletForfeitConfirmed)
+        }
         onPress={() => void onDelete()}
       />
       <Button
         variant="secondary"
         label={t("common.cancel")}
         disabled={busy}
-        onPress={() => router.navigate("/profile")}
+        onPress={() => leaveTo(backTo)}
       />
     </Page>
   );
@@ -138,6 +196,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  warnCard: {
+    gap: space.md,
+    padding: space.lg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warning,
     backgroundColor: colors.surface,
   },
   input: {

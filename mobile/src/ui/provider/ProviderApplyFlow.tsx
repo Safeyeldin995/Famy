@@ -25,6 +25,7 @@ import {
   type RequirementFulfillmentRow,
   type ServiceRequirementRow,
 } from "@shared/provider/applyDocumentChecklist";
+import { onboardingMutationErrorMessage } from "@/lib/provider/onboardingErrors";
 
 export function ProviderApplyFlow({
   initial,
@@ -79,8 +80,8 @@ export function ProviderApplyFlow({
         setAttempted(false);
         setStep((step + 1) as 1 | 2 | 3);
       }
-    } catch {
-      setError(t("providerApply.saveError"));
+    } catch (e) {
+      setError(onboardingMutationErrorMessage(t, e));
     } finally {
       setBusy(false);
     }

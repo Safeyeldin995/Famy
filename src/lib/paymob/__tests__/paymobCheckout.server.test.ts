@@ -108,6 +108,7 @@ function createMockSupabase(initialPayment: PaymentRecord) {
       const buildBookingRow = () => ({
         id: payment.booking_id,
         customer_id: payment.customer_id,
+        status: "confirmed",
         price_total: payment.amount,
         currency: payment.currency,
         service: { name_en: "Test service", name_ar: null },

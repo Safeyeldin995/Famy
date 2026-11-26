@@ -13,6 +13,7 @@ import { formatEGP } from "@/lib/utils";
 import { adminControl, adminScreen, bookingCode } from "@/components/admin/operations";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { downloadStatementCsv } from "@/lib/admin/statementExport";
+import { sanitizeDownloadFilename } from "@/lib/admin/csvExport";
 
 export function AdminProviderStatementPanel({
   providerId,
@@ -42,6 +43,7 @@ export function AdminProviderStatementPanel({
       provider: t("admin.statement.provider"),
       period: t("admin.statement.period"),
       opening: t("admin.statement.opening"),
+      periodNet: t("admin.statement.periodNet"),
       closing: t("admin.statement.closing"),
       columns: {
         date: t("admin.statement.colDate"),
@@ -66,7 +68,7 @@ export function AdminProviderStatementPanel({
     [t],
   );
 
-  const exportBase = `${providerName.replace(/\s+/g, "_")}_statement`;
+  const exportBase = sanitizeDownloadFilename(`${providerName}_statement`);
 
   if (!open) {
     return (

@@ -165,7 +165,10 @@ export function BookingDetailContent({
     moneyHeld({
       paymentStatus: cancelPayment.data.status,
       methodType: cancelPayment.data.payment_method_type,
-      proofPath: cancelPayment.data.proof_path,
+      proofPath:
+        cancelPayment.data && "proof_path" in cancelPayment.data
+          ? cancelPayment.data.proof_path
+          : null,
     });
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");

@@ -5,15 +5,17 @@ import {
   invalidateQueryKeyList,
   submitReviewInvalidationKeys,
 } from "./cacheInvalidation";
+import { logFamyEvent } from "@/lib/analytics";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
+import { slotLookupCalendar } from "../../../src/components/famio/customerDates";
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
 import {
   fetchRequirementsForServiceIds,
   requirementsBatchQueryKey,
 } from "@shared/db/serviceRequirementsBatch";
-import { completeCreateBookingResult } from "./bookingPure";
+import { completeCreateBookingResult, isPaymentEligibleBookingStatus } from "./bookingPure";
 import type { ServiceZone } from "@shared/geo/serviceZones";
 import {
   ADDRESSES_QUERY_ROOT,
@@ -220,14 +222,12 @@ export function useAvailableSlots(
     ],
     queryFn: async () => {
       const d = date!;
-      const weekday = d.getDay();
+      const cairoWallSlots = !!opts?.cairoTime;
+      const { dateStr, weekday } = slotLookupCalendar(d, cairoWallSlots);
       const dayStart = new Date(d);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d);
       dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = opts?.cairoTime
-        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-        : dayStart.toISOString().slice(0, 10);
       const atTime = (hour: number, minute: number) => {
         if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
         const value = new Date(d);
@@ -260,13 +260,11 @@ export function useAvailableSlots(
           .select("start_time, end_time, is_blocked, date, end_date")
           .eq("provider_id", providerId!)
           .lte("date", dateStr),
-        supabase
-          .from("bookings")
-          .select("start_at, end_at")
-          .eq("provider_id", providerId!)
-          .in("status", ACTIVE_BOOKING_STATUSES)
-          .gte("start_at", queryStart.toISOString())
-          .lte("start_at", queryEnd.toISOString()),
+        supabase.rpc("provider_busy_ranges", {
+          p_provider_id: providerId!,
+          p_from: queryStart.toISOString(),
+          p_to: queryEnd.toISOString(),
+        }),
         supabase.from("settings").select("value").eq("key", "booking_expiry").maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
@@ -294,7 +292,7 @@ export function useAvailableSlots(
       const bufferMs = provider.buffer_minutes * 60000;
 
       const rules = rulesRes.data ?? [];
-      const booked = bookingsRes.data ?? [];
+      const booked = (bookingsRes.data ?? []) as { start_at: string; end_at: string }[];
       const slots: { label: string; start: Date; end: Date; available?: boolean }[] = [];
 
       for (const rule of rules) {
@@ -411,7 +409,10 @@ export function useCreateBooking() {
         { retryDelayMs: 250 },
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.created) {
+        void logFamyEvent("booking_created");
+      }
       void qc.invalidateQueries({ queryKey: ["my-bookings"] });
       // Unpaid fees were attached to this booking.
       void qc.invalidateQueries({ queryKey: ["customer-fee-debts"] });
@@ -531,12 +532,15 @@ export function useCreatePayment() {
 
       const { data: booking, error: bookingErr } = await supabase
         .from("bookings")
-        .select("price_total, carried_fees_amount, currency, customer_id")
+        .select("price_total, carried_fees_amount, currency, customer_id, status")
         .eq("id", input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
         throw new Error("You cannot record payment for this booking.");
+      }
+      if (!isPaymentEligibleBookingStatus(booking.status)) {
+        throw new Error("This booking is closed.");
       }
       // Includes earlier unpaid cancellation fees added to this booking.
       const amount = bookingAmountDue(booking);

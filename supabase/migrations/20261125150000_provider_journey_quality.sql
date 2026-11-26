@@ -328,9 +328,8 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_expiring_provider_documents(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_expiring_provider_documents(integer) TO authenticated;
 
--- If #502/#505 (or later PRs) redefine admin_work_queue_counts on main after this branch,
--- merge from the latest main body and preserve every queue key added there plus
--- applications_over_sla and documents_expiring_soon from this migration.
+-- Merge order: after #502 (ugc_reports table + queue key). Keep ugc_reports, plus
+-- applications_over_sla and documents_expiring_soon from this migration when rebasing on main.
 CREATE OR REPLACE FUNCTION public.admin_work_queue_counts()
 RETURNS TABLE(queue text, item_count bigint)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -404,6 +403,11 @@ BEGIN
   UNION ALL
   SELECT 'online_lesson_issue_reports'::text,
     (SELECT count(*) FROM public.online_lesson_issue_reports r WHERE r.status = 'open')
+  UNION ALL
+  SELECT 'ugc_reports'::text,
+    CASE WHEN to_regclass('public.ugc_reports') IS NOT NULL THEN
+      (SELECT count(*) FROM public.ugc_reports u WHERE u.status = 'open')
+    ELSE 0::bigint END
   UNION ALL
   SELECT 'payments_pending_review'::text, count(*) FROM public.payments pay
     WHERE pay.status = 'pending_review'

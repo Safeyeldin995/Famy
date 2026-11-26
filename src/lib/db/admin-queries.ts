@@ -991,7 +991,11 @@ export function useAdminCustomer(id: string) {
         .order('created_at', { ascending: false })
         .limit(50);
       if (paymentsError) throw paymentsError;
-      return { profile, bookings: bookings ?? [], payments: payments ?? [] };
+      return {
+        profile,
+        bookings: bookings ?? [],
+        payments: payments ?? [],
+      };
     },
     enabled: !!id,
   });
@@ -1047,6 +1051,7 @@ export function useAdminAdjustCustomerWallet() {
       amount: number;
       reasonNote: string;
       bookingId?: string | null;
+      idempotencyKey?: string;
     }) => {
       const { error } = await (supabase.rpc as any)('admin_adjust_customer_wallet', {
         p_customer_id: input.customerId,
@@ -1054,6 +1059,7 @@ export function useAdminAdjustCustomerWallet() {
         p_amount: input.amount,
         p_reason_note: input.reasonNote,
         p_booking_id: input.bookingId ?? null,
+        p_idempotency_key: input.idempotencyKey ?? null,
       });
       if (error) throw error;
     },

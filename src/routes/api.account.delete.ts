@@ -14,11 +14,19 @@ function json(body: unknown, status = 200) {
 export const Route = createFileRoute("/api/account/delete")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
         try {
           const userId = await getRequestBearerUserId();
           const token = getRequestBearerToken();
           if (!userId || !token) return json({ ok: false, error: "unauthorized" }, 401);
+
+          let confirmWalletForfeit = false;
+          try {
+            const body = (await request.json()) as { confirm_wallet_forfeit?: unknown };
+            confirmWalletForfeit = body.confirm_wallet_forfeit === true;
+          } catch {
+            confirmWalletForfeit = false;
+          }
 
           const supabaseUrl = process.env.SUPABASE_URL;
           const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -37,6 +45,7 @@ export const Route = createFileRoute("/api/account/delete")({
             supabaseUser,
             supabaseAdmin: supabaseAdmin as Parameters<typeof runAccountDeletion>[0]["supabaseAdmin"],
             userId,
+            confirmWalletForfeit,
           });
 
           if (!result.ok) return json({ ok: false, error: result.error }, result.status);

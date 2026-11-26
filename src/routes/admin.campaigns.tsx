@@ -1,7 +1,7 @@
 import { adminDate, adminLabel } from "@/components/admin/adminPresentation";
 import { AdminPicker } from "@/components/admin/AdminPicker";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Megaphone, Send, X } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   type CampaignTarget,
 } from "@/lib/db/admin-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { AdminConfirmModal } from "@/components/admin/AdminConfirmModal";
 
 export const Route = createFileRoute("/admin/campaigns")({ component: AdminCampaigns });
 
@@ -61,6 +62,23 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
       toast.error(t("admin.campaigns.fillBothLanguages"));
       return;
     }
+    let scheduledIso: string | null = null;
+    if (scheduled) {
+      if (!scheduledFor.trim()) {
+        toast.error(t("admin.campaigns.scheduleRequired"));
+        return;
+      }
+      const when = new Date(scheduledFor);
+      if (Number.isNaN(when.getTime())) {
+        toast.error(t("admin.campaigns.scheduleInvalid"));
+        return;
+      }
+      if (when.getTime() <= Date.now()) {
+        toast.error(t("admin.campaigns.scheduleMustBeFuture"));
+        return;
+      }
+      scheduledIso = when.toISOString();
+    }
     create.mutate(
       {
         title_en: titleEn.trim(),
@@ -69,7 +87,7 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
         body_ar: bodyAr.trim(),
         target,
         channel_push: channelPush,
-        scheduled_for: scheduled ? new Date(scheduledFor).toISOString() : null,
+        scheduled_for: scheduledIso,
       },
       {
         onSuccess: () => {
@@ -188,7 +206,32 @@ function CampaignRow({ c }: { c: any }) {
   const { t, i18n } = useTranslation();
   const activate = useActivateCampaign();
   const cancel = useCancelCampaign();
+  const preview = usePreviewCampaignAudience();
   const deliveryQ = useAdminCampaignDeliveryCount(c.status === "sent" ? c.id : undefined);
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const confirmWord = t("admin.campaigns.activateConfirmWord");
+  const confirmMatches = useMemo(
+    () => confirmText.trim() === confirmWord,
+    [confirmText, confirmWord],
+  );
+
+  const openActivate = () => {
+    setConfirmText("");
+    setActivateOpen(true);
+    preview.mutate(c.target);
+  };
+
+  const runActivate = () => {
+    if (!confirmMatches) return;
+    activate.mutate(c.id, {
+      onSuccess: () => {
+        setActivateOpen(false);
+        setConfirmText("");
+      },
+      onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.activateError")),
+    });
+  };
 
   return (
     <li className="rounded-xl border border-border/60 p-3">
@@ -220,12 +263,7 @@ function CampaignRow({ c }: { c: any }) {
         <div className="flex shrink-0 items-center gap-2">
           {c.status === "draft" && (
             <button
-              onClick={() =>
-                activate.mutate(c.id, {
-                  onError: (e: any) =>
-                    toast.error(e?.message ?? t("admin.campaigns.activateError")),
-                })
-              }
+              onClick={openActivate}
               disabled={activate.isPending}
               className="focus-ring inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
             >
@@ -247,6 +285,37 @@ function CampaignRow({ c }: { c: any }) {
           )}
         </div>
       </div>
+      <AdminConfirmModal
+        open={activateOpen}
+        title={t("admin.campaigns.activateConfirmTitle")}
+        body={t("admin.campaigns.activateConfirmBody", {
+          target: adminLabel(c.target, i18n.language),
+          push: c.channel_push ? t("admin.campaigns.yes") : t("admin.campaigns.no"),
+          count: preview.data ?? "…",
+        })}
+        confirmLabel={t("admin.campaigns.activate")}
+        busy={activate.isPending}
+        confirmDisabled={!confirmMatches}
+        onCancel={() => setActivateOpen(false)}
+        onConfirm={runActivate}
+      >
+        <label className="mt-4 block text-xs font-semibold" htmlFor={`confirm-${c.id}`}>
+          {t("admin.campaigns.activateTypeConfirm", { word: confirmWord })}
+        </label>
+        <input
+          id={`confirm-${c.id}`}
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          className="mt-2 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
+          autoComplete="off"
+        />
+        <p className="mt-2 text-xs text-muted-foreground">
+          {preview.isPending
+            ? t("admin.campaigns.counting")
+            : t("admin.campaigns.estimatedRecipients")}{" "}
+          <span className="font-bold text-foreground">{preview.data ?? "…"}</span>
+        </p>
+      </AdminConfirmModal>
     </li>
   );
 }

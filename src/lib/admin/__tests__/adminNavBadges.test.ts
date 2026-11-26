@@ -18,6 +18,7 @@ const emptyQueue = Object.fromEntries(
     "bookings_lifecycle_attention",
     "payments_pending_review",
     "online_lesson_issue_reports",
+    "ugc_reports",
   ].map((key) => [key, 0]),
 ) as Record<AdminWorkQueueKey, number>;
 
@@ -28,6 +29,7 @@ describe("adminNavBadgeCount", () => {
       adminNavBadgeCount("/admin/providers", queue, {
         pendingSettlements: 0,
         providersAtCashLimit: 0,
+        studentParentFlags: 0,
       }),
     ).toBe(3);
   });
@@ -37,6 +39,7 @@ describe("adminNavBadgeCount", () => {
       adminNavBadgeCount("/admin/finance", emptyQueue, {
         pendingSettlements: 4,
         providersAtCashLimit: 2,
+        studentParentFlags: 0,
       }),
     ).toBe(6);
   });

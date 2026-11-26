@@ -26,6 +26,12 @@ export type FamyNotificationType =
   | "booking_cancelled"
   | "booking_expired"
   | "booking_reminder"
+  | "booking_review_request"
+  | "payment_received"
+  | "instapay_receipt_rejected"
+  | "wallet_credited"
+  | "wallet_provider_cancelled"
+  | "online_lesson_starting"
   | "chat_message"
   | "campaign"
   | "provider_onboarding_approved"
@@ -64,6 +70,12 @@ export const NOTIFICATION_TYPE_INVENTORY: readonly NotificationTypeRow[] = [
   { type: "booking_cancelled", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
   { type: "booking_expired", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
   { type: "booking_reminder", category: "reminder", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
+  { type: "booking_review_request", category: "booking", typicalDeepLink: "/booking/{id}?review=1", recipient: "customer" },
+  { type: "payment_received", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
+  { type: "instapay_receipt_rejected", category: "booking", typicalDeepLink: "/booking/{id}", recipient: "customer" },
+  { type: "wallet_credited", category: "system", typicalDeepLink: "/wallet", recipient: "customer" },
+  { type: "wallet_provider_cancelled", category: "booking", typicalDeepLink: "/wallet", recipient: "customer" },
+  { type: "online_lesson_starting", category: "reminder", typicalDeepLink: "/online/lessons/{id}/room", recipient: "both" },
   { type: "chat_message", category: "chat", typicalDeepLink: "/messages/{conversationId}", recipient: "both" },
   { type: "campaign", category: "campaign", typicalDeepLink: "/home or /pro", recipient: "both" },
   { type: "provider_onboarding_approved", category: "provider", typicalDeepLink: "/pro/onboarding", recipient: "provider" },

@@ -97,15 +97,25 @@ describe("Paymob webhook security", () => {
     expect(h.rpc).not.toHaveBeenCalled();
   });
 
-  it.each(["is_auth", "is_refunded", "is_voided"] as const)(
-    "does not capture a transaction with %s",
-    async (flag) => {
-      const h = harness();
-      h.obj[flag] = true;
-      expect((await h.send()).status).toBe(200);
-      expect(h.rpc).not.toHaveBeenCalled();
-    },
-  );
+  it("ignores an authorization-only transaction", async () => {
+    const h = harness();
+    h.obj.is_auth = true;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it.each(["is_refunded", "is_voided"] as const)("routes a %s transaction to refund webhook", async (flag) => {
+    const h = harness();
+    h.obj[flag] = true;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).toHaveBeenCalledWith(
+      "paymob_apply_refund_webhook",
+      expect.objectContaining({
+        p_order_id: 789,
+        p_amount_cents: 10000,
+      }),
+    );
+  });
 
   it("records an errored final transaction as failure, never capture", async () => {
     const h = harness();

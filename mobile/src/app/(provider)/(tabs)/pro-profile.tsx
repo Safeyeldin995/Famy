@@ -148,7 +148,10 @@ export default function ProviderProfile() {
       {statsQ.data && provider?.is_verified ? <ProviderPerformanceCard stats={statsQ.data} /> : null}
       <Row label={t("proReviews.title")} onPress={() => router.push("/pro-my-reviews")} />
       <Row label={t("scheduleUi.hours")} onPress={() => router.push("/schedule")} />
-      <Row label={t("pro.profile.onlineLessonsLink")} onPress={() => router.push("/pro-online-lessons")} />
+      <Row
+        label={t("pro.profile.onlineLessonsLink")}
+        onPress={() => router.push("/pro-online-lessons")}
+      />
       <Text weight="bold" tone="muted" size="sm">
         {t("pro.profile.about")}
       </Text>
@@ -213,7 +216,7 @@ export default function ProviderProfile() {
         label={t("mobilePro.notificationPrefs")}
         onPress={() => router.push("/pro-notification-preferences")}
       />
-      <Row label={t("profile.help")} onPress={() => router.push("/help")} />
+      <Row label={t("profile.help")} onPress={() => router.push("/pro-help")} />
       <Row
         label={t("profile.terms")}
         onPress={() => router.push({ pathname: "/content/[key]", params: { key: "terms" } })}

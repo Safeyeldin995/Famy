@@ -6,13 +6,9 @@ export function useBookingPayment(bookingId: string | undefined) {
     enabled: !!bookingId,
     queryKey: ["payment", bookingId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("booking_id", bookingId!)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("provider_booking_payment", {
+        p_booking_id: bookingId!,
+      });
       if (error) throw error;
       return data;
     },
@@ -32,18 +28,10 @@ export function useCapturePayment() {
       if (booking.status !== "completed") {
         throw new Error("Payment cannot be captured until the booking is completed.");
       }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("payments")
-        .update({
-          status: "captured",
-          captured_at: new Date().toISOString(),
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-        })
-        .eq("id", paymentId);
+      const { error } = await supabase.rpc("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "capture",
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
@@ -64,18 +52,11 @@ export function useRejectPayment() {
       bookingId: string;
       reason?: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("payments")
-        .update({
-          status: "rejected",
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-          rejection_reason: reason ?? null,
-        })
-        .eq("id", paymentId);
+      const { error } = await supabase.rpc("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "reject",
+        p_rejection_reason: reason ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {

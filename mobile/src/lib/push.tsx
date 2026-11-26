@@ -16,9 +16,21 @@ import { navigatePushTarget } from "./pushNavigation";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
+import {
+  shouldShowMobileCustomerExplanationPushModal,
+  shouldShowMobileLaunchPushModal,
+  type MobileOsPermission,
+} from "@shared/push/mobilePromptPolicy";
 
 const PROMPT_SEEN_KEY = "famy.mobilePush.promptSeen";
 const ACTIVE_TOKEN_KEY = "famy.mobilePush.activeToken";
+
+let openExplanationPrompt: (() => void) | null = null;
+
+/** After the first booking (or from settings), show the explanation modal once. */
+export function openCustomerPushExplanationPrompt(): void {
+  openExplanationPrompt?.();
+}
 
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
@@ -156,31 +168,43 @@ export function PushBridge() {
     };
   }, [session?.user.id]);
 
+  useEffect(() => {
+    openExplanationPrompt = () => {
+      void (async () => {
+        if (!Device.isDevice || Platform.OS === "web" || !session) return;
+        const { status: existing } = await Notifications.getPermissionsAsync();
+        const permission = existing as MobileOsPermission;
+        const seen = (await AsyncStorage.getItem(PROMPT_SEEN_KEY)) === "1";
+        if (!shouldShowMobileCustomerExplanationPushModal(permission, seen)) return;
+        setPromptOpen(true);
+      })();
+    };
+    return () => {
+      openExplanationPrompt = null;
+    };
+  }, [session]);
+
   const runPromptFlow = useCallback(async () => {
-    if (!Device.isDevice || Platform.OS === "web" || !session) return;
+    if (!Device.isDevice || Platform.OS === "web" || !session || !workspace) return;
     try {
-      const seen = await AsyncStorage.getItem(PROMPT_SEEN_KEY);
       const { status: existing } = await Notifications.getPermissionsAsync();
-      if (existing === "granted") {
+      const permission = existing as MobileOsPermission;
+      if (permission === "granted") {
         await syncPushRegistration();
         return;
       }
-      if (existing === "denied") return;
-      if (!seen) {
-        setPromptOpen(true);
-        return;
-      }
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === "granted") await syncPushRegistration();
+      const seen = (await AsyncStorage.getItem(PROMPT_SEEN_KEY)) === "1";
+      const ws = workspace === "provider" ? "provider" : "customer";
+      if (shouldShowMobileLaunchPushModal(ws, permission, seen)) setPromptOpen(true);
     } catch {
       // Permission or token failures must not break the app shell.
     }
-  }, [session]);
+  }, [session, workspace]);
 
   useEffect(() => {
-    if (!ready || !session) return;
+    if (!ready || !session || !workspace) return;
     void runPromptFlow();
-  }, [ready, session, runPromptFlow]);
+  }, [ready, session, workspace, runPromptFlow]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;

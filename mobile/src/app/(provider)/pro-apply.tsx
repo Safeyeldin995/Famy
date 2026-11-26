@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
+import { providerHeaderShowsBack } from "@/lib/provider/providerHeaderBack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { defaultWorkingHours } from "@shared/provider/setupHelpers";
@@ -24,6 +25,8 @@ import { useRequirementsForServices } from "@/lib/bookingQueries";
 import { useMyProvider, useReplaceAvailability } from "@/lib/provider/queries";
 import { supabase } from "@/lib/supabase";
 import { Page, QueryState } from "@/ui/Page";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { ProviderAccountMenu } from "@/ui/provider/ProviderAccountMenu";
 
 export default function ProApplyScreen() {
   const { t } = useTranslation();
@@ -62,8 +65,7 @@ export default function ProApplyScreen() {
   const queries = [...bootstrapQueries, applyRequirements];
   const status = provider?.onboarding_status as string | undefined;
   const dataReady =
-    !!provider &&
-    bootstrapQueries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
+    !!provider && bootstrapQueries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
   const redirectHome = !!provider && !!status && status !== "DRAFT" && status !== "NEEDS_CHANGES";
 
   useEffect(() => {
@@ -200,7 +202,17 @@ export default function ProApplyScreen() {
   }
 
   return (
-    <Page title={t("providerApply.checklist")} queries={queries}>
+    <Page
+      title={t("providerApply.checklist")}
+      queries={queries}
+      header={
+        <ProviderHeader
+          title={t("providerApply.checklist")}
+          action={<ProviderAccountMenu />}
+          hideBack={!providerHeaderShowsBack(router.canGoBack())}
+        />
+      }
+    >
       <QueryState query={gateQuery}>{dataReady ? flow : null}</QueryState>
     </Page>
   );
