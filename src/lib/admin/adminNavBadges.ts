@@ -10,7 +10,6 @@ export const ADMIN_NAV_BADGE_ROUTES: Record<string, readonly AdminNavBadgeKey[]>
   "/admin/providers": [
     "new_applications",
     "resubmitted_applications",
-    "applications_over_sla",
     "pending_services",
     "pending_teaching_groups",
     "pending_documents",
@@ -18,7 +17,11 @@ export const ADMIN_NAV_BADGE_ROUTES: Record<string, readonly AdminNavBadgeKey[]>
   "/admin/documents-expiring": ["documents_expiring_soon"],
   "/admin/service-requests": ["new_service_requests"],
   "/admin/price-change-requests": ["price_change_requests"],
-  "/admin/bookings": ["bookings_needing_action", "bookings_lifecycle_attention"],
+  "/admin/bookings": [
+    "bookings_needing_action",
+    "bookings_lifecycle_attention",
+    "online_session_reviews",
+  ],
   "/admin/cases": ["open_cases"],
   "/admin/payments": ["payments_pending_review"],
   "/admin/finance": ["pending_settlements", "providers_at_cash_limit"],

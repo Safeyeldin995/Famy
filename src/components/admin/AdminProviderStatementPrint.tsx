@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminProviderStatement } from "@/lib/db/admin-daily-ops-queries";
 import { formatEGP } from "@/lib/utils";
-import { bookingCode } from "@/components/admin/operations";
+import { bookingCode, operationDate } from "@/components/admin/operations";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
@@ -61,8 +61,7 @@ export function AdminProviderStatementPrint({
       <h1 className="text-lg font-bold">{t("admin.statement.title")}</h1>
       <p className="mt-2 font-semibold">{data.provider_name}</p>
       <p className="text-xs text-gray-600">
-        {new Date(data.period_from).toLocaleString(lang, { timeZone: "Africa/Cairo" })} —{" "}
-        {new Date(data.period_to).toLocaleString(lang, { timeZone: "Africa/Cairo" })}
+        {operationDate(data.period_from, lang)} — {operationDate(data.period_to, lang)}
       </p>
       <div className="mt-4 flex gap-6 text-sm">
         <p>
@@ -86,7 +85,7 @@ export function AdminProviderStatementPrint({
           {data.rows.map((row) => (
             <tr key={row.id} className="border-b border-gray-200">
               <td className="p-1 whitespace-nowrap">
-                {new Date(row.created_at).toLocaleString(lang, { timeZone: "Africa/Cairo" })}
+                {operationDate(row.created_at, lang)}
               </td>
               <td className="p-1">{labels.kindLabels[row.kind] ?? row.kind}</td>
               <td className="p-1">

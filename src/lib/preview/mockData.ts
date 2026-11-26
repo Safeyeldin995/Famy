@@ -1070,6 +1070,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
     documents_expiring_soon: 0,
     open_cases: 1,
     bookings_needing_action: 0,
+    online_session_reviews: 0,
     bookings_lifecycle_attention: 0,
     payments_pending_review: 0,
     online_lesson_issue_reports: 0,

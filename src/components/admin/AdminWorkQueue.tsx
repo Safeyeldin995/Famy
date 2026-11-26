@@ -36,6 +36,10 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     search: { statuses: "disputed,no_show" },
   },
   {
+    key: "online_session_reviews",
+    route: "/admin/bookings",
+  },
+  {
     key: "bookings_lifecycle_attention",
     route: "/admin/bookings",
     search: { filter: "lifecycle_attention" },

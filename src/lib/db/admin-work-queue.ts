@@ -10,6 +10,7 @@ export const ADMIN_WORK_QUEUE_KEYS = [
   "documents_expiring_soon",
   "open_cases",
   "bookings_needing_action",
+  "online_session_reviews",
   "bookings_lifecycle_attention",
   "payments_pending_review",
   "online_lesson_issue_reports",

@@ -6,6 +6,8 @@ import {
   canReviewTransfer,
   caseAge,
   matchesBooking,
+  CASE_STATUS_FILTER_OPEN,
+  matchesCaseStatusFilter,
   mergeCases,
   operationDate,
 } from "../operations";
@@ -45,6 +47,14 @@ describe("admin operational triage", () => {
     for (const term of ["#a1b2c3", "سارة", "منى"]) expect(matchesBooking(b, term)).toBe(true);
     expect(matchesBooking(b, "other")).toBe(false);
   });
+  it("defaults open-case filters to open, info_requested, and pending only", () => {
+    expect(matchesCaseStatusFilter(CASE_STATUS_FILTER_OPEN, "open")).toBe(true);
+    expect(matchesCaseStatusFilter(CASE_STATUS_FILTER_OPEN, "info_requested")).toBe(true);
+    expect(matchesCaseStatusFilter(CASE_STATUS_FILTER_OPEN, "pending")).toBe(true);
+    expect(matchesCaseStatusFilter(CASE_STATUS_FILTER_OPEN, "resolved")).toBe(false);
+    expect(matchesCaseStatusFilter("", "resolved")).toBe(true);
+  });
+
   it("combines all case types, active oldest first, closed last", () => {
     const rows = mergeCases(
       [{ id: "s", status: "closed", created_at: "2026-01-01" }],
