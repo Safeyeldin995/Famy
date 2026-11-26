@@ -20,5 +20,8 @@ Phone number with SMS code is the main sign-in method. Sign in with Apple is off
 **Account deletion**
 Profile → Delete account (customers) and Pro profile → Delete account (providers). The web page is https://famy-chi.vercel.app/account/delete
 
+**User-generated content (chat and reviews)**
+Booking chat includes in-thread actions to report a message or conversation and to block the other party; public provider reviews can be reported from the provider profile. Reports go to Famy admin for review. Blocking hides the conversation and prevents new messages and new bookings between the two users.
+
 **Demo account**
 Fill in before submitting: a test customer phone number and SMS code, and a test provider phone number and SMS code (Firebase test numbers). Never put real users' numbers here.

@@ -4153,6 +4153,46 @@ export type Database = {
         }
         Returns: string
       }
+      admin_hide_ugc_review: {
+        Args: { p_admin_notes?: string; p_review_id: string }
+        Returns: string
+      }
+      admin_resolve_ugc_report: {
+        Args: { p_admin_notes?: string; p_report_id: string; p_status: string }
+        Returns: string
+      }
+      block_chat_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: string
+      }
+      list_my_ugc_reports: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          subject_type: string
+          reason: string
+          status: string
+          message_id: string | null
+          conversation_id: string | null
+          review_id: string | null
+          created_at: string
+        }[]
+      }
+      my_chat_block_status: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
+      report_ugc: {
+        Args: {
+          p_conversation_id?: string | null
+          p_detail?: string | null
+          p_message_id?: string | null
+          p_reason: string
+          p_review_id?: string | null
+          p_subject_type: string
+        }
+        Returns: string
+      }
       admin_resolve_reschedule: {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined

@@ -33,6 +33,7 @@ import {
   CircleDollarSign,
   FileText,
   Video,
+  Flag,
 } from "lucide-react";
 import { useAdminWorkQueueCounts } from "@/lib/db/admin-queries";
 import {
@@ -64,6 +65,11 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
         to: "/admin/online-lesson-issues",
         labelKey: "admin.layout.nav.onlineLessonIssues",
         icon: Video,
+      },
+      {
+        to: "/admin/reports-ugc",
+        labelKey: "admin.layout.nav.reportsUgc",
+        icon: Flag,
       },
       { to: "/admin/monitoring", labelKey: "admin.layout.nav.monitoring", icon: Radar },
     ],

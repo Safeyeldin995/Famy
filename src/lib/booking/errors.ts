@@ -15,6 +15,7 @@ export const BOOKING_ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
   ONLINE_BIRTH_DATE_REQUIRED: "ONLINE_BIRTH_DATE_REQUIRED",
   ONLINE_AGE_MINIMUM: "ONLINE_AGE_MINIMUM",
+  USER_BLOCKED: "USER_BLOCKED",
 } as const;
 
 export type BookingErrorCode = (typeof BOOKING_ERROR_CODES)[keyof typeof BOOKING_ERROR_CODES];
@@ -61,6 +62,9 @@ export function parseBookingErrorCode(raw: string | null | undefined): BookingEr
   if ((Object.values(BOOKING_ERROR_CODES) as string[]).includes(token)) {
     return token as BookingErrorCode;
   }
+  if (token === "user_blocked") {
+    return BOOKING_ERROR_CODES.USER_BLOCKED;
+  }
   return null;
 }
 
@@ -76,6 +80,9 @@ export function isSlotStaleBookingError(code: BookingErrorCode | null): boolean 
 }
 
 export function mapBookingRpcError(error: PostgrestError): BookingError {
+  if (error.message?.includes("user_blocked")) {
+    return new BookingError(BOOKING_ERROR_CODES.USER_BLOCKED, "user_blocked");
+  }
   const code =
     parseBookingErrorCode(error.message) ??
     (error.code === "42501" ? BOOKING_ERROR_CODES.UNAUTHORIZED : null) ??
