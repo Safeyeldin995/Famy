@@ -188,7 +188,36 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  if (asBoolean(obj.is_refunded) || asBoolean(obj.is_voided)) {
+  // Refunds come in two shapes:
+  // - a refund transaction of its own: has_parent_transaction (signed), its own id and
+  //   amount_cents (signed) are the refunded amount. Each one is counted once.
+  // - the original transaction reported as refunded/voided: amount_cents is the original
+  //   amount, so the refunded total comes from refunded_amount_cents (not signed, used only
+  //   to show the admin a total; the payment is always flagged for admin review).
+  // A child transaction (has_parent_transaction, signed) that is not a capture
+  // (is_capture, signed) never proves new money: it is a refund, a void or a
+  // follow-up of the original. It must never reach the capture path, where a
+  // second "capture" on a funded booking would be credited to the wallet.
+  const nonCaptureChild =
+    asBoolean(obj.has_parent_transaction) && !asBoolean(obj.is_capture);
+  const refundChild =
+    nonCaptureChild &&
+    (asBoolean(obj.is_refund) ||
+      asBoolean(obj.is_void) ||
+      asBoolean(obj.is_refunded) ||
+      asBoolean(obj.is_voided));
+  if (nonCaptureChild && !refundChild) {
+    return new Response(JSON.stringify({ ok: true, ignored: true, reason: "child_not_capture" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (refundChild || asBoolean(obj.is_refunded) || asBoolean(obj.is_voided)) {
+    const cumulativeRaw = Number(obj.refunded_amount_cents);
+    const cumulativeAmountCents =
+      !refundChild && Number.isSafeInteger(cumulativeRaw) && cumulativeRaw > 0 && cumulativeRaw <= amountCents
+        ? cumulativeRaw
+        : null;
     const { data, error } = await supabase.rpc("paymob_apply_refund_webhook", {
       p_paymob_transaction_id: paymobTransactionId,
       p_order_id: orderId,
@@ -199,6 +228,8 @@ Deno.serve(async (req) => {
         paymob_order_id: obj.order?.id ?? null,
         paymob_processed_at: new Date().toISOString(),
       },
+      p_refund_kind: refundChild ? "transaction" : "cumulative",
+      p_cumulative_amount_cents: cumulativeAmountCents,
     });
     if (error) {
       console.error("[paymob-webhook] refund rpc failed", error.message);
