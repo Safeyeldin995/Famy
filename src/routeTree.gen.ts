@@ -65,6 +65,7 @@ import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminStudentLinksRouteImport } from './routes/admin.student-links'
+import { Route as AdminWalletsRouteImport } from './routes/admin.wallets'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -492,6 +493,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
 const AdminStudentLinksRoute = AdminStudentLinksRouteImport.update({
   id: '/student-links',
   path: '/student-links',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminWalletsRoute = AdminWalletsRouteImport.update({
+  id: '/wallets',
+  path: '/wallets',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
@@ -1300,6 +1306,7 @@ export interface FileRoutesByFullPath {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1497,6 +1504,7 @@ export interface FileRoutesByTo {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1694,6 +1702,7 @@ export interface FileRoutesById {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/student-links': typeof AdminStudentLinksRoute
+  '/admin/wallets': typeof AdminWalletsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1900,6 +1909,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2097,6 +2107,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2293,6 +2304,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/student-links'
+    | '/admin/wallets'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -2894,6 +2906,13 @@ declare module '@tanstack/react-router' {
       path: '/student-links'
       fullPath: '/admin/student-links'
       preLoaderRoute: typeof AdminStudentLinksRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/wallets': {
+      id: '/admin/wallets'
+      path: '/wallets'
+      fullPath: '/admin/wallets'
+      preLoaderRoute: typeof AdminWalletsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/zones': {
@@ -3976,6 +3995,7 @@ interface AdminRouteChildren {
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStudentLinksRoute: typeof AdminStudentLinksRoute
+  AdminWalletsRoute: typeof AdminWalletsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -4010,6 +4030,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStudentLinksRoute: AdminStudentLinksRoute,
+  AdminWalletsRoute: AdminWalletsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
