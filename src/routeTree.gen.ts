@@ -139,6 +139,7 @@ import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.d
 import { Route as ApiMobileParentGuardianEmailRouteImport } from './routes/api.mobile.parent-guardian-email'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
+import { Route as ApiOnlineSessionsPresencePollRouteImport } from './routes/api.online-sessions.presence-poll'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
@@ -870,6 +871,12 @@ const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   path: '/api/mobile/paymob-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOnlineSessionsPresencePollRoute =
+  ApiOnlineSessionsPresencePollRouteImport.update({
+    id: '/api/online-sessions/presence-poll',
+    path: '/api/online-sessions/presence-poll',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSessionCapabilitiesRoute = ApiSessionCapabilitiesRouteImport.update({
   id: '/api/session/capabilities',
   path: '/api/session/capabilities',
@@ -1387,6 +1394,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1581,6 +1589,7 @@ export interface FileRoutesByTo {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1785,6 +1794,7 @@ export interface FileRoutesById {
   '/api/mobile/parent-guardian-email': typeof ApiMobileParentGuardianEmailRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/online-sessions/presence-poll': typeof ApiOnlineSessionsPresencePollRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
@@ -1993,6 +2003,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2187,6 +2198,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2390,6 +2402,7 @@ export interface FileRouteTypes {
     | '/api/mobile/parent-guardian-email'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/online-sessions/presence-poll'
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
@@ -2514,6 +2527,7 @@ export interface RootRouteChildren {
   ApiMobileParentGuardianEmailRoute: typeof ApiMobileParentGuardianEmailRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
+  ApiOnlineSessionsPresencePollRoute: typeof ApiOnlineSessionsPresencePollRoute
   ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
   ApiSessionReportRoute: typeof ApiSessionReportRoute
   ApiSessionTokenRoute: typeof ApiSessionTokenRoute
@@ -3437,6 +3451,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/paymob-checkout'
       fullPath: '/api/mobile/paymob-checkout'
       preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/online-sessions/presence-poll': {
+      id: '/api/online-sessions/presence-poll'
+      path: '/api/online-sessions/presence-poll'
+      fullPath: '/api/online-sessions/presence-poll'
+      preLoaderRoute: typeof ApiOnlineSessionsPresencePollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/session/capabilities': {
@@ -4469,6 +4490,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileParentGuardianEmailRoute: ApiMobileParentGuardianEmailRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
+  ApiOnlineSessionsPresencePollRoute: ApiOnlineSessionsPresencePollRoute,
   ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
   ApiSessionReportRoute: ApiSessionReportRoute,
   ApiSessionTokenRoute: ApiSessionTokenRoute,
