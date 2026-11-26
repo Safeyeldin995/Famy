@@ -163,6 +163,24 @@ function ProviderManagement() {
                     <p className="truncate text-sm font-bold">
                       {p.profile?.full_name || t("admin.providers.unnamed")}
                     </p>
+                    {!p.is_verified ? (
+                      <p className="text-xs font-semibold text-amber-700">
+                        {p.resubmitted_at
+                          ? t("admin.providers.queueResubmitted")
+                          : t("admin.providers.queueNew")}
+                        {" · "}
+                        {t("admin.providers.waitingHours", {
+                          hours: Math.max(
+                            1,
+                            Math.round(
+                              (Date.now() -
+                                new Date(p.resubmitted_at ?? p.submitted_at ?? p.created_at).getTime()) /
+                                3600000,
+                            ),
+                          ),
+                        })}
+                      </p>
+                    ) : null}
                     <p className="truncate text-xs text-muted-foreground">
                       {adminLocationLabel(p.city, currentLang(), t)} ·{" "}
                       {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} ·{" "}

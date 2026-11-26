@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
 import { normalizeAdminWorkQueueCounts } from '@/lib/db/admin-work-queue';
 import type { AdminWorkQueueKey } from '@/lib/db/admin-work-queue';
+import { parseProviderPerformanceStats } from '@/lib/provider/performanceStats';
 
 export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
 
@@ -53,6 +54,37 @@ export function useAdminBabysittingAgeGroups(providerId: string) {
   });
 }
 
+export function useAdminProviderPerformanceStats(providerId: string | undefined) {
+  return useQuery({
+    queryKey: ["admin", "provider-performance", providerId],
+    enabled: !!providerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("admin_provider_performance_stats", {
+        p_provider_id: providerId,
+        p_days: 30,
+      });
+      if (error) throw error;
+      return parseProviderPerformanceStats(data);
+    },
+  });
+}
+
+export function useAdminCreateProviderWarning() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, reason }: { providerId: string; reason: string }) => {
+      const { error } = await (supabase.rpc as any)("admin_create_provider_warning", {
+        p_provider_id: providerId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ["admin", "provider", vars.providerId] });
+    },
+  });
+}
+
 export function useAdminProviders(filter: AdminProviderFilter = "all", queue?: AdminWorkQueueKey) {
   return useQuery({
     queryKey: ['admin', 'providers', filter, queue ?? 'none'],
@@ -73,13 +105,38 @@ export function useAdminProviders(filter: AdminProviderFilter = "all", queue?: A
         .from('providers')
         .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
         .in('id', providerIds)
-        .order('created_at', { ascending: false });
+        .order('created_at', {
+          ascending:
+            queue === 'new_applications' ||
+            queue === 'resubmitted_applications' ||
+            queue === 'pending_documents',
+        });
       if (filter === 'pending') q = q.eq('is_verified', false).in('onboarding_status', ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_CHANGES']);
       else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
       else if (filter === 'suspended') q = q.eq('is_active', false).eq('is_verified', true);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      if (
+        queue === 'new_applications' ||
+        queue === 'resubmitted_applications' ||
+        queue === 'pending_documents'
+      ) {
+        rows.sort((a, b) => {
+          const ta = new Date(
+            (a as { resubmitted_at?: string | null; submitted_at?: string | null }).resubmitted_at ??
+              (a as { submitted_at?: string | null }).submitted_at ??
+              a.created_at,
+          ).getTime();
+          const tb = new Date(
+            (b as { resubmitted_at?: string | null; submitted_at?: string | null }).resubmitted_at ??
+              (b as { submitted_at?: string | null }).submitted_at ??
+              b.created_at,
+          ).getTime();
+          return ta - tb;
+        });
+      }
+      return rows;
     },
   });
 }

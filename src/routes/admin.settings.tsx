@@ -27,6 +27,8 @@ import {
   useUpdateReleaseFeatureSettings,
   useAppReleaseSettingsAdmin,
   useUpdateAppReleaseSettings,
+  useProviderReviewSlaHoursAdmin,
+  useUpdateProviderReviewSlaHours,
   useStoreLinksSettingsAdmin,
   useUpdateStoreLinksSettings,
   type StoreLinksSettings,
@@ -233,6 +235,61 @@ function BillingSection() {
           >
             {t("common.save")}
           </ConfirmCatalogButton>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ProviderReviewSlaSection() {
+  const { t } = useTranslation();
+  const q = useProviderReviewSlaHoursAdmin();
+  const update = useUpdateProviderReviewSlaHours();
+  const [hours, setHours] = useState("24");
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
+  useEffect(() => {
+    if (q.data != null) setHours(String(q.data));
+  }, [q.data]);
+  return (
+    <SectionCard
+      title={t("admin.settings.providerReviewSlaTitle")}
+      subtitle={t("admin.settings.providerReviewSlaSubtitle")}
+    >
+      {q.isError ? (
+        <AdminQueryError
+          compact
+          message={t("admin.settings.providerReviewSlaLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.providerReviewSlaHours")}</span>
+            <input
+              type="number"
+              min={1}
+              max={168}
+              dir="ltr"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="min-h-11 w-32 rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
+          <SaveButton
+            pending={update.isPending}
+            saved={saved}
+            onClick={() => {
+              const next = Number(hours);
+              if (!Number.isInteger(next) || next < 1 || next > 168) {
+                toast.error(t("admin.settings.providerReviewSlaInvalid"));
+                return;
+              }
+              update.mutate(next, {
+                onError: () => toast.error(t("admin.settings.providerReviewSlaSaveError")),
+              });
+            }}
+          />
         </div>
       )}
     </SectionCard>
@@ -1260,6 +1317,7 @@ function AdminSettings() {
       <ProviderSettlementSettingsSection />
       <CancellationPolicySection />
       <BookingExpirySection />
+      <ProviderReviewSlaSection />
       <CategoriesSection />
       <ServiceAreasSection />
       <ReminderRulesSection />

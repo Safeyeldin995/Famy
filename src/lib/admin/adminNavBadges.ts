@@ -10,10 +10,12 @@ export const ADMIN_NAV_BADGE_ROUTES: Record<string, readonly AdminNavBadgeKey[]>
   "/admin/providers": [
     "new_applications",
     "resubmitted_applications",
+    "applications_over_sla",
     "pending_services",
     "pending_teaching_groups",
     "pending_documents",
   ],
+  "/admin/documents-expiring": ["documents_expiring_soon"],
   "/admin/service-requests": ["new_service_requests"],
   "/admin/price-change-requests": ["price_change_requests"],
   "/admin/bookings": ["bookings_needing_action", "bookings_lifecycle_attention"],
@@ -29,6 +31,15 @@ export type AdminNavBadgeExtras = {
   providersAtCashLimit: number;
   studentParentFlags: number;
 };
+
+export function adminNavBadgeUrgentCount(
+  route: string,
+  queue: Record<AdminWorkQueueKey, number>,
+): number {
+  if (route === "/admin/providers") return queue.applications_over_sla ?? 0;
+  if (route === "/admin/documents-expiring") return queue.documents_expiring_soon ?? 0;
+  return 0;
+}
 
 export function adminNavBadgeCount(
   route: string,
