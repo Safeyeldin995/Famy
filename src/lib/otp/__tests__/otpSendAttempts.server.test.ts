@@ -1,108 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-type AttemptRow = {
-  id: string;
-  ip_hash: string | null;
-  phone_hash: string;
-  created_at: string;
-};
+const rows = vi.hoisted(() => [] as { phone_hash: string; ip_hash: string | null; created_at: string }[]);
 
-const rows = vi.hoisted(() => [] as AttemptRow[]);
-let idSeq = 0;
-
-const fromMock = vi.hoisted(() =>
-  vi.fn((table: string) => {
-    if (table !== "otp_send_attempts") throw new Error(`unexpected table ${table}`);
-    const state: { filters: Record<string, string | undefined>; op?: string; payload?: unknown } = {
-      filters: {},
-    };
-    const builder = {
-      select(_cols?: string, _opts?: { count?: string; head?: boolean }) {
-        state.op = "select";
-        return builder;
-      },
-      eq(column: string, value: string) {
-        state.filters[column] = value;
-        return builder;
-      },
-      gte(column: string, value: string) {
-        state.filters[`${column}_gte`] = value;
-        return builder;
-      },
-      lt(column: string, value: string) {
-        state.filters[`${column}_lt`] = value;
-        return builder;
-      },
-      order(_column: string, _opts?: { ascending?: boolean }) {
-        return builder;
-      },
-      limit(_n: number) {
-        return builder;
-      },
-      maybeSingle: async () => {
-        const filtered = rows.filter((row) => {
-          if (
-            state.filters.phone_hash &&
-            row.phone_hash !== state.filters.phone_hash
-          ) {
-            return false;
-          }
-          if (state.filters.ip_hash && row.ip_hash !== state.filters.ip_hash) {
-            return false;
-          }
-          if (state.filters.created_at_gte && row.created_at < state.filters.created_at_gte) {
-            return false;
-          }
-          return true;
-        });
-        filtered.sort((a, b) => a.created_at.localeCompare(b.created_at));
-        const first = filtered[0];
-        return { data: first ? { created_at: first.created_at } : null, error: null };
-      },
-      insert: async (payload: { phone_hash: string; ip_hash: string | null }) => {
-        rows.push({
-          id: `id-${++idSeq}`,
-          phone_hash: payload.phone_hash,
-          ip_hash: payload.ip_hash,
-          created_at: new Date().toISOString(),
-        });
-        return { error: null };
-      },
-      delete: () => ({
-        eq: (column: string, value: string) => ({
-          lt: async (_col: string, cutoff: string) => {
-            for (let i = rows.length - 1; i >= 0; i -= 1) {
-              const row = rows[i]!;
-              if ((column === "phone_hash" && row.phone_hash === value) || (column === "ip_hash" && row.ip_hash === value)) {
-                if (row.created_at < cutoff) rows.splice(i, 1);
-              }
-            }
-            return { error: null };
-          },
-        }),
-      }),
-      then(onFulfilled?: (v: unknown) => unknown) {
-        const filtered = rows.filter((row) => {
-          if (state.filters.phone_hash && row.phone_hash !== state.filters.phone_hash) return false;
-          if (state.filters.ip_hash && row.ip_hash !== state.filters.ip_hash) return false;
-          if (state.filters.created_at_gte && row.created_at < state.filters.created_at_gte) {
-            return false;
-          }
-          return true;
-        });
-        const result =
-          state.op === "select"
-            ? { count: filtered.length, error: null, data: null }
-            : { error: null };
-        return Promise.resolve(result).then(onFulfilled);
-      },
-    };
-    return builder;
+const rpcMock = vi.hoisted(() =>
+  vi.fn(async (_name: string, args: Record<string, unknown>) => {
+    const windowSeconds = Number(args.p_window_seconds) || 3600;
+    const since = Date.now() - windowSeconds * 1000;
+    const phoneHash = String(args.p_phone_hash);
+    const ipHash = args.p_ip_hash ? String(args.p_ip_hash) : null;
+    const phoneCount = rows.filter(
+      (r) => r.phone_hash === phoneHash && new Date(r.created_at).getTime() >= since,
+    ).length;
+    if (phoneCount >= Number(args.p_phone_limit)) {
+      return { data: { allowed: false, retry_after_seconds: 60 }, error: null };
+    }
+    if (ipHash) {
+      const ipCount = rows.filter(
+        (r) => r.ip_hash === ipHash && new Date(r.created_at).getTime() >= since,
+      ).length;
+      if (ipCount >= Number(args.p_ip_limit)) {
+        return { data: { allowed: false, retry_after_seconds: 60 }, error: null };
+      }
+    }
+    rows.push({ phone_hash: phoneHash, ip_hash: ipHash, created_at: new Date().toISOString() });
+    return { data: { allowed: true }, error: null };
   }),
 );
 
 vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: { from: fromMock },
+  supabaseAdmin: { rpc: rpcMock },
 }));
 
 vi.mock("@tanstack/react-start/server", () => ({
@@ -114,7 +40,6 @@ vi.mock("@tanstack/react-start/server", () => ({
 describe("recordOtpSendAttemptIfAllowed", () => {
   beforeEach(() => {
     rows.length = 0;
-    idSeq = 0;
     process.env.AUTH_INTENT_SECRET = "test-auth-intent-secret";
     vi.clearAllMocks();
   });
@@ -166,5 +91,12 @@ describe("recordOtpSendAttemptIfAllowed", () => {
     expect(row.phone_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(row.phone_hash).not.toContain("2010");
     expect(row.ip_hash).not.toContain("203.0.113");
+    expect(rpcMock).toHaveBeenCalledWith(
+      "otp_send_attempt_record_if_allowed",
+      expect.objectContaining({
+        p_phone_hash: row.phone_hash,
+        p_ip_hash: row.ip_hash,
+      }),
+    );
   });
 });

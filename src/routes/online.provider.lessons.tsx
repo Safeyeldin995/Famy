@@ -14,6 +14,7 @@ import { formatDate, formatTime, formatLocale } from "@/lib/format";
 import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
+import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
 
 export const Route = createFileRoute("/online/provider/lessons")({
   beforeLoad: async ({ location }) => {
@@ -127,6 +128,12 @@ function OnlineProviderLessons() {
                         <span aria-hidden>·</span>
                         {formatTime(startAt, locale, ONLINE_WEB_TIME_ZONE)}
                       </p>
+                      <div className="mt-2">
+                        <OnlineProviderBookingSummary
+                          booking={booking as import("@/components/online/OnlineProviderBookingSummary").OnlineProviderBookingSummaryRow}
+                          compact
+                        />
+                      </div>
                     </div>
                     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground ltr:rotate-0 rtl:rotate-180" />
                   </div>

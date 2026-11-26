@@ -1,9 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
-import { ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
+import { useMyProvider } from "@/lib/db/provider-queries";
+import { siteHeadPrivate, siteLanguage } from "@/lib/site/seo";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP, formatDate, formatTime, formatLocale } from "@/lib/format";
 import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
@@ -13,14 +16,31 @@ export const Route = createFileRoute("/online/wallet")({
   beforeLoad: async ({ location }) => {
     await requireOnlineWebSession(location.href);
   },
+  head: ({ matches }) =>
+    siteHeadPrivate(
+      "/online/wallet",
+      {
+        ar: { title: "محفظة فامي | دروس أونلاين", description: "رصيد محفظتك لدروس أونلاين على فامي." },
+        en: { title: "Famy wallet | Online lessons", description: "Your Famy wallet balance for online lessons." },
+      },
+      siteLanguage(matches),
+    ),
   component: OnlineWallet,
 });
 
 function OnlineWallet() {
   const { t, i18n } = useTranslation();
+  const nav = useNavigate();
+  const providerQ = useMyProvider();
   const terms =
     currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms");
   const locale = formatLocale(i18n.language);
+
+  useEffect(() => {
+    if (providerQ.data?.id) {
+      void nav({ to: ONLINE_WEB_ROUTE_IDS.providerLessons, replace: true });
+    }
+  }, [nav, providerQ.data?.id]);
 
   const balanceQ = useQuery({
     queryKey: ["customer-wallet-balance-web"],

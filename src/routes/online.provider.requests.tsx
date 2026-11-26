@@ -9,6 +9,7 @@ import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
 import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
 import { currentLang } from "@/lib/i18n";
+import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
 
 export const Route = createFileRoute("/online/provider/requests")({
   beforeLoad: async ({ location }) => {
@@ -67,6 +68,12 @@ function OnlineProviderRequests() {
                     {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}{" "}
                     · {formatTime(startAt, locale, ONLINE_WEB_TIME_ZONE)}
                   </p>
+                  <div className="mt-3">
+                    <OnlineProviderBookingSummary
+                      booking={booking as import("@/components/online/OnlineProviderBookingSummary").OnlineProviderBookingSummaryRow}
+                      compact
+                    />
+                  </div>
                 </div>
                 <BookingRequestActions id={String(booking.id)} />
               </li>

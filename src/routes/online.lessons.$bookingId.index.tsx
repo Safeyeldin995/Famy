@@ -24,6 +24,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePaymobReturnPaymentPoll } from "@/hooks/usePaymobReturnPaymentPoll";
 import { useNowTick } from "@/hooks/useNowTick";
+import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
+import type { OnlineProviderBookingSummaryRow } from "@/components/online/OnlineProviderBookingSummary";
+import { OnlineWebLessonIssueReport } from "@/components/online/OnlineWebLessonIssueReport";
+import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
+import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
+import { useBookingCancellationFee } from "@/lib/db/settings-queries";
 
 export const Route = createFileRoute("/online/lessons/$bookingId/")({
   component: OnlineLessonDetail,
@@ -49,6 +55,8 @@ function OnlineLessonDetail() {
   const paymentQ = useBookingPayment(bookingId, { providerSafe: isProviderViewer });
   const cancel = useCancelBooking();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelPolicyQ = useOnlineCancellationPolicySummary();
+  const cancelFeeQ = useBookingCancellationFee(bookingId, cancelOpen);
   const lang = currentLang();
   const locale = formatLocale(lang);
 
@@ -145,6 +153,14 @@ function OnlineLessonDetail() {
   const joinWindow = sessionJoinWindow(startAt, endAt);
   const backTo = isProvider ? ONLINE_WEB_ROUTE_IDS.providerLessons : ONLINE_WEB_ROUTE_IDS.lessons;
   const customer = (booking as { customer?: { full_name?: string; avatar_url?: string } }).customer;
+  const cancelPolicyBody = cancelPolicyQ.summary;
+  const cancelFee = cancelFeeQ.data;
+  const cancelDialogBody =
+    cancelFee != null && cancelFee > 0
+      ? `${cancelPolicyBody} ${t("onlineWeb.cancelPolicy.feeNow", {
+          amount: formatEGP(cancelFee, undefined, lang),
+        })}`
+      : cancelPolicyBody;
   const serviceRow = booking.service as { name_ar?: string; name_en?: string } | null | undefined;
   const serviceLabel =
     lang === "ar"
@@ -225,6 +241,18 @@ function OnlineLessonDetail() {
         </PrimaryButton>
       ) : null}
 
+      {userId && (isCustomer || isProvider) ? (
+        <OnlineWebLessonIssueReport
+          bookingId={bookingId}
+          startAt={String(booking.start_at)}
+          endAt={String(booking.end_at)}
+        />
+      ) : null}
+
+      {isProvider && String(booking.status) === "pending" ? (
+        <BookingRequestActions id={bookingId} />
+      ) : null}
+
       {isCustomer && ["pending", "confirmed"].includes(String(booking.status)) ? (
         <button
           type="button"
@@ -235,14 +263,14 @@ function OnlineLessonDetail() {
         </button>
       ) : null}
 
-      <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
+      <p className="text-pro-12 text-muted-foreground">{cancelPolicyBody}</p>
 
       <CancelBookingDialog
         open={cancelOpen}
         actorType="customer"
         bookingStatus={String(booking.status)}
         title={t("bookingDetail.cancelReasonTitle")}
-        body={t("onlineWeb.cancelPolicy.body")}
+        body={cancelDialogBody}
         reasonLabel={t("bookingDetail.cancelReasonLabel")}
         notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
         confirmLabel={t("bookingDetail.confirmAction")}
@@ -317,14 +345,22 @@ function LessonCard({
             <span aria-hidden>–</span>
             {formatTime(endAt, locale, ONLINE_WEB_TIME_ZONE)}
           </p>
-          {serviceLabel ? (
-            <p className="mt-1 text-pro-13 text-muted-foreground">{serviceLabel}</p>
-          ) : null}
-          <p className="mt-1 text-pro-13 font-bold tabular-nums">
-            {t("bookFlow.sessionLine", { minutes: formatNumber(durationMin, lang) })} ·{" "}
-            {formatEGP(totalDue, undefined, lang)}
-          </p>
-          <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
+          {isProviderView ? (
+            <div className="mt-3">
+              <OnlineProviderBookingSummary booking={booking as OnlineProviderBookingSummaryRow} />
+            </div>
+          ) : (
+            <>
+              {serviceLabel ? (
+                <p className="mt-1 text-pro-13 text-muted-foreground">{serviceLabel}</p>
+              ) : null}
+              <p className="mt-1 text-pro-13 font-bold tabular-nums">
+                {t("bookFlow.sessionLine", { minutes: formatNumber(durationMin, lang) })} ·{" "}
+                {formatEGP(totalDue, undefined, lang)}
+              </p>
+              <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { authorizeSessionJoinWithCredential } from "@/lib/livekit/sessionAccess";
+import { authorizeSessionReport } from "@/lib/livekit/sessionAccess";
 import { resolveSessionJoinCredential } from "@/lib/livekit/sessionJoinCredential.server";
 import { loadSessionBookingSnapshot } from "@/lib/livekit/sessionBooking.server";
 
 const BodySchema = z.object({
   bookingId: z.string().uuid(),
   note: z.string().min(10).max(2000).optional(),
+  category: z.enum(["absence", "connection", "behavior"]).default("behavior"),
 });
 
 function json(body: unknown, status = 200) {
@@ -37,8 +38,8 @@ export const Route = createFileRoute("/api/session/report")({
         );
         if (!booking) return json({ ok: false, error: "not_found" }, 404);
 
-        const authz = authorizeSessionJoinWithCredential(booking, credential, new Date());
-        if (!authz.ok && authz.code !== "outside_join_window") {
+        const authz = authorizeSessionReport(booking, credential.userId);
+        if (!authz.ok) {
           return json({ ok: false, error: authz.code }, 403);
         }
 
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/api/session/report")({
           "In-call safety report: participant left and requested admin review.";
         const { data, error } = await (supabase as any).rpc("report_online_lesson_issue", {
           p_booking_id: parsed.bookingId,
-          p_category: "behavior",
+          p_category: parsed.category,
           p_description: detail,
         });
 
