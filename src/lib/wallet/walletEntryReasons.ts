@@ -1,6 +1,6 @@
 /**
  * Every reason allowed by the database check on customer_wallet_entries
- * (latest: 20261126130100_audit_money_batch_a). Each one needs a label in
+ * (latest: 20261126170000_admin_wallet_ops). Each one needs a label in
  * wallet.customer.reason, wallet.reason and onlineWeb.wallet.reason.
  */
 export const WALLET_ENTRY_REASONS = [
@@ -13,6 +13,7 @@ export const WALLET_ENTRY_REASONS = [
   "paymob_superseded_capture",
   "forfeited_on_deletion",
   "online_no_show_refund",
+  "admin_lesson_refund",
 ] as const;
 
 export type WalletEntryReason = (typeof WALLET_ENTRY_REASONS)[number];

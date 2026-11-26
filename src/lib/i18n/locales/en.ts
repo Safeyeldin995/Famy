@@ -5136,6 +5136,7 @@ Object.assign(en, {
         paymob_superseded_capture: "Duplicate card payment returned",
         forfeited_on_deletion: "Removed when the account was deleted",
         online_no_show_refund: "Refund for an online lesson that did not take place",
+        admin_lesson_refund: "Lesson refund from Famy",
       },
     },
     reason: {
@@ -5148,6 +5149,7 @@ Object.assign(en, {
       paymob_superseded_capture: "Duplicate card payment returned",
       forfeited_on_deletion: "Removed when the account was deleted",
       online_no_show_refund: "Refund for an online lesson that did not take place",
+      admin_lesson_refund: "Lesson refund from Famy",
     },
     refundDisclosure:
       "Any refunded amount is added to your Famy wallet for use on your next Famy booking.",
@@ -5719,6 +5721,7 @@ Object.assign(en, {
         paymob_superseded_capture: "Duplicate card payment returned",
         forfeited_on_deletion: "Removed when the account was deleted",
         online_no_show_refund: "Refund for an online lesson that did not take place",
+        admin_lesson_refund: "Lesson refund from Famy",
       },
       balanceError: "We couldn't load your wallet balance. Try again.",
       entriesError: "We couldn't load wallet activity. Try again.",

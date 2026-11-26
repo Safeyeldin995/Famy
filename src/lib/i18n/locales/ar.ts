@@ -5032,6 +5032,7 @@ Object.assign(ar, {
         paymob_superseded_capture: "رجوع دفعة كارت مكررة",
         forfeited_on_deletion: "اتشال مع مسح الحساب",
         online_no_show_refund: "رصيد من حصة أونلاين ماتمتش",
+        admin_lesson_refund: "رد ثمن حصة من فامي",
       },
     },
     reason: {
@@ -5044,6 +5045,7 @@ Object.assign(ar, {
       paymob_superseded_capture: "رجوع دفعة كارت مكررة",
       forfeited_on_deletion: "اتشال مع مسح الحساب",
       online_no_show_refund: "رصيد من حصة أونلاين ماتمتش",
+      admin_lesson_refund: "رد ثمن حصة من فامي",
     },
     refundDisclosure: "أي مبلغ مسترد بيتضاف لرصيدك في فامي وتقدر تستخدمه في أي حجز جاي",
     admin: {
@@ -5609,6 +5611,7 @@ Object.assign(ar, {
         paymob_superseded_capture: "رجوع دفعة كارت مكررة",
         forfeited_on_deletion: "اتشال مع مسح الحساب",
         online_no_show_refund: "رصيد من حصة أونلاين ماتمتش",
+        admin_lesson_refund: "رد ثمن حصة من فامي",
       },
       balanceError: "ماقدرناش نحمل رصيد المحفظة، حاول تاني",
       entriesError: "ماقدرناش نحمل حركات المحفظة، حاول تاني",
