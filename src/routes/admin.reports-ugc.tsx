@@ -30,6 +30,22 @@ type UgcEnriched = UgcRow & {
   threadMessages: { body: string }[];
 };
 
+type ChatBlockRow = {
+  id: string;
+  conversation_id: string | null;
+  customer_id: string;
+  provider_user_id: string;
+  blocked_by: string;
+  blocked_by_name: string;
+  created_at: string;
+};
+
+async function fetchAdminChatBlocks(): Promise<ChatBlockRow[]> {
+  const { data, error } = await supabase.rpc("admin_list_chat_blocks");
+  if (error) throw error;
+  return (data ?? []) as ChatBlockRow[];
+}
+
 async function fetchOpenUgcReports(): Promise<UgcEnriched[]> {
   const { data, error } = await supabase
     .from("ugc_reports" as never)
@@ -83,15 +99,24 @@ async function fetchOpenUgcReports(): Promise<UgcEnriched[]> {
 export function AdminReportsUgc() {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
+  const [tab, setTab] = useState<"reports" | "blocks">("reports");
   const [sheet, setSheet] = useState<{
-    kind: "resolve" | "dismiss" | "hide_review";
+    kind: "resolve" | "dismiss" | "hide_review" | "unblock";
     reportId: string;
     reviewId?: string;
+    blockId?: string;
   } | null>(null);
 
   const q = useQuery({
     queryKey: ["admin-ugc-reports"],
     queryFn: fetchOpenUgcReports,
+    enabled: tab === "reports",
+  });
+
+  const blocksQ = useQuery({
+    queryKey: ["admin-chat-blocks"],
+    queryFn: fetchAdminChatBlocks,
+    enabled: tab === "blocks",
   });
 
   const resolve = useMutation({
@@ -120,6 +145,22 @@ export function AdminReportsUgc() {
     onError: () => toast.error(t("adminOps.actionError")),
   });
 
+  const adminUnblock = useMutation({
+    mutationFn: async ({ blockId, notes }: { blockId: string; notes: string }) => {
+      const { error } = await supabase.rpc("admin_unblock_chat_block", {
+        p_block_id: blockId,
+        p_admin_notes: notes,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(t("adminOps.actionSuccess"));
+      void qc.invalidateQueries({ queryKey: ["admin-chat-blocks"] });
+      setSheet(null);
+    },
+    onError: () => toast.error(t("adminOps.actionError")),
+  });
+
   const hideReview = useMutation({
     mutationFn: async ({ reviewId, notes }: { reviewId: string; notes: string }) => {
       const { error } = await supabase.rpc("admin_hide_ugc_review", {
@@ -137,17 +178,66 @@ export function AdminReportsUgc() {
     onError: () => toast.error(t("adminOps.actionError")),
   });
 
-  const busy = resolve.isPending || hideReview.isPending;
+  const busy = resolve.isPending || hideReview.isPending || adminUnblock.isPending;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-extrabold">{t("admin.reportsUgc.title")}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{t("admin.reportsUgc.subtitle")}</p>
-      {q.isLoading ? <p className="mt-6">{t("common.loading")}</p> : null}
-      {q.isError ? <p className="mt-6 text-coral">{t("common.error")}</p> : null}
-      {!q.isLoading && !q.data?.length ? (
+      <p className="mt-2 text-sm text-muted-foreground">
+        {tab === "reports" ? t("admin.reportsUgc.subtitle") : t("admin.reportsUgc.blocksSubtitle")}
+      </p>
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          className={`focus-ring min-h-11 rounded-xl px-4 text-sm font-bold ${tab === "reports" ? "bg-brand text-brand-foreground" : "border border-border"}`}
+          onClick={() => setTab("reports")}
+        >
+          {t("admin.reportsUgc.tabReports")}
+        </button>
+        <button
+          type="button"
+          className={`focus-ring min-h-11 rounded-xl px-4 text-sm font-bold ${tab === "blocks" ? "bg-brand text-brand-foreground" : "border border-border"}`}
+          onClick={() => setTab("blocks")}
+        >
+          {t("admin.reportsUgc.tabBlocks")}
+        </button>
+      </div>
+      {tab === "blocks" ? (
+        <>
+          {blocksQ.isLoading ? <p className="mt-6">{t("common.loading")}</p> : null}
+          {blocksQ.isError ? <p className="mt-6 text-coral">{t("common.error")}</p> : null}
+          {!blocksQ.isLoading && !blocksQ.data?.length ? (
+            <p className="mt-6 text-muted-foreground">{t("admin.reportsUgc.noBlocks")}</p>
+          ) : null}
+          <ul className="mt-6 space-y-3">
+            {(blocksQ.data ?? []).map((row) => (
+              <li key={row.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">
+                    {t("admin.reportsUgc.blockedBy")}: {row.blocked_by_name || row.blocked_by}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {operationDate(row.created_at, i18n.language)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="focus-ring mt-3 min-h-11 rounded-xl border border-border px-4 text-sm font-bold"
+                  onClick={() => setSheet({ kind: "unblock", reportId: row.id, blockId: row.id })}
+                >
+                  {t("admin.reportsUgc.unblock")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {tab === "reports" && q.isLoading ? <p className="mt-6">{t("common.loading")}</p> : null}
+      {tab === "reports" && q.isError ? <p className="mt-6 text-coral">{t("common.error")}</p> : null}
+      {tab === "reports" && !q.isLoading && !q.data?.length ? (
         <p className="mt-6 text-muted-foreground">{t("admin.reportsUgc.noOpen")}</p>
       ) : null}
+      {tab === "reports" ? (
       <ul className="mt-6 space-y-3">
         {(q.data ?? []).map((row) => (
           <li key={row.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
@@ -243,11 +333,14 @@ export function AdminReportsUgc() {
           </li>
         ))}
       </ul>
+      ) : null}
       {sheet ? (
         <AdminReasonSheet
           title={
             sheet.kind === "hide_review"
               ? t("admin.reportsUgc.hideReview")
+              : sheet.kind === "unblock"
+                ? t("admin.reportsUgc.unblock")
               : sheet.kind === "resolve"
                 ? t("admin.reportsUgc.resolve")
                 : t("admin.reportsUgc.dismiss")
@@ -255,11 +348,17 @@ export function AdminReportsUgc() {
           description={
             sheet.kind === "hide_review"
               ? t("admin.reportsUgc.hideReviewNotes")
+              : sheet.kind === "unblock"
+                ? t("admin.reportsUgc.unblockNotes")
               : t("admin.reportsUgc.notesPlaceholder")
           }
           busy={busy}
           onClose={() => (!busy ? setSheet(null) : undefined)}
           onConfirm={(notes) => {
+            if (sheet.kind === "unblock" && sheet.blockId) {
+              adminUnblock.mutate({ blockId: sheet.blockId, notes });
+              return;
+            }
             if (sheet.kind === "hide_review" && sheet.reviewId) {
               hideReview.mutate({ reviewId: sheet.reviewId, notes });
               return;

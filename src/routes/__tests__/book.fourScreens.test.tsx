@@ -435,14 +435,12 @@ describe("four-screen booking journey", () => {
     expect(screen.getByRole("button", { name: i18n.t("studentEducation.curriculum") })).toBeTruthy();
     expect(screen.getByRole("button", { name: i18n.t("studentEducation.grade") })).toBeTruthy();
     // Same subject/curriculum/level with two durations: cascade preselects taxonomy, user picks duration.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: i18n.t("bookFlow.sessionLine", { minutes: "90" }) }),
-      ).toBeTruthy(),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: i18n.t("bookFlow.sessionLine", { minutes: "90" }) }),
-    );
+    const durationChip90 = i18n.t("customerBooking.durationPriceChip", {
+      minutes: formatNumber(90),
+      price: formatEGP(600),
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: durationChip90 })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: durationChip90 }));
     expect(title("service")).toBeTruthy();
     next();
     await selectTime();

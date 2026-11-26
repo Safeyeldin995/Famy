@@ -1,4 +1,4 @@
-import { sanitizeStoreUrlForClient } from "./storeLinks";
+import { sanitizeStoreUrlForClient, type StoreLinksSettings } from "./storeLinks";
 
 /**
  * App release gate: minimum / latest app versions and maintenance mode.
@@ -120,7 +120,14 @@ export function decideAppRelease(
 export type AppReleaseValidationError =
   | { field: keyof AppReleaseSettings; code: "invalid_version" }
   | { field: "min_version_android" | "min_version_ios"; code: "min_above_latest" }
-  | { field: "maintenance_message_ar" | "maintenance_message_en"; code: "too_long" };
+  | { field: "maintenance_message_ar" | "maintenance_message_en"; code: "too_long" }
+  | { field: "play_url" | "app_store_url"; code: "store_link_required" };
+
+export type AppReleaseSettingsPayload = {
+  release: AppReleaseSettings;
+  storeLinks: StoreLinksSettings;
+  previousRelease?: AppReleaseSettings | null;
+};
 
 /** Admin form validation. Empty list means the value is safe to save. */
 export function validateAppReleaseSettings(s: AppReleaseSettings): AppReleaseValidationError[] {
@@ -155,6 +162,75 @@ export function validateAppReleaseSettings(s: AppReleaseSettings): AppReleaseVal
     errors.push({ field: "maintenance_message_en", code: "too_long" });
   }
   return errors;
+}
+
+/** Admin save: raising a platform minimum requires that platform's store URL. */
+export function validateAppReleaseAdminSave(
+  payload: AppReleaseSettingsPayload,
+): AppReleaseValidationError[] {
+  const errors = validateAppReleaseSettings(payload.release);
+  const prev = payload.previousRelease;
+  if (!prev) return errors;
+  const links = payload.storeLinks;
+  if (
+    compareAppVersions(payload.release.min_version_ios, prev.min_version_ios) > 0 &&
+    !links.app_store_url.trim()
+  ) {
+    errors.push({ field: "app_store_url", code: "store_link_required" });
+  }
+  if (
+    compareAppVersions(payload.release.min_version_android, prev.min_version_android) > 0 &&
+    !links.play_url.trim()
+  ) {
+    errors.push({ field: "play_url", code: "store_link_required" });
+  }
+  return errors;
+}
+
+export const APP_RELEASE_CACHE_SCHEMA = 1;
+
+export type CachedAppReleaseSnapshot = {
+  schema: number;
+  savedAt: number;
+  release: AppReleaseSettings;
+  storeLinks: { play_url: string; app_store_url: string };
+};
+
+export function serializeAppReleaseCache(snapshot: CachedAppReleaseSnapshot): string {
+  return JSON.stringify(snapshot);
+}
+
+export function parseAppReleaseCache(raw: string | null | undefined): CachedAppReleaseSnapshot | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as CachedAppReleaseSnapshot;
+    if (parsed.schema !== APP_RELEASE_CACHE_SCHEMA) return null;
+    if (!parsed.release || typeof parsed.savedAt !== "number") return null;
+    return {
+      schema: APP_RELEASE_CACHE_SCHEMA,
+      savedAt: parsed.savedAt,
+      release: parseAppReleaseSettings(parsed.release as unknown as Record<string, unknown>),
+      storeLinks: {
+        play_url: typeof parsed.storeLinks?.play_url === "string" ? parsed.storeLinks.play_url : "",
+        app_store_url:
+          typeof parsed.storeLinks?.app_store_url === "string" ? parsed.storeLinks.app_store_url : "",
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function resolveAppReleaseFetch(
+  fetched: { release: AppReleaseSettings; storeLinks: Record<string, unknown> | null } | null,
+  cached: CachedAppReleaseSnapshot | null,
+): { release: AppReleaseSettings; storeLinks: Record<string, unknown> | null } | null {
+  if (fetched) return fetched;
+  if (!cached) return null;
+  return {
+    release: cached.release,
+    storeLinks: cached.storeLinks,
+  };
 }
 
 /**
