@@ -54,7 +54,7 @@ export function OnlineWebParentContactFields({
           disabled={disabled}
           onChange={(e) => onParentPhoneChange(e.target.value)}
           className="mt-2 w-full rounded-2xl border border-border bg-white p-3 text-pro-14"
-          placeholder="01XXXXXXXXX"
+          placeholder={t("studentParentLink.parentPhoneHint")}
         />
       </label>
       <label className="block">
@@ -68,7 +68,7 @@ export function OnlineWebParentContactFields({
           disabled={disabled}
           onChange={(e) => onParentEmailChange(e.target.value)}
           className="mt-2 w-full rounded-2xl border border-border bg-white p-3 text-pro-14"
-          placeholder="parent@email.com"
+          placeholder={t("studentParentLink.parentEmailHint")}
         />
       </label>
     </section>

@@ -1168,7 +1168,7 @@ function BookForm({
                 value={guardianPhone}
                 onChangeText={setGuardianPhone}
                 keyboardType="phone-pad"
-                placeholder="01XXXXXXXXX"
+                placeholder={t("studentParentLink.parentPhoneHint")}
                 ltr
               />
               <Field
@@ -1178,7 +1178,7 @@ function BookForm({
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholder="parent@email.com"
+                placeholder={t("studentParentLink.parentEmailHint")}
                 ltr
               />
             </View>

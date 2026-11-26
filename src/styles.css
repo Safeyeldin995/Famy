@@ -164,6 +164,18 @@
     text-rendering: optimizeLegibility;
     overscroll-behavior-y: none;
   }
+  /* Browser autofill paints inputs yellow/blue; keep the field's own surface and text. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
+    box-shadow: 0 0 0 1000px var(--color-surface) inset;
+    caret-color: var(--color-foreground);
+    transition: background-color 9999s ease-out 0s;
+  }
 }
 
 /* Typography scale — reuse across customer screens */

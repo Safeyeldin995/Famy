@@ -76,10 +76,14 @@ import { Route as FamilyMembersNewRouteImport } from './routes/family-members.ne
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
 import { Route as OnlineIndexRouteImport } from './routes/online.index'
+import { Route as OnlineCompleteProfileRouteImport } from './routes/online.complete-profile'
+import { Route as OnlineForgotPasswordRouteImport } from './routes/online.forgot-password'
 import { Route as OnlineLessonsRouteImport } from './routes/online.lessons'
 import { Route as OnlineLoginRouteImport } from './routes/online.login'
 import { Route as OnlineOtpRouteImport } from './routes/online.otp'
+import { Route as OnlineResetPasswordRouteImport } from './routes/online.reset-password'
 import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
+import { Route as OnlineSignupRouteImport } from './routes/online.signup'
 import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
 import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
 import { Route as ParentGuardianFlagRouteImport } from './routes/parent-guardian.flag'
@@ -133,6 +137,7 @@ import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
+import { Route as OnlineAuthCallbackRouteImport } from './routes/online.auth.callback'
 import { Route as OnlineLessonsIndexRouteImport } from './routes/online.lessons.index'
 import { Route as OnlineLessonsBookingIdRouteImport } from './routes/online.lessons.$bookingId'
 import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
@@ -540,6 +545,16 @@ const OnlineIndexRoute = OnlineIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineCompleteProfileRoute = OnlineCompleteProfileRouteImport.update({
+  id: '/complete-profile',
+  path: '/complete-profile',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineForgotPasswordRoute = OnlineForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineLessonsRoute = OnlineLessonsRouteImport.update({
   id: '/lessons',
   path: '/lessons',
@@ -555,9 +570,19 @@ const OnlineOtpRoute = OnlineOtpRouteImport.update({
   path: '/otp',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineResetPasswordRoute = OnlineResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineSetPasswordRoute = OnlineSetPasswordRouteImport.update({
   id: '/set-password',
   path: '/set-password',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineSignupRoute = OnlineSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => OnlineRoute,
 } as any)
 const OnlineTutorsRoute = OnlineTutorsRouteImport.update({
@@ -828,6 +853,11 @@ const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   id: '/api/session/token',
   path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineAuthCallbackRoute = OnlineAuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => OnlineRoute,
 } as any)
 const OnlineLessonsIndexRoute = OnlineLessonsIndexRouteImport.update({
   id: '/',
@@ -1255,10 +1285,14 @@ export interface FileRoutesByFullPath {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/lessons': typeof OnlineLessonsRouteWithChildren
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
   '/parent-guardian/flag': typeof ParentGuardianFlagRoute
@@ -1315,6 +1349,7 @@ export interface FileRoutesByFullPath {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
@@ -1443,9 +1478,13 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/wallet': typeof OnlineWalletRoute
   '/parent-guardian/flag': typeof ParentGuardianFlagRoute
   '/pay/fees-return': typeof PayFeesReturnRoute
@@ -1498,6 +1537,7 @@ export interface FileRoutesByTo {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
@@ -1631,10 +1671,14 @@ export interface FileRoutesById {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/online/complete-profile': typeof OnlineCompleteProfileRoute
+  '/online/forgot-password': typeof OnlineForgotPasswordRoute
   '/online/lessons': typeof OnlineLessonsRouteWithChildren
   '/online/login': typeof OnlineLoginRoute
   '/online/otp': typeof OnlineOtpRoute
+  '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
+  '/online/signup': typeof OnlineSignupRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
   '/parent-guardian/flag': typeof ParentGuardianFlagRoute
@@ -1691,6 +1735,7 @@ export interface FileRoutesById {
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
+  '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
@@ -1828,10 +1873,14 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/lessons'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/tutors'
     | '/online/wallet'
     | '/parent-guardian/flag'
@@ -1888,6 +1937,7 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
@@ -2016,9 +2066,13 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/wallet'
     | '/parent-guardian/flag'
     | '/pay/fees-return'
@@ -2071,6 +2125,7 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/provider/lessons'
     | '/online/provider/requests'
     | '/preview/account/delete'
@@ -2203,10 +2258,14 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/online/complete-profile'
+    | '/online/forgot-password'
     | '/online/lessons'
     | '/online/login'
     | '/online/otp'
+    | '/online/reset-password'
     | '/online/set-password'
+    | '/online/signup'
     | '/online/tutors'
     | '/online/wallet'
     | '/parent-guardian/flag'
@@ -2263,6 +2322,7 @@ export interface FileRouteTypes {
     | '/api/session/capabilities'
     | '/api/session/report'
     | '/api/session/token'
+    | '/online/auth/callback'
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
@@ -2864,6 +2924,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineIndexRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/complete-profile': {
+      id: '/online/complete-profile'
+      path: '/complete-profile'
+      fullPath: '/online/complete-profile'
+      preLoaderRoute: typeof OnlineCompleteProfileRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/forgot-password': {
+      id: '/online/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/online/forgot-password'
+      preLoaderRoute: typeof OnlineForgotPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/lessons': {
       id: '/online/lessons'
       path: '/lessons'
@@ -2885,11 +2959,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineOtpRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/reset-password': {
+      id: '/online/reset-password'
+      path: '/reset-password'
+      fullPath: '/online/reset-password'
+      preLoaderRoute: typeof OnlineResetPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/set-password': {
       id: '/online/set-password'
       path: '/set-password'
       fullPath: '/online/set-password'
       preLoaderRoute: typeof OnlineSetPasswordRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/signup': {
+      id: '/online/signup'
+      path: '/signup'
+      fullPath: '/online/signup'
+      preLoaderRoute: typeof OnlineSignupRouteImport
       parentRoute: typeof OnlineRoute
     }
     '/online/tutors': {
@@ -3262,6 +3350,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/session/token'
       preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/online/auth/callback': {
+      id: '/online/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/online/auth/callback'
+      preLoaderRoute: typeof OnlineAuthCallbackRouteImport
+      parentRoute: typeof OnlineRoute
     }
     '/online/lessons/': {
       id: '/online/lessons/'
@@ -3934,25 +4029,35 @@ const OnlineTutorsRouteWithChildren = OnlineTutorsRoute._addFileChildren(
 )
 
 interface OnlineRouteChildren {
+  OnlineCompleteProfileRoute: typeof OnlineCompleteProfileRoute
+  OnlineForgotPasswordRoute: typeof OnlineForgotPasswordRoute
   OnlineLessonsRoute: typeof OnlineLessonsRouteWithChildren
   OnlineLoginRoute: typeof OnlineLoginRoute
   OnlineOtpRoute: typeof OnlineOtpRoute
+  OnlineResetPasswordRoute: typeof OnlineResetPasswordRoute
   OnlineSetPasswordRoute: typeof OnlineSetPasswordRoute
+  OnlineSignupRoute: typeof OnlineSignupRoute
   OnlineTutorsRoute: typeof OnlineTutorsRouteWithChildren
   OnlineWalletRoute: typeof OnlineWalletRoute
   OnlineIndexRoute: typeof OnlineIndexRoute
+  OnlineAuthCallbackRoute: typeof OnlineAuthCallbackRoute
   OnlineProviderLessonsRoute: typeof OnlineProviderLessonsRoute
   OnlineProviderRequestsRoute: typeof OnlineProviderRequestsRoute
 }
 
 const OnlineRouteChildren: OnlineRouteChildren = {
+  OnlineCompleteProfileRoute: OnlineCompleteProfileRoute,
+  OnlineForgotPasswordRoute: OnlineForgotPasswordRoute,
   OnlineLessonsRoute: OnlineLessonsRouteWithChildren,
   OnlineLoginRoute: OnlineLoginRoute,
   OnlineOtpRoute: OnlineOtpRoute,
+  OnlineResetPasswordRoute: OnlineResetPasswordRoute,
   OnlineSetPasswordRoute: OnlineSetPasswordRoute,
+  OnlineSignupRoute: OnlineSignupRoute,
   OnlineTutorsRoute: OnlineTutorsRouteWithChildren,
   OnlineWalletRoute: OnlineWalletRoute,
   OnlineIndexRoute: OnlineIndexRoute,
+  OnlineAuthCallbackRoute: OnlineAuthCallbackRoute,
   OnlineProviderLessonsRoute: OnlineProviderLessonsRoute,
   OnlineProviderRequestsRoute: OnlineProviderRequestsRoute,
 }

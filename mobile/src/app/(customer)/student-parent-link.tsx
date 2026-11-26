@@ -104,7 +104,7 @@ export default function StudentParentLinkScreen() {
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
-              placeholder="01XXXXXXXXX"
+              placeholder={t("studentParentLink.parentPhoneHint")}
               ltr
             />
             <Field
@@ -114,7 +114,7 @@ export default function StudentParentLinkScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="parent@email.com"
+              placeholder={t("studentParentLink.parentEmailHint")}
               ltr
             />
             <Button

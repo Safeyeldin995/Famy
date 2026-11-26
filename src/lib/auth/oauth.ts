@@ -20,9 +20,9 @@ export function enabledWebOAuthProviders(): OAuthProvider[] {
  * Starts the provider sign-in. OAuth accounts are always customers: the
  * provider portal keeps its phone + ID verification onboarding.
  */
-export async function signInWithOAuthProvider(provider: OAuthProvider) {
+export async function signInWithOAuthProvider(provider: OAuthProvider, redirectTo?: string) {
   return supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: oauthRedirectUrl(window.location.origin) },
+    options: { redirectTo: redirectTo ?? oauthRedirectUrl(window.location.origin) },
   });
 }

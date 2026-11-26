@@ -32,3 +32,27 @@ export function normalizePhoneE164(raw: string, defaultCountry = "20"): string {
 export function isValidE164Phone(phone: string): boolean {
   return /^\+\d{8,15}$/.test(phone);
 }
+
+/**
+ * Egyptian mobile typed in any common form (01xxxxxxxxx, 1xxxxxxxxx, +201…,
+ * 00201…, 201…, Arabic-Indic digits, spaces) → the 10 national digits after
+ * the country code ("1" + 9 digits), or null when it is not a valid mobile.
+ */
+export function egyptMobileNationalDigits(raw: string): string | null {
+  let digits = normalizeDigitsToWestern(raw).replace(/\D/g, "");
+  if (digits.startsWith("0020")) digits = digits.slice(4);
+  else if (digits.startsWith("20") && digits.length === 12) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return /^1[0125]\d{8}$/.test(digits) ? digits : null;
+}
+
+/** True when the input is a valid Egyptian mobile in any common form. */
+export function isValidEgyptMobile(raw: string): boolean {
+  return egyptMobileNationalDigits(raw) !== null;
+}
+
+/** Egyptian mobile in E.164 (+201xxxxxxxxx), or null when invalid. */
+export function egyptMobileE164(raw: string): string | null {
+  const national = egyptMobileNationalDigits(raw);
+  return national ? `+20${national}` : null;
+}
