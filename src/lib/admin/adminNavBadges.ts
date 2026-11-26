@@ -49,9 +49,5 @@ export function adminNavBadgeCount(
   if (route === "/admin/student-links") return extras.studentParentFlags;
   const keys = ADMIN_NAV_BADGE_ROUTES[route];
   if (!keys?.length) return 0;
-  return keys.reduce((sum, key) => {
-    if (key === "pending_settlements") return sum + extras.pendingSettlements;
-    if (key === "providers_at_cash_limit") return sum + extras.providersAtCashLimit;
-    return sum + (queue[key] ?? 0);
-  }, 0);
+  return keys.reduce((sum, key) => sum + (queue[key] ?? 0), 0);
 }

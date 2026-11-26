@@ -14,6 +14,8 @@ export const ADMIN_WORK_QUEUE_KEYS = [
   "payments_pending_review",
   "online_lesson_issue_reports",
   "ugc_reports",
+  "pending_settlements",
+  "providers_at_cash_limit",
 ] as const;
 
 export type AdminWorkQueueKey = (typeof ADMIN_WORK_QUEUE_KEYS)[number];

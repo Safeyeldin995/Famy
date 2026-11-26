@@ -303,6 +303,7 @@ function BookingExpirySection() {
   const [ttl, setTtl] = useState("");
   const [minBefore, setMinBefore] = useState("");
   const [autoCompleteHours, setAutoCompleteHours] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const saved = useSavedFlash(update.isPending, update.isSuccess);
   const initialized = useState(() => ({ done: false }))[0];
   useEffect(() => {
@@ -354,10 +355,13 @@ function BookingExpirySection() {
             value={ttl}
             onChange={(e) => setTtl(e.target.value)}
             type="number"
-            min={0}
+            min={1}
             step={1}
             className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
           />
+          {fieldErrors.ttl ? (
+            <p className="mt-1 text-xs font-semibold text-coral">{fieldErrors.ttl}</p>
+          ) : null}
         </label>
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
@@ -371,6 +375,9 @@ function BookingExpirySection() {
             step={1}
             className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
           />
+          {fieldErrors.minBefore ? (
+            <p className="mt-1 text-xs font-semibold text-coral">{fieldErrors.minBefore}</p>
+          ) : null}
         </label>
         <label className="block sm:col-span-1">
           <span className="text-xs font-semibold text-muted-foreground">
@@ -390,19 +397,30 @@ function BookingExpirySection() {
       <SaveButton
         pending={update.isPending}
         saved={saved}
-        onClick={() =>
+        onClick={() => {
+          const errors: Record<string, string> = {};
+          const ttlN = Number(ttl);
+          const minN = Number(minBefore);
+          if (!Number.isFinite(ttlN) || ttlN < 1) {
+            errors.ttl = t("admin.settings.pendingTtlMin");
+          }
+          if (!Number.isFinite(minN) || minN < 0) {
+            errors.minBefore = t("admin.services.mustBeZeroOrMore");
+          }
+          setFieldErrors(errors);
+          if (Object.keys(errors).length > 0) return;
           update.mutate(
             {
-              pending_ttl_hours: Math.max(0, Number(ttl) || 0),
-              min_hours_before_start: Math.max(0, Number(minBefore) || 0),
+              pending_ttl_hours: ttlN,
+              min_hours_before_start: minN,
               auto_complete_hours: Math.min(24, Math.max(1, Number(autoCompleteHours) || 6)),
             },
             {
               onError: (e: any) =>
                 toast.error(e?.message ?? t("admin.settings.bookingExpirySaveError")),
             },
-          )
-        }
+          );
+        }}
       />
     </SectionCard>
   );

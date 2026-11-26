@@ -1,46 +1,35 @@
 import { describe, expect, it } from "vitest";
 import { adminNavBadgeCount } from "../adminNavBadges";
-import type { AdminWorkQueueKey } from "@/lib/db/admin-work-queue";
+import { ADMIN_WORK_QUEUE_KEYS, type AdminWorkQueueKey } from "@/lib/db/admin-work-queue";
 
-const emptyQueue = Object.fromEntries(
-  [
-    "new_applications",
-    "resubmitted_applications",
-    "applications_over_sla",
-    "new_service_requests",
-    "price_change_requests",
-    "pending_services",
-    "pending_teaching_groups",
-    "pending_documents",
-    "documents_expiring_soon",
-    "open_cases",
-    "bookings_needing_action",
-    "bookings_lifecycle_attention",
-    "payments_pending_review",
-    "online_lesson_issue_reports",
-    "ugc_reports",
-  ].map((key) => [key, 0]),
-) as Record<AdminWorkQueueKey, number>;
+const emptyQueue = Object.fromEntries(ADMIN_WORK_QUEUE_KEYS.map((key) => [key, 0])) as Record<
+  AdminWorkQueueKey,
+  number
+>;
+
+const noExtras = {
+  pendingSettlements: 0,
+  providersAtCashLimit: 0,
+  studentParentFlags: 0,
+};
 
 describe("adminNavBadgeCount", () => {
   it("sums provider queue keys for the providers route", () => {
     const queue = { ...emptyQueue, new_applications: 2, pending_documents: 1 };
-    expect(
-      adminNavBadgeCount("/admin/providers", queue, {
-        pendingSettlements: 0,
-        providersAtCashLimit: 0,
-        studentParentFlags: 0,
-      }),
-    ).toBe(3);
+    expect(adminNavBadgeCount("/admin/providers", queue, noExtras)).toBe(3);
   });
 
-  it("includes finance extras on the finance route", () => {
+  it("includes finance queue keys on the finance route", () => {
+    const queue = { ...emptyQueue, pending_settlements: 4, providers_at_cash_limit: 2 };
+    expect(adminNavBadgeCount("/admin/finance", queue, noExtras)).toBe(6);
+  });
+
+  it("uses student parent flag count on student-links", () => {
     expect(
-      adminNavBadgeCount("/admin/finance", emptyQueue, {
-        pendingSettlements: 4,
-        providersAtCashLimit: 2,
-        studentParentFlags: 0,
+      adminNavBadgeCount("/admin/student-links", emptyQueue, {
+        ...noExtras,
+        studentParentFlags: 7,
       }),
-    ).toBe(6);
+    ).toBe(7);
   });
 });

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { AdminProviderStatementPrint } from "@/components/admin/AdminProviderStatementPrint";
 
 export const Route = createFileRoute("/admin/provider_/$id/statement/print")({
@@ -10,10 +11,11 @@ export const Route = createFileRoute("/admin/provider_/$id/statement/print")({
 });
 
 function AdminProviderStatementPrintRoute() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const { from, to } = Route.useSearch();
   if (!from || !to) {
-    return <p className="p-6 text-sm">from/to required</p>;
+    return <p className="p-6 text-sm">{t("admin.statement.printRangeRequired")}</p>;
   }
   return <AdminProviderStatementPrint providerId={id} from={from} to={to} />;
 }

@@ -3,7 +3,7 @@ import { WORK_QUEUE_ITEMS } from "../AdminWorkQueue";
 import { ADMIN_WORK_QUEUE_KEYS, normalizeAdminWorkQueueCounts } from "@/lib/db/admin-work-queue";
 
 describe("admin work queue counts", () => {
-  const rows = ADMIN_WORK_QUEUE_KEYS.map((queue, index) => ({ queue, item_count: index }));
+  const rows = ADMIN_WORK_QUEUE_KEYS.map((key, index) => ({ queue: key, item_count: index }));
 
   it("maps every server count to its action without losing zeroes", () => {
     const counts = normalizeAdminWorkQueueCounts(rows);
