@@ -7,11 +7,7 @@
  */
 
 export type TeachingLevelLabelStyle =
-  | "eg"
-  | "british_year"
-  | "american_grade"
-  | "ib_programme"
-  | "plain";
+  "eg" | "british_year" | "american_grade" | "ib_programme" | "plain";
 
 export const TEACHING_LEVEL_LABEL_STYLES: readonly TeachingLevelLabelStyle[] = [
   "eg",
@@ -22,7 +18,9 @@ export const TEACHING_LEVEL_LABEL_STYLES: readonly TeachingLevelLabelStyle[] = [
 ];
 
 export function isTeachingLevelLabelStyle(value: unknown): value is TeachingLevelLabelStyle {
-  return typeof value === "string" && (TEACHING_LEVEL_LABEL_STYLES as readonly string[]).includes(value);
+  return (
+    typeof value === "string" && (TEACHING_LEVEL_LABEL_STYLES as readonly string[]).includes(value)
+  );
 }
 
 /** School grade number for `g1`…`g12`, 0 for `kg`, null for anything else (skill levels). */
@@ -59,7 +57,7 @@ export function teachingLevelLabel(input: {
 
   switch (style) {
     case "eg": {
-      if (n === 0) return lang === "ar" ? "KG" : "KG";
+      if (n === 0) return lang === "ar" ? "كي جي" : "KG";
       if (n <= 6) return lang === "ar" ? `${n} ابتدائي` : `Primary ${n}`;
       if (n <= 9) return lang === "ar" ? `${n - 6} إعدادي` : `Prep ${n - 6}`;
       return lang === "ar" ? `${n - 9} ثانوي` : `Secondary ${n - 9}`;

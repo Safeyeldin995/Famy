@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Heart,
   Tag,
+  GraduationCap,
 } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
@@ -117,6 +118,12 @@ function Profile() {
             icon={<Users className="h-5 w-5" />}
             label={t("profile.family")}
             sub={t("profile.familySub")}
+          />
+          <Row
+            to={previewPath("/account/students")}
+            icon={<GraduationCap className="h-5 w-5" />}
+            label={t("studentMatch.page.title")}
+            sub={t("studentMatch.page.lead")}
           />
         </Section>
 

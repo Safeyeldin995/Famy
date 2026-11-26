@@ -31,13 +31,21 @@ afterEach(async () => {
 const OTHER_PROVIDER = "00000000-0000-0000-0000-00000000a112";
 
 async function id(table: string, code: string): Promise<string> {
-  const rows = await queryRows<{ id: string }>(db, `SELECT id FROM public.${table} WHERE code = $1`, [code]);
+  const rows = await queryRows<{ id: string }>(
+    db,
+    `SELECT id FROM public.${table} WHERE code = $1`,
+    [code],
+  );
   if (!rows[0]) throw new Error(`missing ${table}.${code}`);
   return rows[0].id;
 }
 
 async function serviceId(slug: string): Promise<string> {
-  const rows = await queryRows<{ id: string }>(db, `SELECT id FROM public.services WHERE slug = $1`, [slug]);
+  const rows = await queryRows<{ id: string }>(
+    db,
+    `SELECT id FROM public.services WHERE slug = $1`,
+    [slug],
+  );
   if (!rows[0]) throw new Error(`missing service ${slug}`);
   return rows[0].id;
 }
@@ -83,7 +91,15 @@ async function capability(opts: {
     `INSERT INTO public.provider_teaching_capabilities
        (provider_id, service_id, subject_id, curriculum_id, level_id, session_duration_min, session_price, status)
      VALUES ($1, $2, $3, $4, $5, 60, $6, $7)`,
-    [opts.provider, opts.service, opts.subject, opts.curriculum, opts.level, opts.price ?? 400, opts.status ?? "approved"],
+    [
+      opts.provider,
+      opts.service,
+      opts.subject,
+      opts.curriculum,
+      opts.level,
+      opts.price ?? 400,
+      opts.status ?? "approved",
+    ],
   );
 }
 
@@ -167,9 +183,28 @@ describe("student learning profile (20261126160000)", () => {
     const g4 = await id("teaching_levels", "g4");
     const g5 = await id("teaching_levels", "g5");
 
-    await capability({ provider: IDS.provider, service: svc, subject, curriculum: british, level: g4 });
-    await capability({ provider: OTHER_PROVIDER, service: svc, subject, curriculum: american, level: g4 });
-    await capability({ provider: OTHER_PROVIDER, service: svc, subject, curriculum: british, level: g5, status: "pending" });
+    await capability({
+      provider: IDS.provider,
+      service: svc,
+      subject,
+      curriculum: british,
+      level: g4,
+    });
+    await capability({
+      provider: OTHER_PROVIDER,
+      service: svc,
+      subject,
+      curriculum: american,
+      level: g4,
+    });
+    await capability({
+      provider: OTHER_PROVIDER,
+      service: svc,
+      subject,
+      curriculum: british,
+      level: g5,
+      status: "pending",
+    });
 
     expect(await match([svc, subject, british, g4, "online"])).toEqual([IDS.provider]);
     expect(await match([svc, subject, american, g4, "online"])).toEqual([OTHER_PROVIDER]);
@@ -187,7 +222,13 @@ describe("student learning profile (20261126160000)", () => {
     const na = await id("teaching_curricula", "na");
     const beginner = await id("teaching_levels", "skill_beginner");
     const advanced = await id("teaching_levels", "skill_advanced");
-    await capability({ provider: IDS.provider, service: quran, subject: quranSubject, curriculum: na, level: beginner });
+    await capability({
+      provider: IDS.provider,
+      service: quran,
+      subject: quranSubject,
+      curriculum: na,
+      level: beginner,
+    });
 
     expect(await match([quran, quranSubject, null, beginner, "online"])).toEqual([IDS.provider]);
     expect(await match([quran, quranSubject, null, advanced, "online"])).toEqual([]);
@@ -197,7 +238,13 @@ describe("student learning profile (20261126160000)", () => {
     const egAr = await id("teaching_curricula", "eg_national_ar");
     const g2 = await id("teaching_levels", "g2");
     const g3 = await id("teaching_levels", "g3");
-    await capability({ provider: OTHER_PROVIDER, service: homework, subject: homeworkSubject, curriculum: egAr, level: g2 });
+    await capability({
+      provider: OTHER_PROVIDER,
+      service: homework,
+      subject: homeworkSubject,
+      curriculum: egAr,
+      level: g2,
+    });
     expect(await match([homework, null, egAr, g2, "online"])).toEqual([OTHER_PROVIDER]);
     expect(await match([homework, null, egAr, g3, "online"])).toEqual([]);
   });
@@ -247,10 +294,20 @@ describe("student learning profile (20261126160000)", () => {
     expect(rows[0]!.confirmed).toBe(rows[0]!.year);
 
     // confirm_student_grade only works on the caller's own child.
-    await db.query(`UPDATE public.family_members SET grade_confirmed_for_year = 2000 WHERE id = $1`, [IDS.childMember]);
-    const stranger = await tryAsUser(db, IDS.providerUser, `SELECT public.confirm_student_grade($1)`, [IDS.childMember]);
+    await db.query(
+      `UPDATE public.family_members SET grade_confirmed_for_year = 2000 WHERE id = $1`,
+      [IDS.childMember],
+    );
+    const stranger = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.confirm_student_grade($1)`,
+      [IDS.childMember],
+    );
     expect(stranger.ok).toBe(false);
-    const owner = await tryAsUser(db, IDS.customer, `SELECT public.confirm_student_grade($1)`, [IDS.childMember]);
+    const owner = await tryAsUser(db, IDS.customer, `SELECT public.confirm_student_grade($1)`, [
+      IDS.childMember,
+    ]);
     expect(owner.ok).toBe(true);
     const after = await queryRows<{ confirmed: number; year: number }>(
       db,
@@ -268,7 +325,9 @@ describe("student learning profile (20261126160000)", () => {
     const g12 = await id("teaching_levels", "g12");
     const g4 = await id("teaching_levels", "g4");
     const g5 = await id("teaching_levels", "g5");
-    const year = (await queryRows<{ y: number }>(db, `SELECT public.current_school_year() AS y`))[0]!.y;
+    const year = (
+      await queryRows<{ y: number }>(db, `SELECT public.current_school_year() AS y`)
+    )[0]!.y;
 
     await db.exec(`
       INSERT INTO public.family_members (id, customer_id, full_name, relationship, date_of_birth, is_active)
@@ -311,7 +370,10 @@ describe("student learning profile (20261126160000)", () => {
     );
 
     const first = await asServiceRole(db, () =>
-      queryRows<{ r: { status: string; children: number } }>(db, `SELECT public.advance_student_grades() AS r`),
+      queryRows<{ r: { status: string; children: number } }>(
+        db,
+        `SELECT public.advance_student_grades() AS r`,
+      ),
     );
     expect(first[0]!.r.status).toBe("advanced");
     expect(first[0]!.r.children).toBe(2);
@@ -366,11 +428,25 @@ describe("student learning profile (20261126160000)", () => {
               has_function_privilege('authenticated', 'public.tg_notify_tutor_demand_on_capability()', 'EXECUTE') AS trg_auth,
               has_function_privilege('anon', 'public.request_tutor_availability(uuid,uuid,uuid,uuid,text,uuid)', 'EXECUTE') AS req_anon`,
     );
-    expect(grants[0]).toEqual({ adv_auth: false, adv_anon: false, ids_auth: false, trg_auth: false, req_anon: false });
+    expect(grants[0]).toEqual({
+      adv_auth: false,
+      adv_anon: false,
+      ids_auth: false,
+      trg_auth: false,
+      req_anon: false,
+    });
 
-    const customer = await tryAsUser(db, IDS.customer, `SELECT public.admin_run_student_grade_advance()`);
+    const customer = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.admin_run_student_grade_advance()`,
+    );
     expect(customer.ok).toBe(false);
-    const admin = await tryAsUser(db, IDS.adminUser, `SELECT public.admin_run_student_grade_advance() AS r`);
+    const admin = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_run_student_grade_advance() AS r`,
+    );
     expect(admin.ok).toBe(true);
     // Seeded with this school year, so a manual run now changes nothing.
     expect((admin.rows?.[0] as { r: { status: string } }).r.status).toBe("already_done");
@@ -411,9 +487,17 @@ describe("student learning profile (20261126160000)", () => {
     expect(anon.ok).toBe(false);
 
     // Owner reads their own row; another user sees nothing; only admin gets the summary.
-    const ownRows = await tryAsUser(db, IDS.customer, `SELECT id FROM public.tutor_demand_requests`);
+    const ownRows = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT id FROM public.tutor_demand_requests`,
+    );
     expect(ownRows.rows).toHaveLength(1);
-    const otherRows = await tryAsUser(db, IDS.providerUser, `SELECT id FROM public.tutor_demand_requests`);
+    const otherRows = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT id FROM public.tutor_demand_requests`,
+    );
     expect(otherRows.rows).toHaveLength(0);
     const direct = await tryAsUser(
       db,
@@ -422,7 +506,11 @@ describe("student learning profile (20261126160000)", () => {
       [IDS.customer, svc],
     );
     expect(direct.ok).toBe(false);
-    const deniedSummary = await tryAsUser(db, IDS.customer, `SELECT * FROM public.admin_tutor_demand_summary()`);
+    const deniedSummary = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT * FROM public.admin_tutor_demand_summary()`,
+    );
     expect(deniedSummary.ok).toBe(false);
     const summary = await tryAsUser(
       db,
@@ -432,7 +520,14 @@ describe("student learning profile (20261126160000)", () => {
     expect(summary.rows).toEqual([{ n: 1, level_label_en: "Year 5" }]);
 
     // A pending capability does not notify; approving a matching one does, once.
-    await capability({ provider: OTHER_PROVIDER, service: svc, subject, curriculum: british, level: g4, status: "pending" });
+    await capability({
+      provider: OTHER_PROVIDER,
+      service: svc,
+      subject,
+      curriculum: british,
+      level: g4,
+      status: "pending",
+    });
     const before = await queryRows<{ n: number }>(
       db,
       `SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1 AND type = 'tutor_demand_available'`,
@@ -480,7 +575,14 @@ describe("student learning profile (20261126160000)", () => {
     const british = await id("teaching_curricula", "british");
     const g4 = await id("teaching_levels", "g4");
     // Approval needs a subject + grade on file; it is still waiting for review.
-    await capability({ provider: OTHER_PROVIDER, service: svc, subject, curriculum: british, level: g4, status: "pending" });
+    await capability({
+      provider: OTHER_PROVIDER,
+      service: svc,
+      subject,
+      curriculum: british,
+      level: g4,
+      status: "pending",
+    });
     await db.query("SELECT set_config('app.provider_service_request', '1', true)");
     await db.query(
       `INSERT INTO public.provider_services (provider_id, service_id, status) VALUES ($1, $2, 'pending')
@@ -529,5 +631,32 @@ describe("student learning profile (20261126160000)", () => {
       `SELECT provider_id FROM public.admin_work_queue_provider_ids('tutors_missing_teaching_data')`,
     );
     expect(customer.ok).toBe(false);
+  });
+
+  it("labels the Egyptian KG as «كي جي» in Arabic (PR 2)", async () => {
+    const rows = await queryRows<{ ar: string; en: string }>(
+      db,
+      `SELECT public.teaching_level_label('kg', 'eg', 'ar') AS ar,
+              public.teaching_level_label('kg', 'eg', 'en') AS en`,
+    );
+    expect(rows[0]).toEqual({ ar: "كي جي", en: "KG" });
+  });
+
+  it("lets guests read the active teaching catalog (PR 2)", async () => {
+    for (const table of ["teaching_curricula", "teaching_levels", "teaching_subjects"]) {
+      const res = await tryAsAnon(db, `SELECT id FROM public.${table} WHERE is_active LIMIT 1`);
+      expect(res.ok, `${table}: ${res.error ?? ""}`).toBe(true);
+    }
+    await db.exec(`UPDATE public.teaching_curricula SET is_active = false WHERE code = 'german'`);
+    await db.exec("SAVEPOINT anon_inactive");
+    await db.query("SELECT set_config('request.jwt.claim.sub', '', true)");
+    await db.exec("SET LOCAL ROLE anon");
+    const hidden = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.teaching_curricula WHERE code = 'german'`,
+    );
+    await db.exec("RESET ROLE");
+    await db.exec("RELEASE SAVEPOINT anon_inactive");
+    expect(hidden[0]?.n).toBe(0);
   });
 });

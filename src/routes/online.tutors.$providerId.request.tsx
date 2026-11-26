@@ -5,7 +5,13 @@ import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { OnlineWebTutorAccountNotice } from "@/components/online/OnlineWebTutorAccountNotice";
 
+type RequestSearch = { learner?: string; cap?: string };
+
 export const Route = createFileRoute("/online/tutors/$providerId/request")({
+  validateSearch: (search: Record<string, unknown>): RequestSearch => ({
+    learner: typeof search.learner === "string" && search.learner ? search.learner : undefined,
+    cap: typeof search.cap === "string" && search.cap ? search.cap : undefined,
+  }),
   beforeLoad: async ({ location }) => {
     await requireOnlineWebSession(location.href);
   },
@@ -14,6 +20,7 @@ export const Route = createFileRoute("/online/tutors/$providerId/request")({
 
 function OnlineTutorRequestRoute() {
   const { providerId } = Route.useParams();
+  const search = Route.useSearch();
   const { t } = useTranslation();
   const myProviderQ = useMyProvider();
   const isTutorAccount = Boolean(myProviderQ.data?.id);
@@ -32,7 +39,11 @@ function OnlineTutorRequestRoute() {
       ) : isTutorAccount ? (
         <OnlineWebTutorAccountNotice />
       ) : (
-        <OnlineLessonRequestForm providerId={providerId} />
+        <OnlineLessonRequestForm
+          providerId={providerId}
+          initialLearnerId={search.learner}
+          initialCapabilityId={search.cap}
+        />
       )}
     </div>
   );

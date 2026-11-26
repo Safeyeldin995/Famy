@@ -1181,7 +1181,8 @@ const en = {
   studentParentLink: {
     title: "Parent or guardian",
     lead: "Update your parent or guardian phone and email while you are under 18",
-    bookingStepLead: "Before your first online lesson, add your parent’s phone and email so they can follow your bookings",
+    bookingStepLead:
+      "Before your first online lesson, add your parent’s phone and email so they can follow your bookings",
     parentPhone: "Parent phone number",
     parentEmail: "Parent email",
     parentPhoneHint: "Your parent’s mobile number",
@@ -1279,7 +1280,63 @@ const en = {
     studentPicker: "Student",
     matchBadge: "Good fit for {{name}}",
     noMatchTitle: "No tutor for {{name}} yet",
-    noMatchBody: "No tutor teaches this system and grade right now. Check again soon or change the student details.",
+    noMatchBody:
+      "No tutor teaches this system and grade right now. Check again soon or change the student details.",
+  },
+  studentMatch: {
+    forWhomTitle: "Who is this booking for?",
+    me: "Me",
+    addChild: "Add a child",
+    serviceTitle: "Lesson type",
+    subjectTitle: "Subject",
+    levelTitle: "Level",
+    profileTitle: "{{name}}'s school details",
+    profileTitleSelf: "Your school details",
+    systemStep: "Education system",
+    gradeStep: "School year",
+    stepOf: "Step {{step}} of 2",
+    back: "Back",
+    save: "Save",
+    saved: "Details saved",
+    saveFailed: "We couldn't save the details. Try again.",
+    loadFailed: "We couldn't load the details",
+    resultsFor: "Tutors for {{name}}",
+    resultsForSelf: "Tutors for you",
+    noMatch: "No tutor available for {{what}} yet",
+    noMatchBody: "We'll let you know as soon as a matching tutor joins",
+    notifyMe: "Tell me when a tutor is available",
+    notifyDone: "Done. We'll let you know when a tutor is available",
+    notifyAlready: "You already asked. We'll let you know",
+    notifyLimit: "You reached today's limit. Try again tomorrow",
+    notifySignIn: "Sign in so we can let you know",
+    editProfile: "Edit {{name}}'s details",
+    editProfileSelf: "Edit your details",
+    browseAll: "All tutors",
+    guestHint: "Pick the system, year and subject and we'll show the right tutors",
+    fromPrice: "{{price}} per lesson",
+    minutes: "{{count}} min",
+    choose: "Choose",
+    page: {
+      title: "My children and school details",
+      lead: "The system and year let us show the right tutors straight away",
+      self: "Me",
+      notSet: "Not set",
+      edit: "Edit",
+      remove: "Remove",
+      removeConfirm: "Remove {{name}} from your account?",
+      removed: "Removed",
+      addChild: "Add a child",
+      confirmTitle: "{{name}} is now in {{grade}}, right?",
+      confirmTitleSelf: "You're now in {{grade}}, right?",
+      confirmYes: "Right",
+      confirmEdit: "No, edit",
+      confirmed: "Done, the year is confirmed",
+      empty: "You haven't added any children yet",
+    },
+    tutorBanner: {
+      title: "Add the subjects, curricula and years you teach so students can find you",
+      action: "Complete now",
+    },
   },
   reschedule: {
     title: "Rescheduling",
@@ -1369,7 +1426,8 @@ const en = {
     adminOnlineClosed: "Closed",
     adminOnlineToggle: "Online lessons in {{name}}",
     adminWaitlistTitle: "Requests by governorate and service",
-    adminWaitlistHint: "Customers who asked for a service that isn't in their area yet, by number of customers",
+    adminWaitlistHint:
+      "Customers who asked for a service that isn't in their area yet, by number of customers",
     adminWaitlistEmpty: "No governorate requests yet",
     adminWaitlistGovernorate: "Governorate",
     adminWaitlistService: "Service",
@@ -1737,7 +1795,8 @@ const en = {
       "Famy still owes you a provider balance. Contact support before deleting your account.",
     walletForfeitWarning:
       "You have {{amount}} EGP in your Famy wallet. If you delete your account, this balance will be lost and cannot be recovered.",
-    walletForfeitConfirm: "I understand my wallet balance will be forfeited and cannot be recovered",
+    walletForfeitConfirm:
+      "I understand my wallet balance will be forfeited and cannot be recovered",
     blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
     blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
     confirmWord: "DELETE",
@@ -1851,9 +1910,11 @@ const en = {
     dispute: "I have a complaint",
     support: "Contact support",
     noShowHint: "Describe what happened. The Famy team will review the report and contact you",
-    disputeHint: "Describe your complaint in detail. The booking is paused until the Famy team reviews it",
+    disputeHint:
+      "Describe your complaint in detail. The booking is paused until the Famy team reviews it",
     supportHint: "Write your question or problem and the support team will reply",
-    supportAlreadyOpen: "You already have an open support request on this booking, the support team will reply here",
+    supportAlreadyOpen:
+      "You already have an open support request on this booking, the support team will reply here",
     details: "Details",
     minLength: "Write at least 10 characters",
     send: "Send",
@@ -1961,7 +2022,8 @@ const en = {
       ONLINE_AGE_MINIMUM: "Online lessons are available from age 12.",
       ONLINE_REGION_CLOSED: "Online lessons aren't available in your governorate right now.",
       USER_BLOCKED: "You can't book with this provider.",
-      PROVIDER_SETTLEMENT_BLOCKED: "This tutor can't take new bookings right now. Please choose another tutor.",
+      PROVIDER_SETTLEMENT_BLOCKED:
+        "This tutor can't take new bookings right now. Please choose another tutor.",
       PREPAID_REQUIRED: "Online lessons are paid by card, wallet or InstaPay, not cash.",
       GUARDIAN_CONSENT_REQUIRED: "A parent's approval is needed before booking this lesson.",
       TOO_EARLY: "This step isn't open yet. Try again closer to the lesson time.",
@@ -2279,7 +2341,8 @@ const en = {
     reportReview: "Report review",
     reportSubmit: "Submit report",
     reportSubmittedTitle: "Report submitted",
-    reportSubmittedBody: "Famy will review this report. Thank you for helping keep the community safe.",
+    reportSubmittedBody:
+      "Famy will review this report. Thank you for helping keep the community safe.",
     reasonLabel: "Reason",
     reasons: {
       harassment: "Harassment or abuse",
@@ -2300,7 +2363,8 @@ const en = {
       "You won't see this conversation anymore and neither of you can message or book each other again.",
     blockConfirm: "Block",
     blockDoneTitle: "User blocked",
-    blockDoneBody: "This conversation is hidden. You can contact Famy support if you need more help.",
+    blockDoneBody:
+      "This conversation is hidden. You can contact Famy support if you need more help.",
     blockedThreadNote: "Messaging is blocked between you and this user.",
     errors: {
       ownMessage: "You can't report a message you sent",
@@ -2954,12 +3018,12 @@ const en = {
       resume: "Resume service",
       remove: "Remove service",
       pauseTitle: "Pause this service?",
-      pauseBody:
-        "Customers will not see or book this service until you turn it back on",
+      pauseBody: "Customers will not see or book this service until you turn it back on",
       removeTitle: "Remove this service?",
       removeBody:
         "This service will disappear from your profile. Past bookings stay in your history",
-      removeUpcoming: "You have {{count}} upcoming booking(s) for this service — they stay as they are",
+      removeUpcoming:
+        "You have {{count}} upcoming booking(s) for this service — they stay as they are",
       confirm: "Confirm",
       paused: "Service paused",
       resumed: "Service is active again",
@@ -3779,7 +3843,8 @@ const en = {
       walletReasonPlaceholder: "Why is this adjustment being made?",
       walletAdjustSuccess: "Wallet updated.",
       walletAdjustError: "Could not update wallet.",
-      walletAdjustDuplicate: "This adjustment was already recorded with a different amount. Reopen the form and try again",
+      walletAdjustDuplicate:
+        "This adjustment was already recorded with a different amount. Reopen the form and try again",
       walletLoadError: "Could not load wallet balance.",
       walletAmountInvalid: "Enter a valid amount greater than zero.",
       walletReasonRequired: "A reason is required.",
@@ -4617,7 +4682,8 @@ const en = {
     tipAcceptance: "Acceptance is {{rate}}% — replying quickly brings more bookings",
     tipResponse: "You usually reply after {{minutes}} minutes — faster replies win more requests",
     tipCompletion: "Completion is {{rate}}% — finishing visits builds trust",
-    tipCancellation: "You cancelled {{rate}}% of requests — fewer cancellations keep families coming back",
+    tipCancellation:
+      "You cancelled {{rate}}% of requests — fewer cancellations keep families coming back",
     tipRating: "Rating is {{rating}} — great visits earn better reviews",
   },
   proNextAction: {
@@ -5473,7 +5539,8 @@ Object.assign(en, {
       footerInPerson: "Famy at-home services",
       footerRights: "All rights reserved to Famy",
       curriculaTitle: "Choose a curriculum",
-      curriculaLead: "Every tutor lists the curricula and grades they teach, so you find the right fit fast",
+      curriculaLead:
+        "Every tutor lists the curricula and grades they teach, so you find the right fit fast",
       tracksTitle: "Quran and music",
       trackQuran: "Quran",
       trackQuranBody: "Memorization, tajweed and recitation",
@@ -5484,18 +5551,23 @@ Object.assign(en, {
       everywhereBody: "Online lessons need no travel, so you can book from any governorate",
       faqTitle: "Frequently asked questions",
       faqHowQ: "How does an online lesson work?",
-      faqHowA: "Join from the website or the app at lesson time for live audio and video with your tutor, with no extra software",
+      faqHowA:
+        "Join from the website or the app at lesson time for live audio and video with your tutor, with no extra software",
       faqPayQ: "When and how do I pay?",
-      faqPayA: "You pay after the tutor accepts your request, by card or from your Famy wallet balance",
+      faqPayA:
+        "You pay after the tutor accepts your request, by card or from your Famy wallet balance",
       faqCancelQ: "What if I need to cancel?",
       faqMinorQ: "My child is under 18. Can they book on their own?",
-      faqMinorA: "Yes. From age 12 they can book and pay, and we ask for a parent's phone and email so the parent is told and can follow their lessons",
+      faqMinorA:
+        "Yes. From age 12 they can book and pay, and we ask for a parent's phone and email so the parent is told and can follow their lessons",
       faqRefundQ: "What if the tutor can't make it?",
-      faqRefundA: "If the tutor cancels or doesn't show up, the lesson amount goes back to your Famy wallet for any future booking",
+      faqRefundA:
+        "If the tutor cancels or doesn't show up, the lesson amount goes back to your Famy wallet for any future booking",
       faqWhereQ: "Where are online lessons available?",
       faqWhereA: "In every governorate in Egypt, and all times are Cairo time",
       recruitTitle: "Are you a tutor? Join us",
-      recruitBody: "Teach students from all over Egypt online, set your hours and price, and Famy brings the students and collects the payments",
+      recruitBody:
+        "Teach students from all over Egypt online, set your hours and price, and Famy brings the students and collects the payments",
       recruitCta: "Apply as a tutor",
       hello: "Hi {{name}}",
       helloNoName: "Welcome",
@@ -5529,7 +5601,8 @@ Object.assign(en, {
       openLessons: "All my lessons",
       earnings: "Earnings",
       profileIncompleteTitle: "Complete your teaching details",
-      profileIncompleteBody: "Add the subjects, curricula and grades you teach so students can find you",
+      profileIncompleteBody:
+        "Add the subjects, curricula and grades you teach so students can find you",
       completeProfile: "Complete details",
       filterAll: "All",
       sortLabel: "Sort",
@@ -5621,8 +5694,10 @@ Object.assign(en, {
       areYouStudent: "Are you a student or parent?",
       signInHere: "Sign in here",
       signUpTitle: "Create a student account",
-      signUpLead: "For students and parents. Book online lessons right from the website, no app needed",
-      phoneSignupHint: "You can also create an account with your mobile number from the sign-in page",
+      signUpLead:
+        "For students and parents. Book online lessons right from the website, no app needed",
+      phoneSignupHint:
+        "You can also create an account with your mobile number from the sign-in page",
       passwordRule: "At least {{min}} characters",
       checkEmailTitle: "Check your email",
       checkEmailBody: "Open the email and tap the confirmation link to continue. We sent it to",
@@ -5637,7 +5712,8 @@ Object.assign(en, {
       completeCta: "Save and continue",
       phoneWhy: "Your tutor and the Famy team will use this number if they need to reach you",
       forgotTitle: "Forgot password",
-      forgotLead: "Enter the email you signed up with and we’ll send you a link to change your password",
+      forgotLead:
+        "Enter the email you signed up with and we’ll send you a link to change your password",
       forgotSent: "If this email has a Famy account, you’ll get a link to change your password",
       sendResetLink: "Send password reset link",
       phoneAccountReset: "Sign in with your mobile number?",
@@ -5653,7 +5729,8 @@ Object.assign(en, {
       resetInvalidBody: "The password reset link expired or was already used. Request a new one",
       errors: {
         invalid_credentials: "Email or password is incorrect",
-        email_not_confirmed: "Please confirm your email first. Open the confirmation email we sent you",
+        email_not_confirmed:
+          "Please confirm your email first. Open the confirmation email we sent you",
         already_registered: "This email already has an account. Sign in or reset your password",
         weak_password: "Password is too weak. Use at least 8 characters",
         rate_limited: "Too many attempts. Wait a little and try again",
@@ -5674,7 +5751,8 @@ Object.assign(en, {
       lead: "Live video tutoring with Famy-verified tutors.",
       search: "Search by name or bio",
       empty: "No tutors yet",
-      emptyBody: "No tutors match this filter right now. Try another subject or broaden your search.",
+      emptyBody:
+        "No tutors match this filter right now. Try another subject or broaden your search.",
       emptyAction: "Try again",
       inPersonCta: "Need in-home babysitting or tutoring?",
     },
@@ -5682,7 +5760,8 @@ Object.assign(en, {
       reviews: "{{count}} reviews",
       requestLesson: "Sign in to request a lesson",
       unavailableTitle: "This tutor isn't available to book right now",
-      unavailableBody: "They may have paused online lessons. Go back to the tutors list and choose another tutor.",
+      unavailableBody:
+        "They may have paused online lessons. Go back to the tutors list and choose another tutor.",
     },
     request: {
       title: "Request an online lesson",

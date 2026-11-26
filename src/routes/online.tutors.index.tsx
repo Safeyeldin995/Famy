@@ -4,10 +4,14 @@ import { useTranslation } from "react-i18next";
 import { Clock, Search, ShieldCheck, Star } from "lucide-react";
 import { EmptyState, PrimaryButton, ProviderCardSkeleton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
+import { useOnlineStudentMatch } from "@/components/online/OnlineStudentMatch";
 import { customerProviders } from "@/components/famio/customerProviders";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { useProviders } from "@/lib/db/queries";
-import { useApprovedTeachingCapabilitiesForProviders, useTeachingCurricula } from "@/lib/db/teaching-queries";
+import {
+  useApprovedTeachingCapabilitiesForProviders,
+  useTeachingCurricula,
+} from "@/lib/db/teaching-queries";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -27,8 +31,11 @@ type TutorsSearch = { curriculum?: string; track?: DirectoryTrack };
 
 export const Route = createFileRoute("/online/tutors/")({
   validateSearch: (search: Record<string, unknown>): TutorsSearch => ({
-    curriculum: typeof search.curriculum === "string" && search.curriculum ? search.curriculum : undefined,
-    track: DIRECTORY_TRACKS.includes(search.track as DirectoryTrack) ? (search.track as DirectoryTrack) : undefined,
+    curriculum:
+      typeof search.curriculum === "string" && search.curriculum ? search.curriculum : undefined,
+    track: DIRECTORY_TRACKS.includes(search.track as DirectoryTrack)
+      ? (search.track as DirectoryTrack)
+      : undefined,
   }),
   component: OnlineTutorsIndex,
 });
@@ -43,6 +50,8 @@ function OnlineTutorsIndex() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<DirectorySort>("recommended");
   const tutorsQ = useProviders({ categorySlug: "tutoring", serviceMode: "online", limit: 80 });
+  // «الحجز لمين؟» → subject → only the tutors who teach that learner's system and grade (issue #536).
+  const match = useOnlineStudentMatch();
   const curriculaQ = useTeachingCurricula();
 
   const base = useMemo(
@@ -64,27 +73,38 @@ function OnlineTutorsIndex() {
         return (
           p.name.toLowerCase().includes(term) ||
           (p.bio ?? "").toLowerCase().includes(term) ||
-          caps.some((c) => c.subjectNameAr.includes(term) || c.subjectNameEn.toLowerCase().includes(term))
+          caps.some(
+            (c) => c.subjectNameAr.includes(term) || c.subjectNameEn.toLowerCase().includes(term),
+          )
         );
       })
       .filter((p) =>
-        tutorMatchesFilter(capsByProvider.get(p.id) ?? [], {
-          curriculum: search.curriculum,
-          track: search.track,
-        }),
+        match.active
+          ? match.matched.has(p.id)
+          : tutorMatchesFilter(capsByProvider.get(p.id) ?? [], {
+              curriculum: search.curriculum,
+              track: search.track,
+            }),
       )
       .map((p) => {
         const summary = summarizeTutorTeaching(capsByProvider.get(p.id) ?? []);
-        return { ...p, summary, minPrice: summary.minPrice };
+        const hit = match.active ? match.matched.get(p.id) : undefined;
+        return {
+          ...p,
+          summary: hit ? { ...summary, durations: [hit.session_duration_min] } : summary,
+          minPrice: hit ? Number(hit.session_price) : summary.minPrice,
+        };
       });
     return sortDirectoryTutors(rows, sort);
-  }, [base, capsByProvider, q, search.curriculum, search.track, sort]);
+  }, [base, capsByProvider, q, search.curriculum, search.track, sort, match.active, match.matched]);
 
-  const filterActive = Boolean(search.curriculum || search.track);
+  const filterActive = !match.active && Boolean(search.curriculum || search.track);
   const curricula = (curriculaQ.data ?? []).filter((c) => c.code !== NO_CURRICULUM_CODE);
   const chip = (active: boolean) =>
     `focus-ring shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-pro-13 font-bold transition-colors ${
-      active ? "border-navy bg-navy text-navy-foreground" : "border-border bg-white text-muted-foreground hover:text-foreground"
+      active
+        ? "border-navy bg-navy text-navy-foreground"
+        : "border-border bg-white text-muted-foreground hover:text-foreground"
     }`;
   const setFilter = (next: TutorsSearch) => void navigate({ search: next, replace: true });
 
@@ -95,10 +115,16 @@ function OnlineTutorsIndex() {
         <p className="text-pro-15 text-muted-foreground">{t("onlineWeb.tutors.lead")}</p>
       </header>
 
+      {match.panel}
+
       <div className="space-y-3 rounded-3xl bg-surface p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border/70 bg-white px-4 py-2.5">
-            <Search className="h-5 w-5 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden />
+            <Search
+              className="h-5 w-5 text-muted-foreground"
+              strokeWidth={ICON_STROKE_BOLD}
+              aria-hidden
+            />
             <input
               type="search"
               value={q}
@@ -129,53 +155,74 @@ function OnlineTutorsIndex() {
             </select>
           </label>
         </div>
-        <div
-          className="online-web-nav-scroll flex gap-2 overflow-x-auto pb-1"
-          role="group"
-          aria-label={t("onlineWeb.hub.curriculaTitle")}
-        >
-          <button type="button" className={chip(!filterActive)} aria-pressed={!filterActive} onClick={() => setFilter({})}>
-            {t("onlineWeb.hub.filterAll")}
-          </button>
-          {curricula.map((c) => (
+        {match.active ? null : (
+          <div
+            className="online-web-nav-scroll flex gap-2 overflow-x-auto pb-1"
+            role="group"
+            aria-label={t("onlineWeb.hub.curriculaTitle")}
+          >
             <button
-              key={c.code}
               type="button"
-              className={chip(search.curriculum === c.code)}
-              aria-pressed={search.curriculum === c.code}
-              onClick={() => setFilter({ curriculum: c.code })}
+              className={chip(!filterActive)}
+              aria-pressed={!filterActive}
+              onClick={() => setFilter({})}
             >
-              {lang === "ar" ? c.name_ar : c.name_en}
+              {t("onlineWeb.hub.filterAll")}
             </button>
-          ))}
-          {DIRECTORY_TRACKS.map((track) => (
-            <button
-              key={track}
-              type="button"
-              className={chip(search.track === track)}
-              aria-pressed={search.track === track}
-              onClick={() => setFilter({ track })}
-            >
-              {t(track === "quran" ? "onlineWeb.hub.trackQuran" : "onlineWeb.hub.trackMusic")}
-            </button>
-          ))}
-        </div>
+            {curricula.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                className={chip(search.curriculum === c.code)}
+                aria-pressed={search.curriculum === c.code}
+                onClick={() => setFilter({ curriculum: c.code })}
+              >
+                {lang === "ar" ? c.name_ar : c.name_en}
+              </button>
+            ))}
+            {DIRECTORY_TRACKS.map((track) => (
+              <button
+                key={track}
+                type="button"
+                className={chip(search.track === track)}
+                aria-pressed={search.track === track}
+                onClick={() => setFilter({ track })}
+              >
+                {t(track === "quran" ? "onlineWeb.hub.trackQuran" : "onlineWeb.hub.trackMusic")}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {tutorsQ.isError ? (
         <QueryError onRetry={() => void tutorsQ.refetch()} />
-      ) : tutorsQ.isLoading || (base.length > 0 && capsQ.isLoading) ? (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label={t("common.loading")}>
+      ) : tutorsQ.isLoading || match.loading || (base.length > 0 && capsQ.isLoading) ? (
+        <ul
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          aria-busy="true"
+          aria-label={t("common.loading")}
+        >
           {Array.from({ length: 6 }).map((_, i) => (
             <li key={i}>
               <ProviderCardSkeleton />
             </li>
           ))}
         </ul>
+      ) : match.active && results.length === 0 ? (
+        match.emptyState
       ) : results.length === 0 ? (
         <EmptyState
-          title={filterActive || q ? t("onlineWeb.hub.emptyFilteredTitle") : t("onlineWeb.hub.noTutorsTitle")}
-          body={filterActive || q ? t("onlineWeb.hub.emptyFilteredBody") : t("onlineWeb.hub.noTutorsBody")}
+          title={
+            filterActive || q
+              ? t("onlineWeb.hub.emptyFilteredTitle")
+              : t("onlineWeb.hub.noTutorsTitle")
+          }
+          body={
+            filterActive || q
+              ? t("onlineWeb.hub.emptyFilteredBody")
+              : t("onlineWeb.hub.noTutorsBody")
+          }
           action={
             filterActive || q ? (
               <PrimaryButton
@@ -200,19 +247,34 @@ function OnlineTutorsIndex() {
             {results.map((p) => (
               <li key={p.id} className="min-w-0">
                 <Link
-                  to="/online/tutors/$providerId"
+                  to={
+                    match.active
+                      ? "/online/tutors/$providerId/request"
+                      : "/online/tutors/$providerId"
+                  }
                   params={{ providerId: p.id }}
+                  search={match.active ? match.requestSearch(p.id) : undefined}
                   className="focus-ring flex h-full flex-col gap-4 rounded-3xl border border-border/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-start gap-3">
-                    <ProfileAvatar src={p.avatar} name={p.name} className="h-16 w-16 rounded-2xl text-pro-20" />
+                    <ProfileAvatar
+                      src={p.avatar}
+                      name={p.name}
+                      className="h-16 w-16 rounded-2xl text-pro-20"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-1.5 text-pro-16 font-extrabold">
                         <span className="truncate">{p.name || t("provider2.unnamed")}</span>
                         {p.badges.includes("ID Verified") ? (
-                          <ShieldCheck className="h-4 w-4 shrink-0 text-success" aria-label={t("onlineWeb.hub.verified")} />
+                          <ShieldCheck
+                            className="h-4 w-4 shrink-0 text-success"
+                            aria-label={t("onlineWeb.hub.verified")}
+                          />
                         ) : null}
                       </p>
+                      {match.active && match.badge ? (
+                        <p className="mt-1 text-pro-12 font-bold text-brand">{match.badge}</p>
+                      ) : null}
                       <p className="mt-1 flex items-center gap-1 text-pro-13 text-muted-foreground">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
                         {p.reviews > 0 ? formatNumber(p.rating, i18n.language) : "—"}
@@ -224,7 +286,10 @@ function OnlineTutorsIndex() {
                   {p.summary.subjects.length ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {p.summary.subjects.slice(0, 4).map((s) => (
-                        <li key={s.code} className="rounded-full bg-brand/10 px-2.5 py-1 text-pro-12 font-bold text-brand">
+                        <li
+                          key={s.code}
+                          className="rounded-full bg-brand/10 px-2.5 py-1 text-pro-12 font-bold text-brand"
+                        >
                           {lang === "ar" ? s.nameAr : s.nameEn}
                         </li>
                       ))}
@@ -237,7 +302,9 @@ function OnlineTutorsIndex() {
                   ) : null}
                   {p.summary.curricula.length ? (
                     <p className="text-pro-13 text-muted-foreground">
-                      {p.summary.curricula.map((c) => (lang === "ar" ? c.nameAr : c.nameEn)).join(" · ")}
+                      {p.summary.curricula
+                        .map((c) => (lang === "ar" ? c.nameAr : c.nameEn))
+                        .join(" · ")}
                     </p>
                   ) : null}
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-3">

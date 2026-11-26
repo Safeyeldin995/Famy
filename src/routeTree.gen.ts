@@ -37,6 +37,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
 import { Route as AccountDeleteRouteImport } from './routes/account.delete'
+import { Route as AccountStudentsRouteImport } from './routes/account.students'
 import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
@@ -351,6 +352,11 @@ const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
 const AccountDeleteRoute = AccountDeleteRouteImport.update({
   id: '/account/delete',
   path: '/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountStudentsRoute = AccountStudentsRouteImport.update({
+  id: '/account/students',
+  path: '/account/students',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddressesIndexRoute = AddressesIndexRouteImport.update({
@@ -1280,6 +1286,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1479,6 +1486,7 @@ export interface FileRoutesByTo {
   '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1676,6 +1684,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRoute
   '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
+  '/account/students': typeof AccountStudentsRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/area-requests': typeof AdminAreaRequestsRoute
@@ -1883,6 +1892,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -2082,6 +2092,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -2278,6 +2289,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/__qa/monitoring-error'
     | '/account/delete'
+    | '/account/students'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/area-requests'
@@ -2484,6 +2496,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
   AccountDeleteRoute: typeof AccountDeleteRoute
+  AccountStudentsRoute: typeof AccountStudentsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
@@ -2710,6 +2723,13 @@ declare module '@tanstack/react-router' {
       path: '/account/delete'
       fullPath: '/account/delete'
       preLoaderRoute: typeof AccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/students': {
+      id: '/account/students'
+      path: '/account/students'
+      fullPath: '/account/students'
+      preLoaderRoute: typeof AccountStudentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/addresses/': {
@@ -4431,6 +4451,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
   AccountDeleteRoute: AccountDeleteRoute,
+  AccountStudentsRoute: AccountStudentsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
