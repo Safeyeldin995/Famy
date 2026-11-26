@@ -92,7 +92,7 @@ describe("audit security money batch", { concurrent: false }, () => {
     const topUp = await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'shortfall top-up', NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'shortfall top-up', NULL, gen_random_uuid()::text)",
       [IDS.customer],
     );
     expect(topUp.error).toBeUndefined();
@@ -119,7 +119,7 @@ describe("audit security money batch", { concurrent: false }, () => {
       const drain = await tryAsUser(
         db,
         IDS.adminUser,
-        "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, 'drain for shortfall', NULL)",
+        "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, 'drain for shortfall', NULL, gen_random_uuid()::text)",
         [IDS.customer, availableAmount],
       );
       expect(drain.error).toBeUndefined();

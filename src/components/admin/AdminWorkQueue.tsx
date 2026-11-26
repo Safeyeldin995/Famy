@@ -43,6 +43,11 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     route: "/admin/providers",
     search: { queue: "pending_teaching_groups" },
   },
+  {
+    key: "tutors_missing_teaching_data",
+    route: "/admin/providers",
+    search: { queue: "tutors_missing_teaching_data" },
+  },
   { key: "new_service_requests", route: "/admin/service-requests" },
   { key: "price_change_requests", route: "/admin/price-change-requests" },
   { key: "documents_expiring_soon", route: "/admin/documents-expiring" },

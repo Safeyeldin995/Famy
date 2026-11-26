@@ -94,7 +94,7 @@ describe("Codex PR #397 database fixes", () => {
     await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL, gen_random_uuid()::text)",
       [IDS.customer, total, "checkout test credit"],
     );
 

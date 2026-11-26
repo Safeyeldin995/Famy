@@ -6,6 +6,9 @@ import { ONLINE_WEB_ROUTE_IDS } from "./onlineWebSurface";
 export type OnlineWebNavTab = {
   to: string;
   key:
+    | "onlineWeb.hub.navHome"
+    | "onlineWeb.hub.navEarnings"
+    | "onlineWeb.hub.navAccount"
     | "onlineWeb.nav.tutors"
     | "onlineWeb.nav.lessons"
     | "onlineWeb.nav.wallet"
@@ -47,6 +50,7 @@ export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
 
     if (isProvider) {
       return [
+        { to: ONLINE_WEB_ROUTE_IDS.home, key: "onlineWeb.hub.navHome" },
         {
           to: ONLINE_WEB_ROUTE_IDS.providerRequests,
           key: "onlineWeb.nav.providerRequests",
@@ -55,10 +59,13 @@ export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
           to: ONLINE_WEB_ROUTE_IDS.providerLessons,
           key: "onlineWeb.nav.providerLessons",
         },
+        { to: "/pro/earnings", key: "onlineWeb.hub.navEarnings" },
+        { to: "/pro/profile", key: "onlineWeb.hub.navAccount" },
       ];
     }
 
     const tabs: OnlineWebNavTab[] = [
+      { to: ONLINE_WEB_ROUTE_IDS.home, key: "onlineWeb.hub.navHome" },
       { to: ONLINE_WEB_ROUTE_IDS.tutors, key: "onlineWeb.nav.tutors" },
     ];
     if (signedIn) {
