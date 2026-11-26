@@ -58,7 +58,10 @@ export const Route = createFileRoute("/api/session/token")({
           if (error instanceof Error && error.message === "livekit_not_configured") {
             return json({ ok: false, error: "livekit_unavailable" }, 503);
           }
-          console.error("[api.session.token] failed");
+          // Log the error type and message only (never tokens or keys) so a failure is diagnosable.
+          const name = error instanceof Error ? error.name : typeof error;
+          const message = error instanceof Error ? error.message.slice(0, 200) : "";
+          console.error("[api.session.token] failed", { name, message });
           return json({ ok: false, error: "server_error" }, 500);
         }
       },

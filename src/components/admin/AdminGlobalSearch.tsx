@@ -31,7 +31,7 @@ export function AdminGlobalSearch() {
       data.bookings.items.length > 0);
 
   return (
-    <div ref={wrapRef} className="relative hidden w-full max-w-md lg:block">
+    <div ref={wrapRef} className="relative hidden w-full max-w-md md:block">
       <AdminSearchBar
         value={query}
         onChange={(v) => {

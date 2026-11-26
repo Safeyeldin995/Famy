@@ -18,6 +18,7 @@ import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadCont
 import { AdminOnlineSessionTimeline } from "@/components/admin/AdminOnlineSessionTimeline";
 import { AdminOnlineSessionReviewQueue } from "@/components/admin/AdminOnlineSessionReviewQueue";
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
+import { AdminBookingMoneyCard } from "@/components/admin/AdminBookingMoneyCard";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
 import { useCancelBooking } from "@/lib/db/cancellation-queries";
@@ -149,8 +150,9 @@ export const Route = createFileRoute("/admin/bookings")({
   component: AdminBookingsRoute,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { status?: string; statuses?: string; booking?: string } => ({
+  ): { status?: string; statuses?: string; booking?: string; filter?: string } => ({
     ...(typeof search.booking === "string" ? { booking: search.booking } : {}),
+    ...(search.filter === "lifecycle_attention" ? { filter: search.filter } : {}),
     ...(typeof search.status === "string" ? { status: search.status } : {}),
     ...(search.statuses === "disputed,no_show" ? { statuses: search.statuses } : {}),
   }),
@@ -449,6 +451,7 @@ export function AdminBookings({
                         )}
                       </div>
                     )}
+                    <AdminBookingMoneyCard bookingId={b.id} customerId={b.customer_id} />
                     <AdminBookingLifecyclePanel booking={b} />
                     <AdminOnlineSessionTimeline
                       bookingId={b.id}

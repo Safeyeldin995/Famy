@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -74,7 +75,7 @@ export function RequestUpdatedDetailsAction({
                       setOpen(false);
                       onActionSuccess?.();
                     },
-                    onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")),
+                    onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.providers.rejectError"))),
                   },
                 )}
                 className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"

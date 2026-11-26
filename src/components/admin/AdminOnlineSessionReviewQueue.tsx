@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useAdminOnlineSessionReviews } from "@/lib/db/admin-online-session-queries";
 import { useResolveOnlineSessionReview } from "@/lib/db/admin-online-lesson-queries";
@@ -40,7 +41,7 @@ export function AdminOnlineSessionReviewQueue() {
                     { id: row.id, status: "resolved" },
                     {
                       onSuccess: () => toast.success(t("admin.onlineLessonIssues.closed")),
-                      onError: (e: any) => toast.error(e?.message ?? t("common.error")),
+                      onError: (e: any) => toast.error(adminErrorText(t, e, t("common.error"))),
                     },
                   )
                 }
@@ -56,7 +57,7 @@ export function AdminOnlineSessionReviewQueue() {
                     { id: row.id, status: "dismissed" },
                     {
                       onSuccess: () => toast.success(t("admin.onlineLessonIssues.closed")),
-                      onError: (e: any) => toast.error(e?.message ?? t("common.error")),
+                      onError: (e: any) => toast.error(adminErrorText(t, e, t("common.error"))),
                     },
                   )
                 }
