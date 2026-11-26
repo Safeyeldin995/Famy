@@ -124,6 +124,10 @@ export function getBookingErrorMessage(
     if ("code" in error && error.code === "42501") {
       return t(bookingErrorI18nKey(BOOKING_ERROR_CODES.UNAUTHORIZED));
     }
+    // Overlap exclusion constraint: the slot was taken in the meantime.
+    if ("code" in error && error.code === "23P01") {
+      return t(bookingErrorI18nKey(BOOKING_ERROR_CODES.SLOT_UNAVAILABLE));
+    }
   }
   return t("bookFlow.failed", "Could not create booking");
 }

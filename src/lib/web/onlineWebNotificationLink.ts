@@ -7,6 +7,6 @@ export function onlineWebNotificationHref(deepLink: string | null | undefined): 
   if (!deepLink) return null;
   const path = deepLink.split("#")[0] ?? "";
   if (!path.startsWith("/")) return null;
-  if (path.startsWith("//")) return null;
+  if (path.startsWith("//") || path.includes("\\")) return null;
   return path;
 }
