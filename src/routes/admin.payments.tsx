@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AdminBookingMoneyCard } from "@/components/admin/AdminBookingMoneyCard";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -79,6 +80,7 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const [cashSheet, setCashSheet] = useState(false);
   const [refundSheet, setRefundSheet] = useState(false);
   const [resolveSheet, setResolveSheet] = useState(false);
+  const [showMoney, setShowMoney] = useState(false);
   // The customer's cancellation fee (if any) stays with the provider, and earlier unpaid fees
   // the booking carried stay with Famy for theirs; only the rest is refunded.
   const refundFee = useAdminRefundBreakdown(p.id, refundSheet);
@@ -214,13 +216,18 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
           )}
         </div>
       ) : situation === "refundDue" ? (
-        <button
-          className={`${adminControl} bg-brand text-brand-foreground`}
-          disabled={busy}
-          onClick={() => setRefundSheet(true)}
-        >
-          {t("admin.paymentSituation.recordRefund")}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className={`${adminControl} bg-brand text-brand-foreground`}
+            disabled={busy}
+            onClick={() => setShowMoney(true)}
+          >
+            {t("adminMoney.refundAction")}
+          </button>
+          <button className={adminControl} disabled={busy} onClick={() => setRefundSheet(true)}>
+            {t("admin.paymentSituation.recordRefund")}
+          </button>
+        </div>
       ) : situation === "cashUnconfirmed" ? (
         <button
           className={`${adminControl} bg-brand text-brand-foreground`}
@@ -237,6 +244,18 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
         >
           {t("admin.paymentSituation.resolvePaymob")}
         </button>
+      ) : null}
+      {p.booking_id && p.customer?.id ? (
+        <div>
+          <button
+            type="button"
+            className="focus-ring text-xs font-semibold text-muted-foreground underline-offset-2 hover:underline"
+            onClick={() => setShowMoney((v) => !v)}
+          >
+            {showMoney ? t("adminMoney.hide") : t("adminMoney.show")}
+          </button>
+          {showMoney ? <AdminBookingMoneyCard bookingId={p.booking_id} customerId={p.customer.id} /> : null}
+        </div>
       ) : null}
       {resolveSheet && (
         <AdminReasonSheet

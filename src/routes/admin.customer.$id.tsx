@@ -1,15 +1,13 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { adminDate, adminLabel } from "@/components/admin/adminPresentation";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
-import {
-  useAdminAdjustCustomerWallet,
-  useAdminCustomer,
-  useAdminCustomerWallet,
-  useSetCustomerSuspended,
-} from "@/lib/db/admin-queries";
+import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-queries";
+import { AdminWalletPanel } from "@/components/admin/AdminWalletPanel";
+import { bookingCode } from "@/components/admin/operations";
 import {
   useAdminCustomerLinkedStudents,
   useAdminCustomerParentLink,
@@ -19,34 +17,19 @@ import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { AdminConfirmModal } from "@/components/admin/AdminConfirmModal";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomerRoute });
 
 export function AdminCustomer({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const q = useAdminCustomer(id);
-  const walletQ = useAdminCustomerWallet(id);
   const parentLinkQ = useAdminCustomerParentLink(id);
   const linkedStudentsQ = useAdminCustomerLinkedStudents(id);
   const revokeLink = useAdminRevokeStudentLink();
-  const adjustWallet = useAdminAdjustCustomerWallet();
   const setSuspended = useSetCustomerSuspended();
   const [showConfirm, setShowConfirm] = useState(false);
-  const [walletAmount, setWalletAmount] = useState("");
-  const [walletReason, setWalletReason] = useState("");
-  const [walletFormError, setWalletFormError] = useState<string | null>(null);
-  const [walletConfirmOpen, setWalletConfirmOpen] = useState(false);
-  const [walletDirection, setWalletDirection] = useState<"credit" | "debit">("credit");
-  const walletIdempotencyKey = useRef(crypto.randomUUID());
   const [revokeLinkId, setRevokeLinkId] = useState<string | null>(null);
 
-  const walletReasonLabel = (reason: string) =>
-    t(`wallet.customer.reason.${reason}`, {
-      defaultValue: t(`wallet.reason.${reason}`, { defaultValue: reason }),
-    });
-
-  const pendingWalletAmount = useMemo(() => Number(walletAmount), [walletAmount]);
 
   if (q.isLoading)
     return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
@@ -74,7 +57,7 @@ export function AdminCustomer({ id }: { id: string }) {
       { id, suspended: !isSuspended },
       {
         onSuccess: () => setShowConfirm(false),
-        onError: (e: any) => toast.error(e?.message ?? t("admin.customer.suspendError")),
+        onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.customer.suspendError"))),
       },
     );
   };
@@ -206,12 +189,19 @@ export function AdminCustomer({ id }: { id: string }) {
         ) : (
           <ul className="space-y-2">
             {bookings.map((b: any) => (
-              <li
-                key={b.id}
-                className="flex items-center justify-between rounded-xl border border-border/60 bg-surface p-3 text-xs"
-              >
+              <li key={b.id}>
+                <Link
+                  to={"/admin/bookings" as const}
+                  search={{ booking: b.id } as never}
+                  className="focus-ring flex items-center justify-between rounded-xl border border-border/60 bg-surface p-3 text-xs hover:border-brand"
+                >
                 <div>
-                  <p className="font-semibold">{adminDate(b.start_at, i18n.language)}</p>
+                  <p className="font-semibold">
+                    {adminDate(b.start_at, i18n.language)}{" "}
+                    <bdi dir="ltr" className="font-mono text-muted-foreground">
+                      {bookingCode(b.id)}
+                    </bdi>
+                  </p>
                   <p className="text-muted-foreground">
                     {bookingAmountDue(b)} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"}
                   </p>
@@ -219,130 +209,17 @@ export function AdminCustomer({ id }: { id: string }) {
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase">
                   {t("adminOps.status." + b.status, { defaultValue: t("adminOps.unknown") })}
                 </span>
+                </Link>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="space-y-3">
-        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          {t("admin.customer.walletTitle")}
-        </h3>
-        {walletQ.isLoading ? (
-          <p className="px-1 text-xs text-muted-foreground">{t("common.loading")}</p>
-        ) : walletQ.isError ? (
-          <AdminQueryError
-            message={t("admin.customer.walletLoadError")}
-            error={walletQ.error}
-            onRetry={() => walletQ.refetch()}
-          />
-        ) : (
-          <>
-            <p className="px-1 text-sm font-semibold">
-              {t("admin.customer.walletBalance", {
-                amount: Number(walletQ.data?.available ?? 0).toLocaleString("en-US"),
-              })}
-            </p>
-            {(walletQ.data?.entries ?? []).length === 0 ? (
-              <p className="px-1 text-xs text-muted-foreground">{t("admin.customer.walletEmpty")}</p>
-            ) : (
-              <ul className="space-y-2">
-                {(walletQ.data?.entries ?? []).map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="rounded-xl border border-border/60 bg-surface p-3 text-xs"
-                  >
-                    <p className="font-semibold">
-                      {entry.direction === "credit" ? "+" : "-"}
-                      {entry.amount} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"} ·{" "}
-                      {walletReasonLabel(entry.reason)}
-                    </p>
-                    <p className="text-muted-foreground">{adminDate(entry.created_at, i18n.language)}</p>
-                    {entry.metadata?.admin_reason ? (
-                      <p className="mt-1 text-muted-foreground">{entry.metadata.admin_reason}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-surface p-3">
-              <label className="text-xs font-semibold" htmlFor="wallet-amount">
-                {t("admin.customer.walletAmount")}
-              </label>
-              <input
-                id="wallet-amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={walletAmount}
-                onChange={(e) => setWalletAmount(e.target.value)}
-                className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
-              />
-              <label className="text-xs font-semibold" htmlFor="wallet-reason">
-                {t("admin.customer.walletReason")}
-              </label>
-              <textarea
-                id="wallet-reason"
-                rows={2}
-                value={walletReason}
-                onChange={(e) => setWalletReason(e.target.value)}
-                placeholder={t("admin.customer.walletReasonPlaceholder")}
-                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-              />
-              {walletFormError ? (
-                <p className="text-xs font-semibold text-coral">{walletFormError}</p>
-              ) : null}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={adjustWallet.isPending}
-                  onClick={() => {
-                    setWalletFormError(null);
-                    const amount = Number(walletAmount);
-                    if (!Number.isFinite(amount) || amount <= 0) {
-                      setWalletFormError(t("admin.customer.walletAmountInvalid"));
-                      return;
-                    }
-                    if (!walletReason.trim()) {
-                      setWalletFormError(t("admin.customer.walletReasonRequired"));
-                      return;
-                    }
-                    walletIdempotencyKey.current = crypto.randomUUID();
-                    setWalletDirection("credit");
-                    setWalletConfirmOpen(true);
-                  }}
-                  className="focus-ring h-10 flex-1 rounded-xl bg-brand text-xs font-bold text-brand-foreground disabled:opacity-50"
-                >
-                  {t("admin.customer.walletCredit")}
-                </button>
-                <button
-                  type="button"
-                  disabled={adjustWallet.isPending}
-                  onClick={() => {
-                    setWalletFormError(null);
-                    const amount = Number(walletAmount);
-                    if (!Number.isFinite(amount) || amount <= 0) {
-                      setWalletFormError(t("admin.customer.walletAmountInvalid"));
-                      return;
-                    }
-                    if (!walletReason.trim()) {
-                      setWalletFormError(t("admin.customer.walletReasonRequired"));
-                      return;
-                    }
-                    walletIdempotencyKey.current = crypto.randomUUID();
-                    setWalletDirection("debit");
-                    setWalletConfirmOpen(true);
-                  }}
-                  className="focus-ring h-10 flex-1 rounded-xl border border-border text-xs font-bold disabled:opacity-50"
-                >
-                  {t("admin.customer.walletDebit")}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </section>
+      <AdminWalletPanel
+        customerId={id}
+        customerName={profile.full_name || t("admin.provider.unnamed")}
+      />
 
       <section>
         <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -377,50 +254,6 @@ export function AdminCustomer({ id }: { id: string }) {
         )}
       </section>
 
-      <AdminConfirmModal
-        open={walletConfirmOpen}
-        title={t("admin.customer.walletConfirmTitle")}
-        body={t("admin.customer.walletConfirmBody", {
-          direction:
-            walletDirection === "credit"
-              ? t("admin.customer.walletConfirmCredit")
-              : t("admin.customer.walletConfirmDebit"),
-          amount: pendingWalletAmount.toLocaleString("en-US"),
-          name: profile.full_name || t("admin.provider.unnamed"),
-        })}
-        confirmLabel={
-          walletDirection === "credit"
-            ? t("admin.customer.walletCredit")
-            : t("admin.customer.walletDebit")
-        }
-        busy={adjustWallet.isPending}
-        onCancel={() => setWalletConfirmOpen(false)}
-        onConfirm={() =>
-          adjustWallet.mutate(
-            {
-              customerId: id,
-              direction: walletDirection,
-              amount: pendingWalletAmount,
-              reasonNote: walletReason.trim(),
-              idempotencyKey: walletIdempotencyKey.current,
-            },
-            {
-              onSuccess: () => {
-                setWalletAmount("");
-                setWalletReason("");
-                setWalletConfirmOpen(false);
-                toast.success(t("admin.customer.walletAdjustSuccess"));
-              },
-              onError: (e: Error) =>
-                toast.error(
-                  e?.message?.includes("WALLET_IDEMPOTENCY")
-                    ? t("admin.customer.walletAdjustDuplicate")
-                    : (e?.message ?? t("admin.customer.walletAdjustError")),
-                ),
-            },
-          )
-        }
-      />
       {revokeLinkId ? (
         <AdminReasonSheet
           title={t("admin.studentLinks.revoke")}
@@ -438,7 +271,7 @@ export function AdminCustomer({ id }: { id: string }) {
                   void linkedStudentsQ.refetch();
                 },
                 onError: (e: Error) =>
-                  toast.error(e.message || t("admin.studentLinks.revokeError")),
+                  toast.error(adminErrorText(t, e, t("admin.studentLinks.revokeError"))),
               },
             );
           }}
