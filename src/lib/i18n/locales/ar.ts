@@ -5779,6 +5779,7 @@ Object.assign(ar, {
       price_change_requests: "طلبات تغيير سعر",
       documents_expiring_soon: "مستندات قربت تخلص",
       providers_at_cash_limit: "مقدمو خدمة موقوفين بسبب مديونية",
+      tutors_missing_teaching_data: "مدرسين بيانات ناقصة",
       pending_settlements: "تسويات مستنية",
     },
     problems: "مشاكل",

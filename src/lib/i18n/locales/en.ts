@@ -5889,6 +5889,7 @@ Object.assign(en, {
       price_change_requests: "Price change requests",
       documents_expiring_soon: "Documents expiring soon",
       providers_at_cash_limit: "Providers paused for unpaid balance",
+      tutors_missing_teaching_data: "Tutors with missing subjects or grades",
       pending_settlements: "Settlements waiting",
     },
     problems: "Problems",

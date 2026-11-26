@@ -885,11 +885,18 @@ BEGIN
     RAISE EXCEPTION 'Admin required.' USING ERRCODE = '42501';
   END IF;
 
+  -- Same rule as admin_payment_situation's 'paymobNeedsAction', so a flag the
+  -- admin resolved drops out here too.
   SELECT count(*) INTO v_paymob
   FROM public.payments p
-  WHERE p.metadata ? 'capture_shortfall'
-     OR (COALESCE((p.metadata->>'needs_admin_review')::boolean, false)
-         AND p.metadata->>'paymob_resolved_at' IS NULL);
+  WHERE NULLIF(p.metadata->>'paymob_resolved_at', '') IS NULL
+    AND (
+      COALESCE((p.metadata->>'capture_shortfall')::numeric, 0) > 0
+      OR COALESCE((p.metadata->>'needs_admin_review')::boolean, false)
+      OR NULLIF(p.metadata->>'gateway_refund_recorded_at', '') IS NOT NULL
+      OR COALESCE((p.metadata->>'unmapped_order')::boolean, false)
+      OR COALESCE((p.metadata->>'paymob_unmapped')::boolean, false)
+    );
 
   SELECT count(*) INTO v_unmapped
   FROM public.paymob_unmapped_captures u

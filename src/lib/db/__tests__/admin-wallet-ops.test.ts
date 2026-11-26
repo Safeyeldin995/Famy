@@ -316,6 +316,34 @@ describe("admin money card and operations home", () => {
     }
   });
 
+  it("counts a Paymob flag until the admin resolves it, like the payments queue", async () => {
+    const paymobFlags = async () => {
+      const res = await tryAsUser(db, IDS.adminUser, `SELECT public.admin_ops_problems() AS x`);
+      expect(res.error).toBeUndefined();
+      return Number((res.rows?.[0] as { x: Record<string, unknown> }).x.paymob_flags);
+    };
+    const before = await paymobFlags();
+    const { paymobId } = await paidBooking("completed");
+    await asServiceRole(db, () =>
+      db.exec(`
+        SELECT set_config('app.ledger_internal_capture', 'on', true);
+        UPDATE public.payments
+        SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"capture_shortfall": 40}'::jsonb
+        WHERE id = '${paymobId}';
+      `),
+    );
+    expect(await paymobFlags()).toBe(before + 1);
+    await asServiceRole(db, () =>
+      db.exec(`
+        SELECT set_config('app.ledger_internal_capture', 'on', true);
+        UPDATE public.payments
+        SET metadata = metadata || jsonb_build_object('paymob_resolved_at', now())
+        WHERE id = '${paymobId}';
+      `),
+    );
+    expect(await paymobFlags()).toBe(before);
+  });
+
   it("finds a customer by email in the admin search", async () => {
     const email = `search-${randomUUID().slice(0, 8)}@example.com`;
     await asServiceRole(db, () =>
