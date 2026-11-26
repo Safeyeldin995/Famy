@@ -94,7 +94,7 @@ describe("customer wallet — admin adjustments", () => {
     const credit = await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL, gen_random_uuid()::text)",
       [IDS.customer, topUp, "test credit"],
     );
     expect(credit.error).toBeUndefined();
@@ -102,7 +102,7 @@ describe("customer wallet — admin adjustments", () => {
     const debit = await tryAsUser(
       db,
       IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, $3, NULL)",
+      "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, $3, NULL, gen_random_uuid()::text)",
       [IDS.customer, start + topUp + 1, "test over-debit"],
     );
     expect(debit.error).toBeDefined();
