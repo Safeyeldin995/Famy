@@ -1400,6 +1400,7 @@ function BookForm({
           {service ? (
             <CheckoutPromoPicker
               serviceId={service.service.id}
+              serviceMode={serviceMode}
               subtotal={quote.subtotal}
               applied={applied}
               onApplied={setApplied}

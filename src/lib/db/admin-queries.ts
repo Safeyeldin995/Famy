@@ -488,7 +488,7 @@ export function useUpdateCategoryNames() {
 // Columns are selected explicitly (never `*`) so `deleted_at` is never
 // fetched into a UI-facing query.
 const SERVICE_COLUMNS =
-  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, fixed_start_time, is_active, minimum_price, maximum_price, maximum_extras_total, provider_pricing_allowed, allowed_session_durations, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
+  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, fixed_start_time, is_active, minimum_price, maximum_price, maximum_extras_total, provider_pricing_allowed, allowed_session_durations, online_allowed, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
 
 export type AdminServiceInput = {
   category_id: string;

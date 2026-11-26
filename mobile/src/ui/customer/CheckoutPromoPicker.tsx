@@ -9,7 +9,7 @@ import {
 import { ChevronLeft, Tag, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFeaturedPromoCodes, type FeaturedPromoCode } from "@/lib/queries";
+import { promoFitsMode, useFeaturedPromoCodes, type FeaturedPromoCode } from "@/lib/queries";
 import { validatePromoCode } from "@/lib/bookingQueries";
 import { money } from "@/lib/presentation";
 import { colors, radius, space } from "@/ui/theme";
@@ -21,6 +21,7 @@ export type AppliedCheckoutPromo = { id: string; discount: number; code: string 
 
 export function CheckoutPromoPicker({
   serviceId,
+  serviceMode,
   subtotal,
   applied,
   onApplied,
@@ -28,6 +29,8 @@ export function CheckoutPromoPicker({
   onClearBookingError,
 }: {
   serviceId: string;
+  /** Booking mode: codes limited to the other mode are hidden and refused. */
+  serviceMode: "online" | "in_person";
   subtotal: number;
   applied: AppliedCheckoutPromo | null;
   onApplied: (value: AppliedCheckoutPromo | null) => void;
@@ -37,6 +40,9 @@ export function CheckoutPromoPicker({
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const promos = useFeaturedPromoCodes();
+  const offers = (promos.data ?? []).filter((offer) =>
+    promoFitsMode(offer.applicable_mode, serviceMode),
+  );
   const [open, setOpen] = useState(false);
   const [manual, setManual] = useState("");
   const [checking, setChecking] = useState(false);
@@ -56,7 +62,7 @@ export function CheckoutPromoPicker({
       setSheetError("");
       onClearBookingError?.();
       try {
-        const r = await validatePromoCode(trimmed, serviceId, subtotal);
+        const r = await validatePromoCode(trimmed, serviceId, subtotal, serviceMode);
         if (r.ok) {
           onApplied({ id: r.promo_code_id, discount: r.discount_amount, code: trimmed });
           setManual("");
@@ -75,7 +81,7 @@ export function CheckoutPromoPicker({
         setApplyingId(null);
       }
     },
-    [onApplied, onClearBookingError, serviceId, subtotal, t],
+    [onApplied, onClearBookingError, serviceId, serviceMode, subtotal, t],
   );
 
   const remove = () => {
@@ -161,14 +167,14 @@ export function CheckoutPromoPicker({
               {t("bookFlow.promoAvailableTitle")}
             </Text>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 280 }}>
-              <QueryState query={promos} empty={!promos.data?.length}>
-                {!promos.data?.length ? (
+              <QueryState query={promos} empty={!offers.length}>
+                {!offers.length ? (
                   <Text tone="muted" size="sm">
                     {t("promoCodes.availableEmptyBody")}
                   </Text>
                 ) : (
                   <View style={{ gap: space.md, paddingBottom: space.sm }}>
-                    {promos.data.map((offer) => (
+                    {offers.map((offer) => (
                       <CheckoutPromoOfferCard
                         key={offer.id}
                         offer={offer}

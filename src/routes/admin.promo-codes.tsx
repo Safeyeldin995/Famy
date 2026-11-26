@@ -10,8 +10,10 @@ import {
   useUpdatePromoCode,
   useSetPromoCodeActive,
   usePromoCodeScope,
+  useAllPromoCodeScopes,
   useSetPromoCodeScope,
   type DiscountType,
+  type ApplicableMode,
   type ApplicableScope,
   type PromoCodeInput,
   type PromoCodeRow,
@@ -35,7 +37,21 @@ type PromoForm = {
   usage_limit_per_customer: string;
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
+  applicable_mode: ApplicableMode;
   is_featured: boolean;
+};
+
+type ScopeIds = { categoryIds: string[]; serviceIds: string[] };
+
+/** Online-only promos can only target catalog entries that allow online lessons. */
+function fitsMode(row: { online_allowed?: boolean | null }, mode: ApplicableMode): boolean {
+  return mode !== "online" || !!row.online_allowed;
+}
+
+const MODE_LABEL_KEYS: Record<ApplicableMode, string> = {
+  all: "admin.promoCodes.modeAll",
+  online: "admin.promoCodes.modeOnline",
+  in_person: "admin.promoCodes.modeInPerson",
 };
 
 const EMPTY_FORM: PromoForm = {
@@ -52,6 +68,7 @@ const EMPTY_FORM: PromoForm = {
   usage_limit_per_customer: "1",
   first_booking_only: false,
   applicable_scope: "all",
+  applicable_mode: "all",
   is_featured: false,
 };
 
@@ -78,6 +95,7 @@ function formFromRow(p: PromoCodeRow): PromoForm {
       p.usage_limit_per_customer != null ? String(p.usage_limit_per_customer) : "",
     first_booking_only: p.first_booking_only,
     applicable_scope: p.applicable_scope,
+    applicable_mode: p.applicable_mode ?? "all",
     is_featured: p.is_featured,
   };
 }
@@ -142,6 +160,7 @@ function toInput(f: PromoForm, is_active: boolean): PromoCodeInput {
       : null,
     first_booking_only: f.first_booking_only,
     applicable_scope: f.applicable_scope,
+    applicable_mode: f.applicable_mode,
     is_active,
     is_featured: f.is_featured,
   };
@@ -168,14 +187,61 @@ function PromoFormFields({
   errors: Record<string, string>;
   categories: any[];
   services: any[];
-  scope: { categoryIds: string[]; serviceIds: string[] };
-  setScope: (s: { categoryIds: string[]; serviceIds: string[] }) => void;
+  scope: ScopeIds;
+  setScope: (s: ScopeIds) => void;
   lockCode?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const mode = form.applicable_mode;
+
+  // Only active entries that fit the booking type are offered; anything
+  // already selected stays visible so the admin can see and remove it.
+  const visibleCategories = categories.filter(
+    (c: any) => scope.categoryIds.includes(c.id) || (c.is_active && fitsMode(c, mode)),
+  );
+  const serviceGroups = useMemo(() => {
+    const categoryOrder = new Map<string, number>(
+      categories.map((c: any, i: number) => [c.id as string, i]),
+    );
+    const groups = new Map<string, { key: string; category: any; items: any[] }>();
+    for (const s of services) {
+      if (!scope.serviceIds.includes(s.id) && !(s.is_active && fitsMode(s, mode))) continue;
+      const key = s.category_id ?? "";
+      let g = groups.get(key);
+      if (!g) {
+        g = { key, category: s.category, items: [] };
+        groups.set(key, g);
+      }
+      g.items.push(s);
+    }
+    return [...groups.values()].sort(
+      (a, b) => (categoryOrder.get(a.key) ?? 999) - (categoryOrder.get(b.key) ?? 999),
+    );
+  }, [services, categories, scope.serviceIds, mode]);
+
+  const changeMode = (next: ApplicableMode) => {
+    setForm({ ...form, applicable_mode: next });
+    const serviceById = new Map(services.map((s: any) => [s.id, s]));
+    const categoryById = new Map(categories.map((c: any) => [c.id, c]));
+    const serviceIds = scope.serviceIds.filter((id) => {
+      const row = serviceById.get(id);
+      return !row || fitsMode(row, next);
+    });
+    const categoryIds = scope.categoryIds.filter((id) => {
+      const row = categoryById.get(id);
+      return !row || fitsMode(row, next);
+    });
+    if (
+      serviceIds.length !== scope.serviceIds.length ||
+      categoryIds.length !== scope.categoryIds.length
+    ) {
+      setScope({ categoryIds, serviceIds });
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.cancellationReasons.code")}
@@ -206,9 +272,26 @@ function PromoFormFields({
             <option value="services">{t("admin.promoCodes.scopeServices")}</option>
           </select>
         </label>
+        <label className="block">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t("admin.promoCodes.mode")}
+          </span>
+          <select
+            value={mode}
+            onChange={(e) => changeMode(e.target.value as ApplicableMode)}
+            className="focus-ring mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
+          >
+            <option value="all">{t("admin.promoCodes.modeAll")}</option>
+            <option value="online">{t("admin.promoCodes.modeOnline")}</option>
+            <option value="in_person">{t("admin.promoCodes.modeInPerson")}</option>
+          </select>
+        </label>
       </div>
 
-      <details className="rounded-xl border p-3" open={form.applicable_scope !== "all" || undefined}>
+      <details
+        className="rounded-xl border p-3"
+        open={form.applicable_scope !== "all" || undefined}
+      >
         <summary className="cursor-pointer font-bold">{t("adminCatalog.promoAudience")}</summary>
         {errors.scope ? (
           <p className="mt-2 text-xs font-semibold text-coral">{errors.scope}</p>
@@ -218,8 +301,13 @@ function PromoFormFields({
             <span className="text-xs font-semibold text-muted-foreground">
               {t("admin.promoCodes.categories")}
             </span>
+            {visibleCategories.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("admin.promoCodes.noCategoriesForMode")}
+              </p>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
-              {categories.map((c: any) => {
+              {visibleCategories.map((c: any) => {
                 const checked = scope.categoryIds.includes(c.id);
                 return (
                   <label
@@ -251,32 +339,49 @@ function PromoFormFields({
             <span className="text-xs font-semibold text-muted-foreground">
               {t("admin.layout.nav.services")}
             </span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {services.map((s: any) => {
-                const checked = scope.serviceIds.includes(s.id);
-                return (
-                  <label
-                    key={s.id}
-                    className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-brand bg-brand/10 text-brand" : "border-border text-muted-foreground"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      className="hidden"
-                      onChange={() =>
-                        setScope({
-                          ...scope,
-                          serviceIds: checked
-                            ? scope.serviceIds.filter((id) => id !== s.id)
-                            : [...scope.serviceIds, s.id],
-                        })
-                      }
-                    />
-                    {catalogName(s, i18n.language)}
-                  </label>
-                );
-              })}
-            </div>
+            {serviceGroups.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("admin.promoCodes.noServicesForMode")}
+              </p>
+            ) : null}
+            {serviceGroups.map((group) => (
+              <div key={group.key} className="mt-3">
+                <p className="text-xs font-bold">
+                  {group.category ? catalogName(group.category, i18n.language) : ""}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {group.items.map((s: any) => {
+                    const checked = scope.serviceIds.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-brand bg-brand/10 text-brand" : "border-border text-muted-foreground"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          className="hidden"
+                          onChange={() =>
+                            setScope({
+                              ...scope,
+                              serviceIds: checked
+                                ? scope.serviceIds.filter((id) => id !== s.id)
+                                : [...scope.serviceIds, s.id],
+                            })
+                          }
+                        />
+                        {catalogName(s, i18n.language)}
+                        {s.online_allowed && mode !== "in_person" ? (
+                          <span className="rounded-full bg-brand/10 px-1.5 text-xs font-bold text-brand">
+                            {t("admin.promoCodes.onlineBadge")}
+                          </span>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -535,6 +640,7 @@ function AdminPromoCodes() {
   const q = useAdminPromoCodes();
   const categoriesQ = useAdminCategories();
   const servicesQ = useAdminServices();
+  const allScopesQ = useAllPromoCodeScopes();
   const create = useCreatePromoCode();
   const update = useUpdatePromoCode();
   const setActive = useSetPromoCodeActive();
@@ -576,6 +682,26 @@ function AdminPromoCodes() {
   const promos = q.data ?? [];
   const categories = categoriesQ.data ?? [];
   const services = servicesQ.data ?? [];
+
+  const scopeSummary = (p: PromoCodeRow): string => {
+    const modeLabel = t(MODE_LABEL_KEYS[p.applicable_mode ?? "all"]);
+    let scopeLabel = t("admin.promoCodes.scopeAll");
+    const ids = allScopesQ.data?.get(p.id);
+    if (p.applicable_scope === "categories") {
+      const names = (ids?.categoryIds ?? [])
+        .map((id) => categories.find((c: any) => c.id === id))
+        .filter(Boolean)
+        .map((c: any) => catalogName(c, i18n.language));
+      scopeLabel = names.length ? names.join("، ") : t("admin.promoCodes.scopeCategories");
+    } else if (p.applicable_scope === "services") {
+      const names = (ids?.serviceIds ?? [])
+        .map((id) => services.find((s: any) => s.id === id))
+        .filter(Boolean)
+        .map((s: any) => catalogName(s, i18n.language));
+      scopeLabel = names.length ? names.join("، ") : t("admin.promoCodes.scopeServices");
+    }
+    return `${modeLabel} · ${scopeLabel}`;
+  };
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -880,6 +1006,9 @@ function AdminPromoCodes() {
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {i18n.language.startsWith("ar") ? p.description_ar : p.description_en}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold">
+                            {t("admin.promoCodes.scope")}: {scopeSummary(p)}
                           </p>
                           <p className="mt-2 text-xs">
                             {t("adminCatalog.ends", {

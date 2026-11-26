@@ -26,6 +26,10 @@ import { sendParentGuardianEmailFn } from "@/lib/email/parentGuardianEmail.funct
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import { getBookingErrorMessage } from "@/lib/booking/errors";
 import {
+  CheckoutPromoPicker,
+  type AppliedCheckoutPromo,
+} from "@/components/booking/CheckoutPromoPicker";
+import {
   cairoDayStrip,
   cairoTodayStart,
   localMidnightForCairoInstant,
@@ -83,6 +87,7 @@ export function OnlineLessonRequestForm({
   const [day, setDay] = useState(() => cairoTodayStart());
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedCheckoutPromo | null>(null);
   const idempotencyKeyRef = useRef(crypto.randomUUID());
   const [parentPhone, setParentPhone] = useState("");
   const [parentEmail, setParentEmail] = useState("");
@@ -230,13 +235,20 @@ export function OnlineLessonRequestForm({
 
   const dayOptions = useMemo(() => cairoDayStrip(14), []);
 
+  // The discount depends on the lesson price, so a code is re-applied after
+  // the service or the capability changes.
+  useEffect(() => {
+    setAppliedPromo(null);
+  }, [resolvedServiceId, capabilityId]);
+
   const priceTotal = useMemo(() => {
     if (!selectedCapability || !billingQ.data) return null;
     return onlineLessonRequestTotal(
       { durationMin: selectedCapability.durationMin, price: selectedCapability.price },
       billingQ.data,
+      appliedPromo?.discount ?? 0,
     );
-  }, [billingQ.data, selectedCapability]);
+  }, [appliedPromo?.discount, billingQ.data, selectedCapability]);
 
   const selectedSlot = useMemo(() => {
     if (!slotStart) return null;
@@ -278,8 +290,8 @@ export function OnlineLessonRequestForm({
         forWhom: learnerId,
         start: selectedSlot.start,
         end: selectedSlot.end,
-        promoStatus: "none",
-        appliedPromoId: null,
+        promoStatus: appliedPromo ? "applied" : "none",
+        appliedPromoId: appliedPromo?.id ?? null,
         notes: notes.trim(),
         eitherRequirements: [],
         requirementChoices: {},
@@ -493,6 +505,16 @@ export function OnlineLessonRequestForm({
           placeholder={t("onlineWeb.request.notesPlaceholder")}
         />
       </label>
+
+      {resolvedServiceId && selectedCapability ? (
+        <CheckoutPromoPicker
+          serviceId={resolvedServiceId}
+          serviceMode="online"
+          subtotal={selectedCapability.price}
+          applied={appliedPromo}
+          onApplied={setAppliedPromo}
+        />
+      ) : null}
 
       {priceTotal != null && selectedCapability ? (
         <div className="rounded-2xl border border-border/60 bg-surface-2 p-4">

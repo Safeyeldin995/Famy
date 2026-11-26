@@ -817,11 +817,17 @@ export function useBookingConfig<T>(key: string) {
     },
   });
 }
-export async function validatePromoCode(code: string, serviceId: string, subtotal: number) {
+export async function validatePromoCode(
+  code: string,
+  serviceId: string,
+  subtotal: number,
+  serviceMode: "online" | "in_person",
+) {
   const { data, error } = await supabase.rpc("validate_promo_code", {
     p_code: code,
     p_service_id: serviceId,
     p_subtotal: subtotal,
+    p_service_mode: serviceMode,
   });
   if (error) throw error;
   return data as { ok: boolean; discount_amount: number; promo_code_id: string; reason?: string };

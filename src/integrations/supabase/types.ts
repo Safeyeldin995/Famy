@@ -2197,6 +2197,7 @@ export type Database = {
       }
       promo_codes: {
         Row: {
+          applicable_mode: string
           applicable_scope: string
           code: string
           created_at: string
@@ -2219,6 +2220,7 @@ export type Database = {
           usage_limit_per_customer: number | null
         }
         Insert: {
+          applicable_mode?: string
           applicable_scope?: string
           code: string
           created_at?: string
@@ -2241,6 +2243,7 @@ export type Database = {
           usage_limit_per_customer?: number | null
         }
         Update: {
+          applicable_mode?: string
           applicable_scope?: string
           code?: string
           created_at?: string
@@ -5220,6 +5223,7 @@ export type Database = {
           discount_value: number
           minimum_booking_amount: number
           expires_at: string | null
+          applicable_mode: string
         }[]
       }
       account_deletion_check: {
@@ -5231,7 +5235,12 @@ export type Database = {
         Returns: Json
       }
       validate_promo_code: {
-        Args: { p_code: string; p_service_id: string; p_subtotal: number }
+        Args: {
+          p_code: string
+          p_service_id: string
+          p_subtotal: number
+          p_service_mode?: string
+        }
         Returns: Json
       }
     }

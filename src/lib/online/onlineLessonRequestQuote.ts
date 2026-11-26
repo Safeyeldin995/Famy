@@ -9,6 +9,7 @@ export type OnlineLessonBilling = {
 export function onlineLessonRequestTotal(
   capability: { durationMin: number; price: number },
   billing: OnlineLessonBilling,
+  promoDiscount = 0,
 ): number {
   return buildBookingQuote({
     service: null,
@@ -20,6 +21,6 @@ export function onlineLessonRequestTotal(
     requirements: [],
     requirementChoices: {},
     travelFee: 0,
-    promoDiscount: 0,
+    promoDiscount,
   }).total;
 }
