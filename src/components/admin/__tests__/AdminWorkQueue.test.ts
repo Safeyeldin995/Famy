@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { WORK_QUEUE_ITEMS } from "../AdminWorkQueue";
-import { normalizeAdminWorkQueueCounts } from "@/lib/db/admin-work-queue";
+import { ADMIN_WORK_QUEUE_KEYS, normalizeAdminWorkQueueCounts } from "@/lib/db/admin-work-queue";
 
 describe("admin work queue counts", () => {
-  const rows = WORK_QUEUE_ITEMS.map((item, index) => ({ queue: item.key, item_count: index }));
+  const rows = ADMIN_WORK_QUEUE_KEYS.map((queue, index) => ({ queue, item_count: index }));
 
   it("maps every server count to its action without losing zeroes", () => {
     const counts = normalizeAdminWorkQueueCounts(rows);
     expect(counts.new_applications).toBe(0);
     expect(counts.resubmitted_applications).toBe(1);
-    expect(counts.new_service_requests).toBe(2);
-    expect(counts.pending_teaching_groups).toBe(5);
-    expect(counts.payments_pending_review).toBe(10);
-    expect(counts.online_lesson_issue_reports).toBe(11);
-    expect(counts.ugc_reports).toBe(12);
+    expect(counts.new_service_requests).toBe(3);
+    expect(counts.pending_teaching_groups).toBe(6);
+    expect(counts.payments_pending_review).toBe(12);
+    expect(counts.online_lesson_issue_reports).toBe(13);
+    expect(counts.ugc_reports).toBe(14);
     expect(WORK_QUEUE_ITEMS.every((item) => item.route.startsWith("/admin/"))).toBe(true);
   });
 

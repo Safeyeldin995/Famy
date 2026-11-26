@@ -32,6 +32,8 @@ import {
 } from "@/lib/provider/onboardingQueries";
 import { useMyTeachingCapabilities } from "@/lib/provider/teachingQueries";
 import { useMyProvider, useProviderAvailability } from "@/lib/provider/queries";
+import { useProviderReviewSlaHours } from "@/lib/provider/journeyQueries";
+import { customerNumber } from "@/lib/customerFormat";
 import { Page, QueryState } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
@@ -86,6 +88,7 @@ export function PendingHomeScreen({
   const subjects = useMyTeachingCapabilities(providerId);
   const availability = useProviderAvailability(providerId);
   const submit = useSubmitOnboarding();
+  const slaQ = useProviderReviewSlaHours();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const queries = [p, snapshot, refs, selections, services, subjects, availability];
   const gateQuery = combineQueries(queries as QuerySlice[]);
@@ -239,6 +242,12 @@ export function PendingHomeScreen({
                   {t(model.titleKey, { remaining: model.remaining })}
                 </Text>
                 <Text size="xs" style={{ color: colors.brandForeground }}>
+                  {t("providerApply.pending.stepProgress", {
+                    done: customerNumber(model.done, i18n.language),
+                    total: customerNumber(model.total, i18n.language),
+                  })}
+                </Text>
+                <Text size="xs" style={{ color: colors.brandForeground }}>
                   {t(model.subtitleKey)}
                 </Text>
               </View>
@@ -249,6 +258,9 @@ export function PendingHomeScreen({
                 {t("providerComplete.title")}
               </Text>
               <Text tone="success">{t("providerComplete.message")}</Text>
+              <Text tone="success">
+                {t("providerApply.pending.reviewSla", { hours: slaQ.data ?? 24 })}
+              </Text>
             </View>
           )}
           <View style={{ gap: 0 }}>

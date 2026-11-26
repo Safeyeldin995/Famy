@@ -102,6 +102,32 @@ export function WeeklyHoursEditor({
         </View>
         <Text weight="bold">{t("providerSetup.sameHours")}</Text>
       </Pressable>
+      {!sameHours && value[0] ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("scheduleUi.copyDayToAll")}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={() =>
+            onChange(
+              setSharedWorkingHours(value, value[0].start_time, value[0].end_time),
+            )
+          }
+          style={{
+            minHeight: 44,
+            alignSelf: "flex-start",
+            paddingHorizontal: space.md,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colors.border,
+            justifyContent: "center",
+          }}
+        >
+          <Text weight="bold" tone="brand" size="sm">
+            {t("scheduleUi.copyDayToAll")}
+          </Text>
+        </Pressable>
+      ) : null}
       <View style={[direction, { flexWrap: "wrap", gap: space.sm }]}>
         {chipOrder.map((weekday) => {
           const on = value.some((row) => row.weekday === weekday);
