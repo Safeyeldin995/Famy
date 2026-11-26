@@ -5,13 +5,15 @@ import type { TeachingCapabilityOption } from "@shared/tutoring/teachingCapabili
 import { serviceRequiresTeachingCurriculum } from "@shared/tutoring/lessonServices";
 import {
   approvedCapabilitiesForService,
-  capabilitiesMatchingPick,
+  capabilityPickAwaitingGrade,
   coerceCapabilityPick,
   curriculumOptionsFromCapabilities,
+  durationOptionsFromCapabilityPick,
   levelOptionsFromCapabilities,
   subjectOptionsFromCapabilities,
   type CapabilityPickValue,
 } from "@shared/tutoring/providerCapabilityCascade";
+import { formatEGP, formatNumber } from "@shared/format/egp";
 import { BottomSheetSelect } from "@/ui/provider/BottomSheetSelect";
 import { Choices } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -53,9 +55,10 @@ export function TutoringCapabilityCascade({
     () => levelOptionsFromCapabilities(approved, pick.subjectCode, pick.curriculumId, lang),
     [approved, pick.curriculumId, pick.subjectCode, lang],
   );
+  const awaitingGrade = capabilityPickAwaitingGrade(pick, requiresCurriculum);
   const durationOptions = useMemo(
-    () => capabilitiesMatchingPick(approved, pick),
-    [approved, pick],
+    () => durationOptionsFromCapabilityPick(approved, pick, requiresCurriculum),
+    [approved, pick, requiresCurriculum],
   );
 
   useEffect(() => {
@@ -116,14 +119,19 @@ export function TutoringCapabilityCascade({
           onCapabilityChange("");
         }}
       />
-      {durationOptions.length > 0 ? (
+      {awaitingGrade ? (
+        <Text tone="muted">{t("customerBooking.pickGradeFirst")}</Text>
+      ) : durationOptions.length > 0 ? (
         <Choices
           label={t("customerBooking.sessionDuration")}
           value={capabilityId}
           onChange={onCapabilityChange}
           options={durationOptions.map((cap) => ({
             value: cap.id,
-            label: t("bookFlow.sessionLine", { minutes: String(cap.durationMin) }),
+            label: t("customerBooking.durationPriceChip", {
+              minutes: formatNumber(cap.durationMin, lang),
+              price: formatEGP(cap.price, undefined, lang),
+            }),
           }))}
           layout="chips"
         />

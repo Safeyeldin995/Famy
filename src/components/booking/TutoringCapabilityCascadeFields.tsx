@@ -7,13 +7,15 @@ import { serviceRequiresTeachingCurriculum } from "@/lib/tutoring/lessonServices
 import { currentLang } from "@/lib/i18n";
 import {
   approvedCapabilitiesForService,
-  capabilitiesMatchingPick,
+  capabilityPickAwaitingGrade,
   coerceCapabilityPick,
   curriculumOptionsFromCapabilities,
+  durationOptionsFromCapabilityPick,
   levelOptionsFromCapabilities,
   subjectOptionsFromCapabilities,
   type CapabilityPickValue,
 } from "@/lib/tutoring/providerCapabilityCascade";
+import { formatEGP, formatNumber } from "@/lib/format";
 
 export function TutoringCapabilityCascadeFields({
   serviceId,
@@ -57,9 +59,10 @@ export function TutoringCapabilityCascadeFields({
       ),
     [approved, pick.curriculumId, pick.subjectCode, lang],
   );
+  const awaitingGrade = capabilityPickAwaitingGrade(pick, requiresCurriculum);
   const durationOptions = useMemo(
-    () => capabilitiesMatchingPick(approved, pick),
-    [approved, pick],
+    () => durationOptionsFromCapabilityPick(approved, pick, requiresCurriculum),
+    [approved, pick, requiresCurriculum],
   );
 
   useEffect(() => {
@@ -124,7 +127,9 @@ export function TutoringCapabilityCascadeFields({
         options={levels}
         onChange={setLevel}
       />
-      {durationOptions.length > 0 ? (
+      {awaitingGrade ? (
+        <p className="text-pro-13 text-muted-foreground">{t("customerBooking.pickGradeFirst")}</p>
+      ) : durationOptions.length > 0 ? (
         <div>
           <span className="apply-label">{t("customerBooking.sessionDuration")}</span>
           <div className="apply-chips">
@@ -134,7 +139,10 @@ export function TutoringCapabilityCascadeFields({
                 selected={cap.id === capabilityId}
                 onClick={() => onCapabilityChange(cap.id)}
               >
-                {t("bookFlow.sessionLine", { minutes: cap.durationMin })}
+                {t("customerBooking.durationPriceChip", {
+                  minutes: formatNumber(cap.durationMin, lang),
+                  price: formatEGP(cap.price, undefined, lang),
+                })}
               </CheckChip>
             ))}
           </div>
