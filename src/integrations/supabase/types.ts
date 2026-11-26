@@ -4658,6 +4658,15 @@ export type Database = {
         Args: { p_from: string; p_to: string; p_group: string }
         Returns: Json
       }
+      admin_online_lessons_report: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_subject?: string | null
+          p_provider?: string | null
+        }
+        Returns: Json
+      }
       provider_net_as_of: {
         Args: { p_provider_id: string; p_as_of: string }
         Returns: number
@@ -4848,6 +4857,11 @@ export type Database = {
       provider_remove_teaching_capability: { Args: { p_id: string }; Returns: undefined }
       provider_remove_onboarding_service: { Args: { p_service_id: string }; Returns: undefined }
       provider_cancel_service_request: { Args: { p_service_id: string }; Returns: undefined }
+      provider_set_service_active: {
+        Args: { p_service_id: string; p_active: boolean }
+        Returns: Json
+      }
+      provider_remove_service: { Args: { p_service_id: string }; Returns: Json }
       provider_cancel_price_change: { Args: { p_service_id: string }; Returns: undefined }
       provider_request_price_change: {
         Args: { p_service_id: string; p_price: number }
@@ -5128,7 +5142,7 @@ export type Database = {
         Returns: Json
       }
       anonymize_account: {
-        Args: { p_user_id: string }
+        Args: { p_user_id: string; p_confirm_wallet_forfeit?: boolean }
         Returns: Json
       }
       validate_promo_code: {

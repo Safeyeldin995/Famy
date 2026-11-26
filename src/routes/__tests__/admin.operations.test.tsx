@@ -41,6 +41,11 @@ vi.mock("@/lib/db/admin-daily-ops-queries", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+  useAdminResolvePaymobFlag: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 vi.mock("@/components/admin/FeeDebtsPanel", () => ({ FeeDebtsPanel: () => null }));
 vi.mock("@/lib/db/debt-queries", () => ({

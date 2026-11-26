@@ -5,6 +5,7 @@ import {
   invalidateQueryKeyList,
   submitReviewInvalidationKeys,
 } from "./cacheInvalidation";
+import { logFamyEvent } from "@/lib/analytics";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
 import { slotLookupCalendar } from "../../../src/components/famio/customerDates";
@@ -14,7 +15,7 @@ import {
   fetchRequirementsForServiceIds,
   requirementsBatchQueryKey,
 } from "@shared/db/serviceRequirementsBatch";
-import { completeCreateBookingResult } from "./bookingPure";
+import { completeCreateBookingResult, isPaymentEligibleBookingStatus } from "./bookingPure";
 import type { ServiceZone } from "@shared/geo/serviceZones";
 import {
   ADDRESSES_QUERY_ROOT,
@@ -408,7 +409,10 @@ export function useCreateBooking() {
         { retryDelayMs: 250 },
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.created) {
+        void logFamyEvent("booking_created");
+      }
       void qc.invalidateQueries({ queryKey: ["my-bookings"] });
       // Unpaid fees were attached to this booking.
       void qc.invalidateQueries({ queryKey: ["customer-fee-debts"] });
@@ -528,12 +532,15 @@ export function useCreatePayment() {
 
       const { data: booking, error: bookingErr } = await supabase
         .from("bookings")
-        .select("price_total, carried_fees_amount, currency, customer_id")
+        .select("price_total, carried_fees_amount, currency, customer_id, status")
         .eq("id", input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
         throw new Error("You cannot record payment for this booking.");
+      }
+      if (!isPaymentEligibleBookingStatus(booking.status)) {
+        throw new Error("This booking is closed.");
       }
       // Includes earlier unpaid cancellation fees added to this booking.
       const amount = bookingAmountDue(booking);

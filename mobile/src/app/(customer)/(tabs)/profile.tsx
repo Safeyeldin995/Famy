@@ -15,7 +15,9 @@ import {
   Heart,
   MessageCircle,
   Wallet,
+  UserCheck,
 } from "lucide-react-native";
+import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProfile, useDefaultAddress } from "@/lib/queries";
@@ -33,6 +35,9 @@ export default function Profile() {
   const profile = useMyProfile();
   const address = useDefaultAddress();
   const conversations = useConversations();
+  const dob = (profile.data as { date_of_birth?: string | null } | undefined)?.date_of_birth;
+  const age = dob ? memberAgeFromDate(dob)?.years : null;
+  const isMinorStudent = age != null && age >= 12 && age < 18;
   const messageUnread = unreadConversationCount(conversations.data);
   const [actionError, setActionError] = useState(false);
 
@@ -134,8 +139,17 @@ export default function Profile() {
             label={t("profile.family")}
             detail={t("profile.familySub")}
             onPress={() => router.push("/family-members")}
-            last
+            last={!isMinorStudent}
           />
+          {isMinorStudent ? (
+            <CustomerMenuRow
+              Icon={UserCheck}
+              label={t("studentParentLink.manageContact")}
+              detail={t("studentParentLink.title")}
+              onPress={() => router.push("/student-parent-link")}
+              last
+            />
+          ) : null}
         </CustomerMenuSection>
         <CustomerMenuSection title={t("profile.preferences")}>
           <CustomerMenuRow

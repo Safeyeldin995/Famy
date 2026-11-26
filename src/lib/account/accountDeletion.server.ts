@@ -89,6 +89,7 @@ export async function runAccountDeletion(params: {
   supabaseUser: SupabaseClient<Database>;
   supabaseAdmin: ServiceSupabase & AdminAuthClient;
   userId: string;
+  confirmWalletForfeit?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
   if (await userHasAdminRole(params.supabaseAdmin, params.userId)) {
     return { ok: false, error: "admin_not_allowed", status: 403 };
@@ -102,6 +103,11 @@ export async function runAccountDeletion(params: {
   }
 
   const check = checkRaw as AccountDeletionCheck | null;
+  const walletForfeitAmount = Number(check?.wallet_forfeit_amount ?? 0);
+  if (walletForfeitAmount > 0.005 && !params.confirmWalletForfeit) {
+    return { ok: false, error: "wallet_forfeit_confirm_required", status: 409 };
+  }
+
   if (!check?.ok) {
     const reason = check?.reason ?? "not_authenticated";
     if (reason === "not_authenticated") {
@@ -113,15 +119,24 @@ export async function runAccountDeletion(params: {
     if (reason === "unpaid_balance") {
       return { ok: false, error: "unpaid_balance", status: 409 };
     }
+    if (reason === "funds_owed_to_user") {
+      return { ok: false, error: "funds_owed_to_user", status: 409 };
+    }
     return { ok: false, error: "active_bookings", status: 409 };
   }
 
   const { data: anonymized, error: anonymizeError } = await params.supabaseAdmin.rpc(
     "anonymize_account",
-    { p_user_id: params.userId },
+    {
+      p_user_id: params.userId,
+      p_confirm_wallet_forfeit: params.confirmWalletForfeit === true,
+    },
   );
   if (anonymizeError) {
     console.error("[account.delete] anonymize failed");
+    if (anonymizeError.message?.includes("wallet_forfeit_confirm_required")) {
+      return { ok: false, error: "wallet_forfeit_confirm_required", status: 409 };
+    }
     return { ok: false, error: "deletion_failed", status: 500 };
   }
 

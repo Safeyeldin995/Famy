@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import ar from "../locales/ar";
@@ -35,12 +35,16 @@ function collectOnlineRouteSources(): string[] {
   const onlineDir = join(ROOT, "src/components/online");
   const paths: string[] = [];
   for (const name of readdirSync(routesDir)) {
-    if (name.startsWith("online")) {
-      paths.push(join(routesDir, name));
-    }
+    if (!name.startsWith("online")) continue;
+    const full = join(routesDir, name);
+    if (!statSync(full).isFile()) continue;
+    paths.push(full);
   }
   for (const name of readdirSync(onlineDir)) {
-    paths.push(join(onlineDir, name));
+    const full = join(onlineDir, name);
+    if (!statSync(full).isFile()) continue;
+    if (!/\.(tsx?)$/.test(name)) continue;
+    paths.push(full);
   }
   return paths;
 }

@@ -7,6 +7,7 @@ import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { useOnlineWebNavTabs } from "@/lib/web/useOnlineWebNavTabs";
 import { useOnlineWebSessionGate } from "@/lib/web/useOnlineWebSessionGate";
+import { OnlineWebAccountMenu } from "@/components/online/OnlineWebAccountMenu";
 
 const NAV_COMPACT_MAX_PX = 400;
 
@@ -65,6 +66,7 @@ export function OnlineWebLayout() {
             >
               {t("site.nav.home")}
             </Link>
+            <OnlineWebAccountMenu />
             <LanguageToggle variant="inline" />
           </div>
         </div>

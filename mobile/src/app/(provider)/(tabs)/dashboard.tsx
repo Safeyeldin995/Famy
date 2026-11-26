@@ -2,7 +2,8 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/ui/ProviderCard";
-import { Bell, CalendarDays, CalendarRange, Star } from "lucide-react-native";
+import { Bell, CalendarDays, CalendarRange, MessageCircle, Star } from "lucide-react-native";
+import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { dashboardUpcomingBookings } from "@shared/provider/providerWorkHelpers";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
 import {
@@ -29,9 +30,10 @@ export default function ProviderDashboard() {
   const bookingsQ = useProviderBookings(providerId);
   const earningsQ = useProviderEarnings(providerId);
   const unreadQ = useProUnreadNotificationCount();
+  const conversationsQ = useConversations();
+  const messageUnread = unreadConversationCount(conversationsQ.data);
   const profile = provider?.profile as { full_name?: string; avatar_url?: string } | undefined;
-  const name = profile?.full_name || t("pro.common.customer");
-  const firstName = name.trim().split(/\s+/)[0];
+  const firstName = (profile?.full_name?.trim().split(/\s+/)[0] || "").trim();
   const all = (bookingsQ.data ?? []) as ProviderCardBooking[];
   const pending = all.filter((booking) => booking.status === "pending");
   // Cairo calendar day (not the phone's), and jobs already under way always stay.
@@ -54,10 +56,41 @@ export default function ProviderDashboard() {
       }}
     >
       <Text weight="heavy" size="title" style={{ flex: 1 }} numberOfLines={1}>
-        {t("proWork.hello", { name: firstName })}
+        {t("proWork.hello", {
+          name: firstName || t("pro.common.greetingFallback"),
+        })}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-        <Avatar raw={profile?.avatar_url} size={44} round name={firstName} />
+        <Avatar raw={profile?.avatar_url} size={44} round name={firstName || t("pro.common.greetingFallback")} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("nav.messages")}
+          onPress={() => router.push("/pro-messages")}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: radius.sm,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <MessageCircle size={20} color={colors.brand} />
+          {messageUnread > 0 ? (
+            <View
+              style={{
+                position: "absolute",
+                top: 8,
+                end: 8,
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: colors.brand,
+              }}
+            />
+          ) : null}
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("notifs.title")}
@@ -175,7 +208,23 @@ export default function ProviderDashboard() {
         </Text>
         {uiListSeparator(i18n.language)}
         {upcoming[0]
-          ? `${t("proWork.nextJob")}: ${new Intl.DateTimeFormat(i18n.language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB", { timeZone: "Africa/Cairo", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(upcoming[0].start_at))}`
+          ? (() => {
+              const when = new Intl.DateTimeFormat(
+                i18n.language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB",
+                {
+                  timeZone: "Africa/Cairo",
+                  day: "numeric",
+                  month: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                },
+              ).format(new Date(upcoming[0].start_at));
+              const sameDay =
+                new Date(upcoming[0].start_at).toDateString() === new Date().toDateString();
+              return sameDay
+                ? `${t("proWork.nextJob")}: ${when}`
+                : t("proWork.nextJobDate", { when });
+            })()
           : t("proWork.noJobToday")}
       </Text>
       <View style={{ flexDirection: "row", gap: space.md }}>

@@ -28,15 +28,21 @@ export function formatDate(
   date: Date,
   options: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" },
   language?: string,
+  timeZone?: string,
 ) {
-  return new Intl.DateTimeFormat(formatLocale(language), options).format(date).replace(/،/g, "");
+  const fmt = new Intl.DateTimeFormat(formatLocale(language), {
+    ...options,
+    ...(timeZone ? { timeZone } : {}),
+  });
+  return fmt.format(date).replace(/،/g, "");
 }
 
-export function formatTime(date: Date, language?: string) {
+export function formatTime(date: Date, language?: string, timeZone?: string) {
   return new Intl.DateTimeFormat(formatLocale(language), {
     hour: "numeric",
     ...(date.getMinutes() === 0 ? {} : { minute: "2-digit" as const }),
     hour12: true,
+    ...(timeZone ? { timeZone } : {}),
   }).format(date);
 }
 
@@ -51,9 +57,16 @@ export function formatDuration(hours: number, language = currentLang() as string
   return `${formatNumber(hours, language)} ${unit}`;
 }
 
-export function formatDateTime(date: Date, language?: string) {
+export function formatDateTime(
+  date: Date,
+  language?: string,
+  timeZone?: string,
+) {
   const resolved = language ?? (currentLang() as string);
-  return joinUiParts([formatDate(date, undefined, resolved), formatTime(date, resolved)], resolved);
+  return joinUiParts(
+    [formatDate(date, undefined, resolved, timeZone), formatTime(date, resolved, timeZone)],
+    resolved,
+  );
 }
 
 export { formatCustomerBookingListWhen } from "./customerBookingListWhen";

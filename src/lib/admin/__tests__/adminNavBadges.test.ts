@@ -25,6 +25,7 @@ describe("adminNavBadgeCount", () => {
       adminNavBadgeCount("/admin/providers", queue, {
         pendingSettlements: 0,
         providersAtCashLimit: 0,
+        studentParentFlags: 0,
       }),
     ).toBe(3);
   });
@@ -34,6 +35,7 @@ describe("adminNavBadgeCount", () => {
       adminNavBadgeCount("/admin/finance", emptyQueue, {
         pendingSettlements: 4,
         providersAtCashLimit: 2,
+        studentParentFlags: 0,
       }),
     ).toBe(6);
   });

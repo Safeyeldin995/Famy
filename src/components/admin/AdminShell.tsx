@@ -42,6 +42,7 @@ import {
 } from "@/lib/db/admin-finance-queries";
 import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
+import { useAdminStudentParentFlagCount } from "@/lib/db/student-parent-link-queries";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
@@ -88,7 +89,14 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
     titleKey: "admin.layout.group.customers",
     titleFallback: "Customers",
-    items: [{ to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound }],
+    items: [
+      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
+      {
+        to: "/admin/student-links",
+        labelKey: "admin.layout.nav.studentLinks",
+        icon: UserRound,
+      },
+    ],
   },
   {
     titleKey: "admin.layout.group.finance",
@@ -96,6 +104,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     items: [
       { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
       { to: "/admin/reports", labelKey: "admin.layout.nav.reports", icon: FileText },
+      { to: "/admin/reports/online", labelKey: "admin.layout.nav.onlineReports", icon: Video },
       { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
@@ -135,7 +144,9 @@ export function AdminShell({
   const role = useMyRole();
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   if (/\/statement\/print\/?$/.test(rawPathname)) {
-    return <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>;
+    return (
+      <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>
+    );
   }
   const pathname = normalizeAdminPathname(rawPathname)
     .replace(/^\/admin\/provider\//, "/admin/providers/")
@@ -154,9 +165,11 @@ export function AdminShell({
   );
   const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
   const financeProviders = useAdminFinanceProviders();
+  const studentParentFlags = useAdminStudentParentFlagCount();
   const navBadgeExtras = {
     pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,
     providersAtCashLimit: (financeProviders.data ?? []).filter((row) => row.at_limit).length,
+    studentParentFlags: studentParentFlags.data ?? 0,
   };
   const mobileTabs = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -245,7 +258,9 @@ export function AdminShell({
                 aria-expanded={mobileNavOpen}
                 aria-controls="admin-mobile-nav"
                 aria-label={
-                  mobileNavOpen ? t("admin.layout.closeMenu", "Close menu") : t("admin.layout.openMenu", "Open menu")
+                  mobileNavOpen
+                    ? t("admin.layout.closeMenu", "Close menu")
+                    : t("admin.layout.openMenu", "Open menu")
                 }
               >
                 {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

@@ -7,6 +7,7 @@ import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
 import { filterWebOnlineBookingRows } from "@/lib/web/webOnlineDataBoundary";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
+import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
 import { currentLang } from "@/lib/i18n";
 import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
 
@@ -64,8 +65,8 @@ function OnlineProviderRequests() {
                 <div className="p-4">
                   <p className="text-pro-16 font-bold">{customer?.full_name ?? t("provider2.unnamed")}</p>
                   <p className="mt-1 text-pro-13 text-muted-foreground">
-                    {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale)}{" "}
-                    · {formatTime(startAt, locale)}
+                    {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}{" "}
+                    · {formatTime(startAt, locale, ONLINE_WEB_TIME_ZONE)}
                   </p>
                   <div className="mt-3">
                     <OnlineProviderBookingSummary

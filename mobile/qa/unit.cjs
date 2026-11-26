@@ -299,6 +299,20 @@ assert.deepEqual(mapNotificationDeepLink("/messages", "provider"), {
 assert.deepEqual(mapNotificationDeepLink("/pro/onboarding", "provider"), {
   pathname: "/pro-onboarding",
 });
+assert.deepEqual(mapNotificationDeepLink("/online/lessons/b1/room", "customer"), {
+  pathname: "/booking/[id]/session",
+  params: { id: "b1" },
+});
+assert.deepEqual(mapNotificationDeepLink("/wallet", "customer"), { pathname: "/wallet" });
+assert.deepEqual(mapNotificationDeepLink("/booking/b1?review=1", "customer"), {
+  pathname: "/booking/[id]",
+  params: { id: "b1", review: "1" },
+});
+assert.deepEqual(mapNotificationDeepLink("/pro/setup/hours", "provider"), {
+  pathname: "/pro-setup/[item]",
+  params: { item: "hours" },
+});
+assert.deepEqual(mapNotificationDeepLink("/pro/documents", "provider"), { pathname: "/pro-documents" });
 assert.deepEqual(mapNotificationDeepLink("/home", "customer"), { pathname: "/home" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), { pathname: "/dashboard" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "customer"), { pathname: "/home" });
@@ -317,7 +331,23 @@ assert.equal(
   }),
   "/setup",
 );
-console.log("PASS: 8 deep-link mapper, mobilePush locale, and OAuth helper checks.");
+const {
+  shouldShowMobileLaunchPushModal,
+  shouldShowMobileCustomerExplanationPushModal,
+} = load(path.join(root, "src/lib/push/mobilePromptPolicy.ts"));
+assert.equal(shouldShowMobileLaunchPushModal("provider", "undetermined", false), true);
+assert.equal(shouldShowMobileLaunchPushModal("customer", "undetermined", false), false);
+assert.equal(shouldShowMobileCustomerExplanationPushModal("undetermined", false), true);
+assert.equal(shouldShowMobileCustomerExplanationPushModal("undetermined", true), false);
+const { pickCurrentBookingPayment } = load(path.join(root, "src/lib/payments/currentBookingPayment.ts"));
+assert.equal(
+  pickCurrentBookingPayment([
+    { status: "rejected", created_at: "2026-01-02T10:00:00Z" },
+    { status: "captured", payment_method_type: "card", created_at: "2026-01-02T11:00:00Z" },
+  ])?.status,
+  "captured",
+);
+console.log("PASS: 8 deep-link mapper, mobilePush locale, OAuth, push policy, and payment picker checks.");
 const { OTP_LENGTH, applyOtpDigitInput } = load(
   path.join(root, "mobile/src/lib/auth/otpCodeInputLogic.ts"),
 );

@@ -11,7 +11,9 @@ import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 import { authorizeSessionJoin, paymentCapturedForJoin, sessionJoinWindow } from "@/lib/livekit/sessionAccess";
-import { formatDate, formatEGP, formatLocale, formatTime } from "@/lib/format";
+import { formatDate, formatTime, formatLocale, formatEGP, formatNumber } from "@/lib/format";
+import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
+import { onlineLessonDetailGuidance } from "@/lib/online/onlineLessonDetailUx";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,14 +40,6 @@ function OnlineLessonDetail() {
   const { paymob_return } = Route.useSearch();
   const { t } = useTranslation();
   const bookingQ = useBooking(bookingId);
-  const paymentQ = useBookingPayment(bookingId);
-  const cancel = useCancelBooking();
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const cancelPolicyQ = useOnlineCancellationPolicySummary();
-  const cancelFeeQ = useBookingCancellationFee(bookingId, cancelOpen);
-  const lang = currentLang();
-  const locale = formatLocale(lang);
-
   const userQ = useQuery({
     queryKey: ["online-lesson-user"],
     queryFn: async () => {
@@ -53,6 +47,18 @@ function OnlineLessonDetail() {
       return data.user?.id ?? null;
     },
   });
+  const userId = userQ.data;
+  const providerProfileId = bookingQ.data
+    ? String((bookingQ.data as { provider_profile_id?: string | null }).provider_profile_id ?? "")
+    : "";
+  const isProviderViewer = !!userId && userId === providerProfileId;
+  const paymentQ = useBookingPayment(bookingId, { providerSafe: isProviderViewer });
+  const cancel = useCancelBooking();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelPolicyQ = useOnlineCancellationPolicySummary();
+  const cancelFeeQ = useBookingCancellationFee(bookingId, cancelOpen);
+  const lang = currentLang();
+  const locale = formatLocale(lang);
 
   usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
   // Join eligibility is computed from the clock at render; tick so the Join button appears when the window opens.
@@ -78,6 +84,16 @@ function OnlineLessonDetail() {
   if (bookingQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
   }
+  if (bookingQ.isError) {
+    return (
+      <div className="space-y-3">
+        <p className="text-pro-14 text-coral">{t("onlineWeb.lessonDetail.loadError")}</p>
+        <PrimaryButton className="h-10" onClick={() => void bookingQ.refetch()}>
+          {t("common.tryAgain")}
+        </PrimaryButton>
+      </div>
+    );
+  }
   const booking = bookingQ.data;
   if (!booking) {
     return <p className="text-pro-14 text-muted-foreground">{t("onlineWeb.lessons.empty")}</p>;
@@ -88,10 +104,8 @@ function OnlineLessonDetail() {
     return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
   }
 
-  const userId = userQ.data;
   const isCustomer = userId === String(booking.customer_id);
-  const isProvider =
-    userId === String((booking as { provider_profile_id?: string | null }).provider_profile_id ?? "");
+  const isProvider = isProviderViewer;
   if (userId && !isCustomer && !isProvider) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
   }
@@ -104,7 +118,13 @@ function OnlineLessonDetail() {
   const paid = moneyHeld({
     paymentStatus: paymentQ.data?.status,
     methodType: paymentQ.data?.payment_method_type,
-    proofPath: paymentQ.data?.proof_path,
+    proofPath: isProvider
+      ? paymentQ.data && "has_proof" in paymentQ.data && paymentQ.data.has_proof
+        ? "1"
+        : null
+      : paymentQ.data && "proof_path" in paymentQ.data
+        ? paymentQ.data.proof_path
+        : null,
   });
 
   // Joining needs a captured payment (server rule); a receipt in review only holds money.
@@ -141,6 +161,24 @@ function OnlineLessonDetail() {
           amount: formatEGP(cancelFee, undefined, lang),
         })}`
       : cancelPolicyBody;
+  const serviceRow = booking.service as { name_ar?: string; name_en?: string } | null | undefined;
+  const serviceLabel =
+    lang === "ar"
+      ? serviceRow?.name_ar || serviceRow?.name_en || ""
+      : serviceRow?.name_en || serviceRow?.name_ar || "";
+  const durationMin = Math.round((endAt.getTime() - startAt.getTime()) / 60_000);
+  const confirmedAt = (booking as { confirmed_at?: string | null }).confirmed_at ?? null;
+  const guidance = onlineLessonDetailGuidance({
+    status: String(booking.status),
+    paymentCaptured: captured,
+    paidHeld: paid,
+    confirmedAt,
+    startAt,
+    endAt,
+    locale,
+  });
+  const paymobFailed =
+    paymob_return === "1" && !paymentQ.isLoading && !captured && String(booking.status) === "confirmed";
 
   return (
     <div className="space-y-6">
@@ -155,8 +193,35 @@ function OnlineLessonDetail() {
         booking={booking}
         locale={locale}
         startAt={startAt}
+        endAt={endAt}
+        serviceLabel={serviceLabel}
+        durationMin={durationMin}
+        totalDue={totalDue}
+        lang={lang}
         t={t}
       />
+
+      {guidance ? (
+        <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4 text-pro-14">
+          <p className="font-bold text-foreground">
+            {t(guidance.messageKey, guidance.messageParams)}
+          </p>
+          <p className="mt-1 text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
+        </div>
+      ) : null}
+
+      {paymobFailed ? (
+        <p className="text-pro-14 font-bold text-coral">{t("onlineWeb.lessonDetail.paymobFailed")}</p>
+      ) : null}
+
+      {paymentQ.isError ? (
+        <div className="space-y-2">
+          <p className="text-pro-14 text-coral">{t("onlineWeb.lessonDetail.paymentLoadError")}</p>
+          <button type="button" className="text-pro-13 font-bold text-brand underline" onClick={() => void paymentQ.refetch()}>
+            {t("common.tryAgain")}
+          </button>
+        </div>
+      ) : null}
 
       {isCustomer && String(booking.status) === "confirmed" && !paid ? (
         <OnlineWebLessonPaymentPanel
@@ -166,14 +231,14 @@ function OnlineLessonDetail() {
         />
       ) : null}
 
-      {isCustomer && paid && !captured ? (
-        <p className="text-pro-14 font-bold text-muted-foreground">{t("payment.awaitingReview")}</p>
-      ) : null}
-
       {joinAuth.ok && joinWindow.open ? (
         <Link to="/online/lessons/$bookingId/room" params={{ bookingId }} search={{ paymob_return: undefined }}>
           <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.joinNow")}</PrimaryButton>
         </Link>
+      ) : guidance?.showJoinDisabled ? (
+        <PrimaryButton className="h-12 w-full" disabled>
+          {t("onlineWeb.walkthrough.joinNow")}
+        </PrimaryButton>
       ) : null}
 
       {userId && (isCustomer || isProvider) ? (
@@ -221,6 +286,7 @@ function OnlineLessonDetail() {
                 toast.success(t("admin.bookings.cancelSuccess"));
                 void bookingQ.refetch();
               },
+              onError: () => toast.error(t("onlineWeb.lessonDetail.cancelFailed")),
             },
           )
         }
@@ -236,6 +302,11 @@ function LessonCard({
   booking,
   locale,
   startAt,
+  endAt,
+  serviceLabel,
+  durationMin,
+  totalDue,
+  lang,
   t,
 }: {
   provider: ReturnType<typeof toUIProvider> | null;
@@ -244,6 +315,11 @@ function LessonCard({
   booking: Record<string, unknown>;
   locale: string;
   startAt: Date;
+  endAt: Date;
+  serviceLabel: string;
+  durationMin: number;
+  totalDue: number;
+  lang: string;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const displayName = isProviderView
@@ -263,15 +339,28 @@ function LessonCard({
           <p className="mt-1 text-pro-16 font-bold">{displayName}</p>
           <p className="mt-1 flex items-center gap-1.5 text-pro-13 text-muted-foreground">
             <Calendar className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden />
-            {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale)}
+            {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale, ONLINE_WEB_TIME_ZONE)}
             <span aria-hidden>·</span>
-            {formatTime(startAt, locale)}
+            {formatTime(startAt, locale, ONLINE_WEB_TIME_ZONE)}
+            <span aria-hidden>–</span>
+            {formatTime(endAt, locale, ONLINE_WEB_TIME_ZONE)}
           </p>
           {isProviderView ? (
             <div className="mt-3">
               <OnlineProviderBookingSummary booking={booking as OnlineProviderBookingSummaryRow} />
             </div>
-          ) : null}
+          ) : (
+            <>
+              {serviceLabel ? (
+                <p className="mt-1 text-pro-13 text-muted-foreground">{serviceLabel}</p>
+              ) : null}
+              <p className="mt-1 text-pro-13 font-bold tabular-nums">
+                {t("bookFlow.sessionLine", { minutes: formatNumber(durationMin, lang) })} ·{" "}
+                {formatEGP(totalDue, undefined, lang)}
+              </p>
+              <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
+            </>
+          )}
         </div>
       </div>
     </div>

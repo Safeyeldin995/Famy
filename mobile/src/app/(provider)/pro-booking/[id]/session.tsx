@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { space } from "@/ui/theme";
 import { View, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -11,9 +11,17 @@ import { Page } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 
+function onlineSessionErrorLabel(code: string, t: (key: string, opts?: { defaultValue?: string }) => string) {
+  const key = `onlineSession.errors.${code}`;
+  const translated = t(key, { defaultValue: "" });
+  if (translated) return translated;
+  return t("onlineSession.errors.server_error");
+}
+
 export default function ProviderOnlineSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "prejoin"; token: string; url: string }
@@ -21,21 +29,27 @@ export default function ProviderOnlineSessionScreen() {
     | { status: "error"; code: string }
   >({ status: "loading" });
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchOnlineSessionToken({ bookingId: id })
+  const load = useCallback(() => {
+    setState({ status: "loading" });
+    return fetchOnlineSessionToken({ bookingId: id })
       .then((result) => {
-        if (cancelled) return;
         if (!result.ok) setState({ status: "error", code: result.error });
         else setState({ status: "prejoin", token: result.token, url: result.url });
       })
       .catch(() => {
-        if (!cancelled) setState({ status: "error", code: "server_error" });
+        setState({ status: "error", code: "server_error" });
       });
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void load().then(() => {
+      if (cancelled) return;
+    });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [attempt, load]);
 
   return (
     <Page title={t("onlineSession.title")} scrollHeader>
@@ -47,8 +61,15 @@ export default function ProviderOnlineSessionScreen() {
       ) : null}
       {state.status === "error" ? (
         <View style={{ gap: space.md, padding: space.lg }}>
-          <Text>{t(`onlineSession.errors.${state.code}`, { defaultValue: state.code })}</Text>
-          <Button label={t("onlineSession.joinFailed")} onPress={() => router.back()} />
+          <Text weight="heavy" size="lg">
+            {t("onlineSession.joinFailed")}
+          </Text>
+          <Text>{onlineSessionErrorLabel(state.code, t)}</Text>
+          <Button
+            label={t("onlineSession.retry")}
+            onPress={() => setAttempt((n) => n + 1)}
+          />
+          <Button variant="secondary" label={t("onlineSession.preJoinBack")} onPress={() => router.back()} />
         </View>
       ) : null}
       {state.status === "prejoin" ? (
