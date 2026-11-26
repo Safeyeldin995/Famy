@@ -16,6 +16,7 @@ export const ADMIN_WORK_QUEUE_KEYS = [
   "ugc_reports",
   "pending_settlements",
   "providers_at_cash_limit",
+  "tutors_missing_teaching_data",
 ] as const;
 
 export type AdminWorkQueueKey = (typeof ADMIN_WORK_QUEUE_KEYS)[number];
@@ -27,11 +28,13 @@ export function isProviderWorkQueueKey(value: unknown): value is AdminWorkQueueK
     [
       "new_applications",
       "resubmitted_applications",
+      "applications_over_sla",
       "new_service_requests",
       "price_change_requests",
       "pending_services",
       "pending_teaching_groups",
       "pending_documents",
+      "tutors_missing_teaching_data",
     ].includes(value)
   );
 }

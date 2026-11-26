@@ -7,10 +7,7 @@ import { Camera, Globe, LogOut, ShieldCheck } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProvider, useMyProviderServices } from "@/lib/provider/queries";
-import {
-  useProviderPerformanceStats,
-  useProviderWarnings,
-} from "@/lib/provider/journeyQueries";
+import { useProviderPerformanceStats, useProviderWarnings } from "@/lib/provider/journeyQueries";
 import { ProviderPerformanceCard } from "@/ui/provider/ProviderPerformanceCard";
 import { signOutWithPushRevoke } from "@/lib/push";
 import { localized } from "@/lib/presentation";
@@ -20,6 +17,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { customerNumber } from "@/lib/customerFormat";
 import { colors, radius, space } from "@/ui/theme";
+import { TutorTeachingDataBanner } from "@/ui/provider/TutorTeachingDataBanner";
 
 export default function ProviderProfile() {
   const { t, i18n } = useTranslation();
@@ -40,7 +38,12 @@ export default function ProviderProfile() {
   };
 
   return (
-    <Page tab title={t("pro.nav.profile")} queries={[p, servicesQ, statsQ, warningsQ]} contentStyle={{ gap: space.lg }}>
+    <Page
+      tab
+      title={t("pro.nav.profile")}
+      queries={[p, servicesQ, statsQ, warningsQ]}
+      contentStyle={{ gap: space.lg }}
+    >
       <QueryState query={p}>
         <View
           style={[
@@ -133,7 +136,10 @@ export default function ProviderProfile() {
       {warningsQ.data?.length ? (
         <View
           nativeID="warnings"
-          style={[proCard.card, { borderColor: colors.destructive, backgroundColor: colors.destructiveTint }]}
+          style={[
+            proCard.card,
+            { borderColor: colors.destructive, backgroundColor: colors.destructiveTint },
+          ]}
         >
           <Text weight="heavy" style={{ color: colors.destructive }}>
             {t("proWarnings.title")}
@@ -145,7 +151,9 @@ export default function ProviderProfile() {
           ))}
         </View>
       ) : null}
-      {statsQ.data && provider?.is_verified ? <ProviderPerformanceCard stats={statsQ.data} /> : null}
+      {statsQ.data && provider?.is_verified ? (
+        <ProviderPerformanceCard stats={statsQ.data} />
+      ) : null}
       <Row label={t("proReviews.title")} onPress={() => router.push("/pro-my-reviews")} />
       <Row label={t("scheduleUi.hours")} onPress={() => router.push("/schedule")} />
       <Row
@@ -198,6 +206,7 @@ export default function ProviderProfile() {
           </Pressable>
         ) : null}
       </View>
+      <TutorTeachingDataBanner />
       <QueryState query={servicesQ} empty={!servicesQ.data?.length} emptyKey="mobile.empty">
         {servicesQ.data?.map((row) => {
           const service = row.service as { name_ar?: string; name_en?: string } | null;

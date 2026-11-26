@@ -47,92 +47,58 @@ type NavGroup = { titleKey: string; items: NavItem[] };
 
 export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
-    titleKey: "admin.layout.group.operations",
-    titleFallback: "Operations",
+    titleKey: "adminNav.group.daily",
+    titleFallback: "Daily follow-up",
     items: [
-      { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
-      { to: "/admin/performance", labelKey: "admin.layout.nav.performance", icon: BarChart3 },
-      { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
-      { to: "/admin/operations", labelKey: "admin.layout.nav.operations", icon: Activity },
-      { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
-      {
-        to: "/admin/online-lesson-issues",
-        labelKey: "admin.layout.nav.onlineLessonIssues",
-        icon: Video,
-      },
-      {
-        to: "/admin/reports-ugc",
-        labelKey: "admin.layout.nav.reportsUgc",
-        icon: Flag,
-      },
-      { to: "/admin/monitoring", labelKey: "admin.layout.nav.monitoring", icon: Radar },
+      { to: "/admin", labelKey: "adminNav.today", icon: LayoutDashboard, exact: true },
+      { to: "/admin/cases", labelKey: "adminNav.cases", icon: LifeBuoy },
+      { to: "/admin/online-lesson-issues", labelKey: "adminNav.onlineLessonIssues", icon: Video },
+      { to: "/admin/reports-ugc", labelKey: "adminNav.reportsUgc", icon: Flag },
+      { to: "/admin/monitoring", labelKey: "adminNav.monitoring", icon: Radar },
     ],
   },
   {
-    titleKey: "admin.layout.group.providers",
-    titleFallback: "Providers",
+    titleKey: "adminNav.group.bookings",
+    titleFallback: "Bookings",
+    items: [{ to: "/admin/bookings", labelKey: "adminNav.bookings", icon: ClipboardList }],
+  },
+  {
+    titleKey: "adminNav.group.money",
+    titleFallback: "Money",
     items: [
-      { to: "/admin/providers", labelKey: "admin.layout.nav.providers", icon: ShieldCheck },
-      {
-        to: "/admin/documents-expiring",
-        labelKey: "admin.layout.nav.documentsExpiring",
-        icon: FileText,
-      },
-      {
-        to: "/admin/service-requests",
-        labelKey: "admin.layout.nav.serviceRequests",
-        icon: FileText,
-      },
-      {
-        to: "/admin/price-change-requests",
-        labelKey: "admin.layout.nav.priceChangeRequests",
-        icon: CircleDollarSign,
-      },
-      { to: "/admin/area-requests", labelKey: "admin.layout.nav.areaRequests", icon: MapPin },
+      { to: "/admin/payments", labelKey: "adminNav.payments", icon: CreditCard },
+      { to: "/admin/wallets", labelKey: "adminNav.wallets", icon: Wallet },
+      { to: "/admin/finance", labelKey: "adminNav.finance", icon: CircleDollarSign },
+      { to: "/admin/reports", labelKey: "adminNav.reports", icon: FileText },
+      { to: "/admin/reports/online", labelKey: "adminNav.onlineReports", icon: BarChart3 },
+      { to: "/admin/performance", labelKey: "adminNav.performance", icon: Activity },
+      { to: "/admin/promo-codes", labelKey: "adminNav.promoCodes", icon: Tag },
+      { to: "/admin/payment-methods", labelKey: "adminNav.paymentMethods", icon: CreditCard },
     ],
   },
   {
-    titleKey: "admin.layout.group.customers",
-    titleFallback: "Customers",
+    titleKey: "adminNav.group.people",
+    titleFallback: "People",
     items: [
-      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
-      {
-        to: "/admin/student-links",
-        labelKey: "admin.layout.nav.studentLinks",
-        icon: UserRound,
-      },
+      { to: "/admin/customers", labelKey: "adminNav.customers", icon: UserRound },
+      { to: "/admin/providers", labelKey: "adminNav.providers", icon: ShieldCheck },
+      { to: "/admin/service-requests", labelKey: "adminNav.serviceRequests", icon: Layers },
+      { to: "/admin/price-change-requests", labelKey: "adminNav.priceChangeRequests", icon: Tag },
+      { to: "/admin/documents-expiring", labelKey: "adminNav.documentsExpiring", icon: FileText },
+      { to: "/admin/student-links", labelKey: "adminNav.studentLinks", icon: UserRound },
+      { to: "/admin/area-requests", labelKey: "adminNav.areaRequests", icon: MapPin },
     ],
   },
   {
-    titleKey: "admin.layout.group.finance",
-    titleFallback: "Finance",
-    items: [
-      { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
-      { to: "/admin/reports", labelKey: "admin.layout.nav.reports", icon: FileText },
-      { to: "/admin/reports/online", labelKey: "admin.layout.nav.onlineReports", icon: Video },
-      { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
-      {
-        to: "/admin/payment-methods",
-        labelKey: "admin.layout.nav.paymentMethods",
-        icon: CreditCard,
-      },
-      { to: "/admin/promo-codes", labelKey: "admin.layout.nav.promoCodes", icon: Tag },
-    ],
-  },
-  {
-    titleKey: "admin.layout.group.settings",
+    titleKey: "adminNav.group.settings",
     titleFallback: "Settings",
     items: [
-      { to: "/admin/zones", labelKey: "admin.layout.nav.zones", icon: MapPin },
-      { to: "/admin/services", labelKey: "admin.layout.nav.services", icon: Layers },
-      {
-        to: "/admin/cancellation-reasons",
-        labelKey: "admin.layout.nav.cancellationReasons",
-        icon: Ban,
-      },
-      { to: "/admin/campaigns", labelKey: "admin.layout.nav.campaigns", icon: Megaphone },
-      { to: "/admin/settings", labelKey: "admin.layout.nav.settings", icon: Settings },
-      { to: "/admin/audit-log", labelKey: "admin.layout.nav.auditLog", icon: History },
+      { to: "/admin/zones", labelKey: "adminNav.zones", icon: MapPin },
+      { to: "/admin/services", labelKey: "adminNav.services", icon: Layers },
+      { to: "/admin/cancellation-reasons", labelKey: "adminNav.cancellationReasons", icon: Ban },
+      { to: "/admin/campaigns", labelKey: "adminNav.campaigns", icon: Megaphone },
+      { to: "/admin/settings", labelKey: "adminNav.settings", icon: Settings },
+      { to: "/admin/audit-log", labelKey: "adminNav.auditLog", icon: History },
     ],
   },
 ];
@@ -224,9 +190,12 @@ export function AdminShell({
   }
 
   const flatTabs = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-  const isActive = (tab: NavItem) =>
-    tab.exact ? pathname === tab.to : pathname.startsWith(tab.to);
-  const currentTab = flatTabs.find((tab) => isActive(tab));
+  // The most specific matching item wins, so /admin/reports/online does not
+  // also light up /admin/reports, and /admin/reports-ugc never matches it.
+  const matches = (tab: NavItem) =>
+    tab.exact ? pathname === tab.to : pathname === tab.to || pathname.startsWith(`${tab.to}/`);
+  const currentTab = flatTabs.filter(matches).sort((a, b) => b.to.length - a.to.length)[0];
+  const isActive = (tab: NavItem) => currentTab?.to === tab.to;
 
   const shell = (
     <AdminPreviewContext.Provider value={previewMode}>

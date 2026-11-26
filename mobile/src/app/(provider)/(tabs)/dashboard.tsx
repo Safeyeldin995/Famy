@@ -21,6 +21,7 @@ import { money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
 import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
+import { TutorTeachingDataBanner } from "@/ui/provider/TutorTeachingDataBanner";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
@@ -55,7 +56,9 @@ export default function ProviderDashboard() {
     const requiredTypes = new Set(["id_card_front", "id_card_back"]);
     const missingDocument =
       docs.some((d) => d.status === "rejected") ||
-      [...requiredTypes].some((type) => !docs.some((d) => d.type === type && d.status === "approved"));
+      [...requiredTypes].some(
+        (type) => !docs.some((d) => d.type === type && d.status === "approved"),
+      );
     const rejectedService = services.some((s) => s.status === "rejected");
     return pickProviderNextAction({
       pending,
@@ -87,7 +90,12 @@ export default function ProviderDashboard() {
         })}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-        <Avatar raw={profile?.avatar_url} size={44} round name={firstName || t("pro.common.greetingFallback")} />
+        <Avatar
+          raw={profile?.avatar_url}
+          size={44}
+          round
+          name={firstName || t("pro.common.greetingFallback")}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("nav.messages")}
@@ -181,6 +189,7 @@ export default function ProviderDashboard() {
       queries={[p, bookingsQ, earningsQ, statsQ]}
       contentStyle={{ paddingTop: space.sm, gap: space.lg }}
     >
+      <TutorTeachingDataBanner />
       {!bookingsQ.isError && bookingsQ.data ? (
         <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />
       ) : null}
@@ -229,7 +238,9 @@ export default function ProviderDashboard() {
         </Text>
       </Pressable>
       {nextAction ? <ProviderNextActionStrip action={nextAction} /> : null}
-      {statsQ.data && provider?.is_verified ? <ProviderPerformanceCard stats={statsQ.data} /> : null}
+      {statsQ.data && provider?.is_verified ? (
+        <ProviderPerformanceCard stats={statsQ.data} />
+      ) : null}
       <View style={{ flexDirection: "row", gap: space.md }}>
         <Pressable
           accessibilityRole="button"
@@ -287,7 +298,10 @@ export default function ProviderDashboard() {
         <Text
           style={{ backgroundColor: colors.brandTint, borderRadius: radius.lg, padding: space.md }}
         >
-          {joinUiParts([t("pro.dashboard.vacationOn"), t("pro.dashboard.vacationOnBody")], i18n.language)}
+          {joinUiParts(
+            [t("pro.dashboard.vacationOn"), t("pro.dashboard.vacationOnBody")],
+            i18n.language,
+          )}
         </Text>
       ) : null}
       {sectionTitle(
@@ -308,7 +322,11 @@ export default function ProviderDashboard() {
           title={t("pro.dashboard.noUpcoming")}
           body={t("pro.bookings.emptyUpcoming")}
         >
-          <Button label={t("pro.common.seeAll")} variant="secondary" onPress={() => router.push("/schedule")} />
+          <Button
+            label={t("pro.common.seeAll")}
+            variant="secondary"
+            onPress={() => router.push("/schedule")}
+          />
         </ProviderEmptyState>
       )}
     </Page>

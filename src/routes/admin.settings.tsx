@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { adminLabel } from "@/components/admin/adminPresentation";
 import {
   ConfirmCatalogButton,
@@ -417,7 +418,7 @@ function BookingExpirySection() {
             },
             {
               onError: (e: any) =>
-                toast.error(e?.message ?? t("admin.settings.bookingExpirySaveError")),
+                toast.error(adminErrorText(t, e, t("admin.settings.bookingExpirySaveError"))),
             },
           );
         }}
@@ -479,7 +480,7 @@ function CategoriesSection() {
                           {
                             onSuccess: () => setEditing(null),
                             onError: (e: any) =>
-                              toast.error(e?.message ?? t("admin.settings.categorySaveError")),
+                              toast.error(adminErrorText(t, e, t("admin.settings.categorySaveError"))),
                           },
                         )
                       }
@@ -524,7 +525,7 @@ function CategoriesSection() {
                           { id: c.id, active: !c.is_active },
                           {
                             onError: (e: any) =>
-                              toast.error(e?.message ?? t("admin.settings.categoryUpdateError")),
+                              toast.error(adminErrorText(t, e, t("admin.settings.categoryUpdateError"))),
                           },
                         )
                       }
@@ -567,7 +568,7 @@ function ServiceAreasSection() {
       onError: (e: any) => {
         setAreas(previous);
         void q.refetch();
-        toast.error(e?.message ?? t("admin.settings.serviceAreaError"));
+        toast.error(adminErrorText(t, e, t("admin.settings.serviceAreaError")));
       },
     });
   };
@@ -628,7 +629,7 @@ function ReminderRulesSection() {
     }
     create.mutate(n, {
       onSuccess: () => setLeadMinutes(""),
-      onError: (e: any) => toast.error(e?.message ?? t("admin.settings.reminderAddError")),
+      onError: (e: any) => toast.error(adminErrorText(t, e, t("admin.settings.reminderAddError"))),
     });
   };
 
@@ -666,7 +667,7 @@ function ReminderRulesSection() {
                     { id: r.id, active: !r.is_active },
                     {
                       onError: (e: any) =>
-                        toast.error(e?.message ?? t("admin.settings.reminderUpdateError")),
+                        toast.error(adminErrorText(t, e, t("admin.settings.reminderUpdateError"))),
                     },
                   )
                 }
@@ -767,7 +768,7 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
                 { key: contentKey, body_en: en, body_ar: ar },
                 {
                   onError: (e: any) =>
-                    toast.error(e?.message ?? t("admin.settings.contentSaveError")),
+                    toast.error(adminErrorText(t, e, t("admin.settings.contentSaveError"))),
                 },
               )
             }

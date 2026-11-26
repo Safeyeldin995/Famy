@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterProvidersForStudentEducation,
   providerMatchesStudentEducation,
-  sortProvidersForStudentEducation,
+  studentMatchCriteria,
   tutoringMatchBadgeLabel,
+  tutoringServiceKind,
 } from "../tutoringProviderMatch";
 import type { TeachingCapabilityOption } from "../teachingCapabilities";
 
@@ -28,15 +30,58 @@ const capability = (providerId: string): TeachingCapabilityOption => ({
 });
 
 describe("tutoring provider match", () => {
-  it("sorts matching providers ahead without hiding anyone", () => {
+  it("shows only matching tutors once the student's system and grade are known", () => {
     const providers = [{ id: "a" }, { id: "b" }, { id: "c" }];
-    const capabilities = [capability("b")];
-    const sorted = sortProvidersForStudentEducation(providers, capabilities, {
+    const capabilities = [capability("b"), { ...capability("c"), levelId: "lvl-9" }];
+    const filtered = filterProvidersForStudentEducation(providers, capabilities, {
       serviceId: "svc-1",
       curriculumId: "cur-1",
       levelId: "lvl-10",
     });
-    expect(sorted.map((row) => row.id)).toEqual(["b", "a", "c"]);
+    expect(filtered.map((row) => row.id)).toEqual(["b"]);
+  });
+
+  it("keeps everyone when the student's profile is incomplete", () => {
+    const providers = [{ id: "a" }, { id: "b" }];
+    expect(
+      filterProvidersForStudentEducation(providers, [capability("b")], {
+        serviceId: "svc-1",
+        curriculumId: "cur-1",
+        levelId: null,
+      }),
+    ).toEqual(providers);
+  });
+
+  it("also requires the subject when one is chosen", () => {
+    const caps = [capability("b")];
+    const ctx = { serviceId: "svc-1", curriculumId: "cur-1", levelId: "lvl-10" };
+    expect(providerMatchesStudentEducation("b", caps, { ...ctx, subjectCode: "math" })).toBe(true);
+    expect(providerMatchesStudentEducation("b", caps, { ...ctx, subjectCode: "physics" })).toBe(false);
+    // Pending capabilities never match.
+    expect(providerMatchesStudentEducation("b", [{ ...capability("b"), status: "pending" }], ctx)).toBe(false);
+  });
+
+  it("builds match criteria per service kind", () => {
+    expect(tutoringServiceKind("quran-lessons")).toBe("skill");
+    expect(tutoringServiceKind("music-lessons")).toBe("skill");
+    expect(tutoringServiceKind("homework-support")).toBe("homework");
+    expect(tutoringServiceKind("school-subject-tutoring")).toBe("school");
+    const base = { subjectId: "sub", curriculumId: "cur", levelId: "g4", skillLevelId: "beginner" };
+    expect(studentMatchCriteria({ ...base, serviceSlug: "school-subject-tutoring" })).toEqual({
+      subjectId: "sub",
+      curriculumId: "cur",
+      levelId: "g4",
+    });
+    expect(studentMatchCriteria({ ...base, serviceSlug: "homework-support" })).toEqual({
+      subjectId: null,
+      curriculumId: "cur",
+      levelId: "g4",
+    });
+    expect(studentMatchCriteria({ ...base, serviceSlug: "quran-lessons" })).toEqual({
+      subjectId: "sub",
+      curriculumId: null,
+      levelId: "beginner",
+    });
   });
 
   it("builds the student badge label", () => {

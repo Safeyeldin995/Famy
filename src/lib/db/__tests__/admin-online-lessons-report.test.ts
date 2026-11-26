@@ -439,7 +439,7 @@ describe("admin_online_lessons_report", () => {
       await tryAsUser(
         db,
         IDS.adminUser,
-        "SELECT public.admin_adjust_customer_wallet($1, 'credit', 150, 'wallet report test', NULL)",
+        "SELECT public.admin_adjust_customer_wallet($1, 'credit', 150, 'wallet report test', NULL, gen_random_uuid()::text)",
         [IDS.customer],
       );
 

@@ -21,9 +21,11 @@ import { useCustomerEducationProfile } from "@/lib/db/student-education-queries"
 import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
 import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationProfile";
 import {
+  filterProvidersForStudentEducation,
+  hasStudentEducation,
   providerMatchesStudentEducation,
-  sortProvidersForStudentEducation,
   tutoringMatchBadgeLabel,
+  tutoringServiceKind,
 } from "@/lib/tutoring/tutoringProviderMatch";
 import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { formatNumber } from "@/lib/format";
@@ -44,6 +46,11 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   useEffect(() => {
     if (!serviceId && servicesQ.data?.[0]?.id) setServiceId(servicesQ.data[0].id);
   }, [serviceId, servicesQ.data]);
+  const selectedServiceSlug = (servicesQ.data ?? []).find(
+    (row: { id: string; slug?: string | null }) => row.id === serviceId,
+  )?.slug;
+  // Quran and music match on a skill level picked at booking time (#536 PR 2), not on the school profile.
+  const schoolMatching = id === "tutoring" && tutoringServiceKind(selectedServiceSlug) !== "skill";
   const provsQ = useProviders({ categorySlug: id, serviceId: serviceId || undefined, limit: 50 });
   const familyMembersQ = useActiveFamilyMembers();
   const customerEducationQ = useCustomerEducationProfile();
@@ -77,31 +84,17 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
         : sort === "experience"
           ? b.yearsExp - a.yearsExp
           : b.rating - a.rating;
-    const partitioned = sortProvidersForStudentEducation(list, capsQ.data ?? [], {
-      serviceId: serviceId || null,
-      curriculumId: studentEducation.educationCurriculumId,
-      levelId: studentEducation.educationLevelId,
-    });
-    if (!studentEducation.educationCurriculumId || !studentEducation.educationLevelId) {
-      return [...list].sort(compare);
-    }
-    const matched: typeof list = [];
-    const rest: typeof list = [];
-    for (const provider of partitioned) {
-      if (
-        providerMatchesStudentEducation(provider.id, capsQ.data ?? [], {
-          serviceId: serviceId || null,
-          curriculumId: studentEducation.educationCurriculumId,
-          levelId: studentEducation.educationLevelId,
-        })
-      ) {
-        matched.push(provider);
-      } else {
-        rest.push(provider);
-      }
-    }
-    return [...matched.sort(compare), ...rest.sort(compare)];
+    if (!schoolMatching) return [...list].sort(compare);
+    // Strict matching (#536): with the student's system and grade known, only matching tutors show.
+    return [
+      ...filterProvidersForStudentEducation(list, capsQ.data ?? [], {
+        serviceId: serviceId || null,
+        curriculumId: studentEducation.educationCurriculumId,
+        levelId: studentEducation.educationLevelId,
+      }),
+    ].sort(compare);
   }, [
+    schoolMatching,
     list,
     capsQ.data,
     serviceId,
@@ -110,6 +103,11 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
     studentEducation.educationLevelId,
   ]);
   const matchBadge = tutoringMatchBadgeLabel(studentEducation.studentFirstName, t);
+  const strictMatching = schoolMatching && hasStudentEducation({
+    curriculumId: studentEducation.educationCurriculumId,
+    levelId: studentEducation.educationLevelId,
+  });
+  const waitingForMatch = strictMatching && capsQ.isLoading;
 
   return (
     <PhoneFrame bg="bg-background">
@@ -216,19 +214,32 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
           </Chip>
         </div>
 
-        {provsQ.isLoading ? (
+        {provsQ.isLoading || waitingForMatch ? (
           <div className="space-y-2.5">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
             ))}
           </div>
-        ) : provsQ.isError ? (
-          <QueryError onRetry={() => provsQ.refetch()} />
+        ) : provsQ.isError || (strictMatching && capsQ.isError) ? (
+          <QueryError
+            onRetry={() => {
+              void provsQ.refetch();
+              void capsQ.refetch();
+            }}
+          />
         ) : sorted.length === 0 ? (
           <EmptyState
             icon="search"
-            title={t("customerRound2.noProviders")}
-            body={t("customerRound2.noProvidersBody")}
+            title={
+              strictMatching && studentEducation.studentFirstName
+                ? t("studentEducation.noMatchTitle", { name: studentEducation.studentFirstName })
+                : t("customerRound2.noProviders")
+            }
+            body={
+              strictMatching
+                ? t("studentEducation.noMatchBody")
+                : t("customerRound2.noProvidersBody")
+            }
             action={
               <Link
                 to={previewPath("/search")}
@@ -244,6 +255,7 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               <div key={p.id}>
                 <ProviderCard p={p} subtitle={providerPriceLabel(p, t)} />
                 {matchBadge &&
+                  schoolMatching &&
                   providerMatchesStudentEducation(p.id, capsQ.data ?? [], {
                     serviceId: serviceId || null,
                     curriculumId: studentEducation.educationCurriculumId,
