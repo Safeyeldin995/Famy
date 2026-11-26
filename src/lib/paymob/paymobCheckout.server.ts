@@ -211,12 +211,20 @@ export async function createPaymobCheckoutForPayment(input: {
   } | null;
 
   if (reservationRow?.reused && reservationRow.checkout_url) {
+    const { data: checkoutSecret } = await input.supabaseAdmin
+      .from("payment_paymob_checkout" as "payments")
+      .select("client_secret, checkout_url")
+      .eq("payment_id", payment.id)
+      .maybeSingle();
+    const checkoutRow = checkoutSecret as { client_secret?: string; checkout_url?: string } | null;
     const cachedSecret =
-      typeof payment.metadata?.paymob_client_secret === "string"
-        ? payment.metadata.paymob_client_secret
-        : "";
+      typeof checkoutRow?.client_secret === "string"
+        ? checkoutRow.client_secret
+        : typeof payment.metadata?.paymob_client_secret === "string"
+          ? payment.metadata.paymob_client_secret
+          : "";
     return {
-      checkoutUrl: reservationRow.checkout_url,
+      checkoutUrl: checkoutRow?.checkout_url ?? reservationRow.checkout_url,
       paymentId: payment.id,
       clientSecret: cachedSecret,
       publicKey: config.publicKey,

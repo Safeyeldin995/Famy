@@ -7,6 +7,7 @@ type Labels = {
   period: string;
   opening: string;
   closing: string;
+  periodNet: string;
   columns: {
     date: string;
     kind: string;
@@ -55,10 +56,13 @@ export function downloadStatementCsv(
       credit,
     ];
   });
+  const periodLabel = `${statement.period_from} – ${statement.period_to}`;
   downloadCsv(filename, [
     [labels.title],
     [labels.provider, statement.provider_name],
+    [labels.period, periodLabel],
     [labels.opening, String(statement.opening_balance)],
+    [labels.periodNet, String(statement.period_net)],
     [labels.closing, String(statement.closing_balance)],
     [],
     header,

@@ -1666,6 +1666,11 @@ const ar: Translation = {
       'الحجوزات والمدفوعات والتقييمات والرسائل بتفضل للمحاسبة والضرايب وتاريخ الطرف التاني، هيظهر اسمك "مستخدم محذوف"',
     blockedUnpaid:
       "عليك فلوس لفامي، زي رسوم إلغاء أو رصيد مستحق، سددها الأول وبعدين تقدر تحذف حسابك",
+    blockedFundsOwed:
+      "فامي لسه مديونة لك كمقدم خدمة، تواصل مع الدعم قبل حذف الحساب",
+    walletForfeitWarning:
+      "عندك رصيد {{amount}} ج.م في محفظة فامي، لو مسحت حسابك الرصيد ده هيضيع ومش هيرجع",
+    walletForfeitConfirm: "أفهم إن رصيد المحفظة هيضيع ومش هيرجع",
     blockedActiveBookings: "انهي حجوزاتك القادمة الاول او الغها",
     blockedAdmin: "حسابات الأدمن مش بتتتحذف من التطبيق، كلم فريق الهندسة",
     confirmWord: "حذف",
@@ -1677,9 +1682,11 @@ const ar: Translation = {
     errors: {
       unauthorized: "سجل دخولك مرة تانية علشان تحذف حسابك",
       unpaid_balance: "عليك فلوس لفامي، سددها الأول وبعدين احذف حسابك",
+      funds_owed_to_user: "فامي لسه مديونة لك، تواصل مع الدعم قبل حذف الحساب",
       active_bookings: "انهي حجوزاتك القادمة الاول او الغها",
       admin_not_allowed: "حسابات الأدمن مش بتتتحذف من التطبيق",
       deletion_failed: "لم نتمكن من حذف حسابك، حاول مرة تانية بعد قليل",
+      wallet_forfeit_confirm_required: "أكد إنك موافق على ضياع رصيد المحفظة قبل حذف الحساب",
     },
   },
   mobilePush: {
@@ -3046,6 +3053,13 @@ const ar: Translation = {
       recordRefundHintTransfer:
         "أعد {{amount}} إلى العميل أولا عبر إنستاباي، وتجد بيانات حساب المرسل في إيصال التحويل، ثم سجل رقم عملية الرد هنا، علما بأن التسجيل لا ينفذ أي تحويل مالي",
       refundReference: "رقم عملية الرد أو مرجعها",
+      paymobNeedsAction: {
+        label: "مشكلة Paymob",
+        note: "نقص في التحصيل أو إشارة استرداد أو طلب غير مربوط، راجع Paymob وبعدين علمه إنه اتحل",
+      },
+      resolvePaymob: "تم الحل",
+      resolvePaymobHint:
+        "اكتب إيه اللي عملته في Paymob، ده بيشيل التنبيه من القايمة بس ومش بيحرك فلوس",
       refundDue: {
         label: "يلزم رد المبلغ",
         note: "دفع العميل ثم ألغي الحجز، أعد المبلغ إليه وسجل العملية",
@@ -3539,6 +3553,13 @@ const ar: Translation = {
       walletReasonPlaceholder: "لماذا يتم هذا التعديل؟",
       walletAdjustSuccess: "تم تحديث المحفظة",
       walletAdjustError: "تعذر تحديث المحفظة",
+      walletLoadError: "تعذر تحميل رصيد المحفظة",
+      walletAmountInvalid: "ادخل مبلغا صحيحا اكبر من صفر",
+      walletReasonRequired: "السبب مطلوب",
+      walletConfirmTitle: "تأكيد تعديل المحفظة",
+      walletConfirmBody: "{{direction}} {{amount}} ج.م لـ {{name}}؟",
+      walletConfirmCredit: "إضافة",
+      walletConfirmDebit: "خصم",
     },
     bookings: {
       title: "إدارة الحجوزات",
@@ -3755,6 +3776,7 @@ const ar: Translation = {
       to: "إلى",
       opening: "الرصيد الافتتاحي",
       closing: "الرصيد الختامي",
+      periodNet: "صافي الفترة",
       rows: "{{count}} حركة في الدفتر",
       loadError: "تعذر تحميل كشف الحساب",
       downloadPdf: "تنزيل PDF",
@@ -4117,6 +4139,14 @@ const ar: Translation = {
       scheduled: "مجدولة",
       delivered: "تم التسليم",
       activateError: "تعذر تفعيل الحملة",
+      activateConfirmTitle: "إرسال هذه الحملة؟",
+      activateConfirmBody:
+        "الفئة: {{target}} · إشعار فوري: {{push}} · المستلمون: {{count}}، لا يمكن التراجع بعد الإرسال",
+      activateConfirmWord: "ارسال",
+      activateTypeConfirm: 'اكتب "{{word}}" لتأكيد الإرسال',
+      scheduleRequired: "اختر تاريخا ووقتا للحملة المجدولة",
+      scheduleInvalid: "تاريخ الجدولة غير صالح",
+      scheduleMustBeFuture: "وقت الجدولة يجب أن يكون في المستقبل",
       activate: "تفعيل",
       cancelError: "تعذر إلغاء الحملة",
       loadError: "تعذر تحميل الحملات، حدث الصفحة",

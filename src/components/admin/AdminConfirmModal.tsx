@@ -10,6 +10,7 @@ export function AdminConfirmModal({
   cancelLabel,
   destructive = false,
   busy = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
   children,
@@ -21,6 +22,7 @@ export function AdminConfirmModal({
   cancelLabel?: string;
   destructive?: boolean;
   busy?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   children?: ReactNode;
@@ -39,11 +41,11 @@ export function AdminConfirmModal({
             {cancelLabel ?? t("common.cancel")}
           </AdminSecondaryButton>
           {destructive ? (
-            <AdminDangerButton onClick={onConfirm} disabled={busy}>
+            <AdminDangerButton onClick={onConfirm} disabled={busy || confirmDisabled}>
               {confirmLabel ?? t("common.confirm")}
             </AdminDangerButton>
           ) : (
-            <AdminPrimaryButton onClick={onConfirm} disabled={busy}>
+            <AdminPrimaryButton onClick={onConfirm} disabled={busy || confirmDisabled}>
               {confirmLabel ?? t("common.confirm")}
             </AdminPrimaryButton>
           )}

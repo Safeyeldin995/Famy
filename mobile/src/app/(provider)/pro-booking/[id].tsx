@@ -21,7 +21,7 @@ import { useSupportContact } from "@/lib/queries";
 import { RescheduleSection } from "@/ui/RescheduleSection";
 import { OnlineLessonTimeline } from "@/ui/online/OnlineLessonTimeline";
 import { useBookingParty } from "@/lib/provider/parties";
-import { useBookingPayment } from "@/lib/queries";
+import { useBookingPayment } from "@/lib/provider/payments";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";

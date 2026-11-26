@@ -15,11 +15,39 @@ import {
 
 export type PaymentStatus = "pending" | "pending_review" | "captured" | "rejected";
 
-export function useBookingPayment(bookingId: string | undefined) {
+/** Redacted payment fields returned by `provider_booking_payment` (Json RPC). */
+export type ProviderBookingPayment = {
+  id?: string;
+  booking_id?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  payment_method_type?: string;
+  method?: string;
+  payment_method_code?: string;
+  has_proof?: boolean;
+  captured_at?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  payment_method_name_en?: string;
+  payment_method_name_ar?: string;
+};
+
+export function useBookingPayment(
+  bookingId: string | undefined,
+  options?: { providerSafe?: boolean },
+) {
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ["payment", bookingId],
+    queryKey: ["payment", bookingId, options?.providerSafe ? "provider" : "full"],
     queryFn: async () => {
+      if (options?.providerSafe) {
+        const { data, error } = await (supabase.rpc as any)("provider_booking_payment", {
+          p_booking_id: bookingId!,
+        });
+        if (error) throw error;
+        return data as ProviderBookingPayment;
+      }
       const { data, error } = await supabase
         .from("payments")
         .select("*")
@@ -163,18 +191,10 @@ export function useCapturePayment() {
       if (booking.status !== "completed") {
         throw new Error("Payment cannot be captured until the booking is completed.");
       }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("payments")
-        .update({
-          status: "captured" as any,
-          captured_at: new Date().toISOString(),
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-        })
-        .eq("id", paymentId);
+      const { error } = await (supabase.rpc as any)("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "capture",
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
@@ -197,18 +217,11 @@ export function useRejectPayment() {
       bookingId: string;
       reason?: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("payments")
-        .update({
-          status: "rejected" as any,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-          rejection_reason: reason ?? null,
-        })
-        .eq("id", paymentId);
+      const { error } = await (supabase.rpc as any)("provider_review_manual_payment", {
+        p_payment_id: paymentId,
+        p_action: "reject",
+        p_rejection_reason: reason ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {

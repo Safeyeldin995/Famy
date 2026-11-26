@@ -12,7 +12,7 @@ import { requestMobileAccountDeletion } from "@/lib/accountDeletion";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { bodyTextInputProps } from "@/ui/a11y";
 
-type DeletionCheck = { ok: boolean; reason?: string };
+type DeletionCheck = { ok: boolean; reason?: string; wallet_forfeit_amount?: number };
 
 function leaveTo(backTo: Href) {
   if (router.canGoBack()) router.back();
@@ -23,6 +23,7 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
   const { t } = useTranslation();
   const [check, setCheck] = useState<DeletionCheck | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [walletForfeitConfirmed, setWalletForfeitConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -48,14 +49,20 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
   }, []);
 
   const blockedReason = !check?.ok ? check?.reason : undefined;
+  const walletForfeitAmount =
+    check?.ok && check.wallet_forfeit_amount != null ? Number(check.wallet_forfeit_amount) : 0;
+  const needsWalletForfeitConfirm = walletForfeitAmount > 0.005;
 
   const onDelete = async () => {
     if (!confirmMatches || !check?.ok) return;
+    if (needsWalletForfeitConfirm && !walletForfeitConfirmed) return;
     setBusy(true);
     setActionError(false);
     setErrorKey(null);
     try {
-      const result = await requestMobileAccountDeletion();
+      const result = await requestMobileAccountDeletion({
+        confirmWalletForfeit: needsWalletForfeitConfirm && walletForfeitConfirmed,
+      });
       if (!result.ok) {
         setErrorKey(`accountDeletion.errors.${result.error}`);
         setActionError(true);
@@ -114,11 +121,33 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
       {blockedReason === "active_bookings" ? (
         <Text tone="danger">{t("accountDeletion.blockedActiveBookings")}</Text>
       ) : null}
+      {blockedReason === "funds_owed_to_user" ? (
+        <Text tone="danger">{t("accountDeletion.blockedFundsOwed")}</Text>
+      ) : null}
       {blockedReason === "unpaid_balance" ? (
         <Text tone="danger">{t("accountDeletion.blockedUnpaid")}</Text>
       ) : null}
       {blockedReason === "admin" ? (
         <Text tone="danger">{t("accountDeletion.blockedAdmin")}</Text>
+      ) : null}
+      {check?.ok && needsWalletForfeitConfirm ? (
+        <View style={styles.warnCard}>
+          <Text weight="bold">
+            {t("accountDeletion.walletForfeitWarning", {
+              amount: walletForfeitAmount.toFixed(2),
+            })}
+          </Text>
+          <Text
+            tone="brand"
+            size="sm"
+            onPress={() => setWalletForfeitConfirmed((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: walletForfeitConfirmed }}
+          >
+            {walletForfeitConfirmed ? "☑ " : "☐ "}
+            {t("accountDeletion.walletForfeitConfirm")}
+          </Text>
+        </View>
       ) : null}
       {check?.ok ? (
         <>
@@ -142,7 +171,12 @@ export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { b
       <Button
         style={{ backgroundColor: colors.destructive }}
         label={busy ? t("accountDeletion.deleting") : t("accountDeletion.deleteButton")}
-        disabled={!check?.ok || !confirmMatches || busy}
+        disabled={
+          !check?.ok ||
+          !confirmMatches ||
+          busy ||
+          (needsWalletForfeitConfirm && !walletForfeitConfirmed)
+        }
         onPress={() => void onDelete()}
       />
       <Button
@@ -162,6 +196,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  warnCard: {
+    gap: space.md,
+    padding: space.lg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warning,
     backgroundColor: colors.surface,
   },
   input: {

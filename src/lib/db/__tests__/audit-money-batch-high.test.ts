@@ -335,10 +335,10 @@ describe("audit money batch — #438 online InstaPay capture guard", () => {
     const attempt = await tryAsUser(
       db,
       IDS.providerUser,
-      `UPDATE public.payments SET status = 'captured' WHERE id = $1 RETURNING status`,
+      `SELECT public.provider_review_manual_payment($1::uuid, 'capture', NULL)`,
       [paymentId],
     );
     expect(attempt.ok).toBe(false);
-    expect(attempt.error).toMatch(/Payment update not authorized|cannot be captured|admin review/i);
+    expect(attempt.error).toMatch(/cannot be captured|admin review|Online payments/i);
   });
 });

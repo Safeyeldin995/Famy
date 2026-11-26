@@ -5142,7 +5142,7 @@ export type Database = {
         Returns: Json
       }
       anonymize_account: {
-        Args: { p_user_id: string }
+        Args: { p_user_id: string; p_confirm_wallet_forfeit?: boolean }
         Returns: Json
       }
       validate_promo_code: {
