@@ -61,7 +61,12 @@ const quote = async (bookingId: string) => {
   return (res.rows?.[0] as { q: Record<string, unknown> }).q;
 };
 
-const refund = (bookingId: string, amount: number, key = randomUUID(), user: string = IDS.adminUser) =>
+const refund = (
+  bookingId: string,
+  amount: number,
+  key = randomUUID(),
+  user: string = IDS.adminUser,
+) =>
   tryAsUser(
     db,
     user,
@@ -76,12 +81,14 @@ const adjust = (
   key = randomUUID(),
   user: string = IDS.adminUser,
 ) =>
-  tryAsUser(
-    db,
-    user,
-    `SELECT public.admin_wallet_adjust($1, $2, $3, $4, $5, NULL, $6) AS id`,
-    [IDS.customer, direction, amount, category, note, key],
-  );
+  tryAsUser(db, user, `SELECT public.admin_wallet_adjust($1, $2, $3, $4, $5, NULL, $6) AS id`, [
+    IDS.customer,
+    direction,
+    amount,
+    category,
+    note,
+    key,
+  ]);
 
 beforeAll(async () => {
   db = await createBookingLifecycleDb();
@@ -129,14 +136,23 @@ describe("admin_refund_booking_to_wallet", () => {
     expect(replay.error).toBeUndefined();
     expect(await walletBalance()).toBeCloseTo(before + max, 2);
 
-    const entry = await queryRows<{ reason: string; booking_id: string; payment_id: string; admin_id: string }>(
+    const entry = await queryRows<{
+      reason: string;
+      booking_id: string;
+      payment_id: string;
+      admin_id: string;
+    }>(
       db,
       `SELECT reason, booking_id, payment_id, admin_id FROM public.customer_wallet_entries
        WHERE booking_id = $1 AND reason = 'admin_lesson_refund'`,
       [bookingId],
     );
     expect(entry).toHaveLength(1);
-    expect(entry[0]).toMatchObject({ booking_id: bookingId, payment_id: paymobId, admin_id: IDS.adminUser });
+    expect(entry[0]).toMatchObject({
+      booking_id: bookingId,
+      payment_id: paymobId,
+      admin_id: IDS.adminUser,
+    });
     expect(["refunded", "partially_refunded"]).toContain(await paymentStatus(db, paymobId));
 
     // No second wallet refund, and no card refund on top.
@@ -252,7 +268,8 @@ describe("admin_wallet_adjust", () => {
       [IDS.customer],
     );
     expect(res.error).toBeUndefined();
-    const h = (res.rows?.[0] as { h: { balance: number; items: Array<{ balance_after: number }> } }).h;
+    const h = (res.rows?.[0] as { h: { balance: number; items: Array<{ balance_after: number }> } })
+      .h;
     expect(h.items.length).toBeGreaterThan(0);
     expect(Number(h.items[0].balance_after)).toBeCloseTo(Number(h.balance), 2);
 
@@ -297,6 +314,21 @@ describe("admin money card and operations home", () => {
       const denied = await tryAsUser(db, IDS.customer, `SELECT public.${fn}()`);
       expect(denied.ok).toBe(false);
     }
+  });
+
+  it("finds a customer by email in the admin search", async () => {
+    const email = `search-${randomUUID().slice(0, 8)}@example.com`;
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.profiles SET email = $1 WHERE id = $2`, [email, IDS.customer]),
+    );
+    const res = await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.admin_global_search('${email.slice(0, 14).toUpperCase()}') AS r`,
+    );
+    expect(res.error).toBeUndefined();
+    const r = (res.rows?.[0] as { r: { customers: { items: { id: string }[] } } }).r;
+    expect(r.customers.items.map((c) => c.id)).toContain(IDS.customer);
   });
 
   it("keeps internal helpers away from signed-in and anonymous users", async () => {

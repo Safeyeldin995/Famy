@@ -349,6 +349,7 @@ BEGIN
     v_key,
     jsonb_build_object(
       'admin_reason', v_note,
+      'note', v_note,
       'category', 'lesson_refund',
       'mode', v_terms->>'mode'
     )
@@ -616,7 +617,7 @@ BEGIN
     'admin_id', admin_id,
     'admin_name', admin_name,
     'category', metadata->>'category',
-    'note', COALESCE(metadata->>'note', metadata->>'admin_reason')
+    'note', CASE WHEN metadata ? 'category' THEN metadata->>'note' ELSE metadata->>'admin_reason' END
   ) ORDER BY created_at DESC, id DESC), '[]'::jsonb)
   INTO v_rows
   FROM page;
@@ -698,7 +699,7 @@ BEGIN
     'admin_id', f.admin_id,
     'admin_name', a.full_name,
     'category', f.metadata->>'category',
-    'note', COALESCE(f.metadata->>'note', f.metadata->>'admin_reason')
+    'note', CASE WHEN f.metadata ? 'category' THEN f.metadata->>'note' ELSE f.metadata->>'admin_reason' END
   ) ORDER BY f.created_at DESC, f.id DESC), '[]'::jsonb)
   INTO v_rows
   FROM filtered f
@@ -778,7 +779,7 @@ BEGIN
     'reason', e.reason,
     'created_at', e.created_at,
     'admin_name', a.full_name,
-    'note', COALESCE(e.metadata->>'note', e.metadata->>'admin_reason')
+    'note', CASE WHEN e.metadata ? 'category' THEN e.metadata->>'note' ELSE e.metadata->>'admin_reason' END
   ) ORDER BY e.created_at), '[]'::jsonb)
   INTO v_wallet
   FROM public.customer_wallet_entries e
@@ -927,3 +928,204 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_ops_problems() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_ops_problems() TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Global search: also match the email (re-derived from
+-- 20261123120000_admin_daily_ops_codex_fixes, the latest definition).
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.admin_global_search(
+  p_query text,
+  p_limit int DEFAULT 15,
+  p_offset int DEFAULT 0
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_query text := btrim(COALESCE(p_query, ''));
+  v_query_lower text;
+  v_digits text;
+  v_normalized_digits text;
+  v_code text;
+  v_limit int := GREATEST(1, LEAST(COALESCE(p_limit, 15), 50));
+  v_offset int := GREATEST(COALESCE(p_offset, 0), 0);
+  v_customers_total bigint := 0;
+  v_providers_total bigint := 0;
+  v_bookings_total bigint := 0;
+  v_customers jsonb := '[]'::jsonb;
+  v_providers jsonb := '[]'::jsonb;
+  v_bookings jsonb := '[]'::jsonb;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+
+  IF v_query = '' THEN
+    RETURN jsonb_build_object(
+      'query', v_query,
+      'limit', v_limit,
+      'offset', v_offset,
+      'customers', jsonb_build_object('total', 0, 'items', '[]'::jsonb),
+      'providers', jsonb_build_object('total', 0, 'items', '[]'::jsonb),
+      'bookings', jsonb_build_object('total', 0, 'items', '[]'::jsonb)
+    );
+  END IF;
+
+  v_query_lower := lower(v_query);
+  v_digits := regexp_replace(v_query, '\D', '', 'g');
+  v_normalized_digits := CASE
+    WHEN v_digits LIKE '0020%' THEN substr(v_digits, 3)
+    WHEN v_digits LIKE '0%' THEN '20' || substr(v_digits, 2)
+    ELSE v_digits
+  END;
+  v_code := regexp_replace(upper(replace(v_query, '-', '')), '^#', '');
+
+  WITH matches AS (
+    SELECT pr.id, pr.full_name, pr.phone, pr.email, pr.avatar_url, pr.created_at
+    FROM public.profiles pr
+    WHERE EXISTS (
+      SELECT 1
+      FROM public.user_roles ur
+      WHERE ur.user_id = pr.id
+        AND ur.role = 'customer'
+    )
+      AND (
+        strpos(lower(COALESCE(pr.full_name, '')), v_query_lower) > 0
+        OR strpos(lower(COALESCE(pr.email, '')), v_query_lower) > 0
+        OR (
+          v_digits <> ''
+          AND (
+            strpos(regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g'), v_digits) > 0
+            OR strpos(
+              CASE
+                WHEN regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g') LIKE '0%'
+                  THEN '20' || substr(regexp_replace(pr.phone, '\D', '', 'g'), 2)
+                ELSE regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g')
+              END,
+              v_normalized_digits
+            ) > 0
+          )
+        )
+      )
+  ),
+  page AS (
+    SELECT *
+    FROM matches
+    ORDER BY full_name ASC NULLS LAST, created_at DESC, id
+    LIMIT v_limit OFFSET v_offset
+  )
+  SELECT
+    (SELECT count(*) FROM matches),
+    COALESCE(
+      jsonb_agg(to_jsonb(page) ORDER BY full_name ASC NULLS LAST, created_at DESC, id),
+      '[]'::jsonb
+    )
+  INTO v_customers_total, v_customers
+  FROM page;
+
+  WITH matches AS (
+    SELECT
+      p.id AS provider_id,
+      pr.id AS profile_id,
+      pr.full_name,
+      pr.phone,
+      pr.email,
+      pr.avatar_url,
+      p.onboarding_status,
+      p.is_active,
+      p.is_verified,
+      p.created_at
+    FROM public.providers p
+    JOIN public.profiles pr ON pr.id = p.profile_id
+    WHERE
+      strpos(lower(COALESCE(pr.full_name, '')), v_query_lower) > 0
+        OR strpos(lower(COALESCE(pr.email, '')), v_query_lower) > 0
+      OR (
+        v_digits <> ''
+        AND (
+          strpos(regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g'), v_digits) > 0
+          OR strpos(
+            CASE
+              WHEN regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g') LIKE '0%'
+                THEN '20' || substr(regexp_replace(pr.phone, '\D', '', 'g'), 2)
+              ELSE regexp_replace(COALESCE(pr.phone, ''), '\D', '', 'g')
+            END,
+            v_normalized_digits
+          ) > 0
+        )
+      )
+  ),
+  page AS (
+    SELECT *
+    FROM matches
+    ORDER BY full_name ASC NULLS LAST, created_at DESC, provider_id
+    LIMIT v_limit OFFSET v_offset
+  )
+  SELECT
+    (SELECT count(*) FROM matches),
+    COALESCE(
+      jsonb_agg(to_jsonb(page) ORDER BY full_name ASC NULLS LAST, created_at DESC, provider_id),
+      '[]'::jsonb
+    )
+  INTO v_providers_total, v_providers
+  FROM page;
+
+  WITH matches AS (
+    SELECT
+      b.id,
+      left(upper(replace(b.id::text, '-', '')), 6) AS booking_code,
+      b.status,
+      b.customer_id,
+      cp.full_name AS customer_name,
+      b.provider_id,
+      pp.full_name AS provider_name,
+      b.start_at,
+      b.created_at
+    FROM public.bookings b
+    JOIN public.profiles cp ON cp.id = b.customer_id
+    JOIN public.providers p ON p.id = b.provider_id
+    JOIN public.profiles pp ON pp.id = p.profile_id
+    WHERE strpos(lower(b.id::text), v_query_lower) > 0
+       OR (
+         v_code ~ '^[0-9A-F]{1,32}$'
+         AND upper(replace(b.id::text, '-', '')) LIKE v_code || '%'
+       )
+       OR strpos(lower(COALESCE(cp.full_name, '')), v_query_lower) > 0
+       OR strpos(lower(COALESCE(pp.full_name, '')), v_query_lower) > 0
+  ),
+  page AS (
+    SELECT *
+    FROM matches
+    ORDER BY created_at DESC, id
+    LIMIT v_limit OFFSET v_offset
+  )
+  SELECT
+    (SELECT count(*) FROM matches),
+    COALESCE(jsonb_agg(to_jsonb(page) ORDER BY created_at DESC, id), '[]'::jsonb)
+  INTO v_bookings_total, v_bookings
+  FROM page;
+
+  RETURN jsonb_build_object(
+    'query', v_query,
+    'limit', v_limit,
+    'offset', v_offset,
+    'customers', jsonb_build_object(
+      'total', v_customers_total,
+      'items', v_customers
+    ),
+    'providers', jsonb_build_object(
+      'total', v_providers_total,
+      'items', v_providers
+    ),
+    'bookings', jsonb_build_object(
+      'total', v_bookings_total,
+      'items', v_bookings
+    )
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_global_search(text, int, int) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_global_search(text, int, int) TO authenticated;
