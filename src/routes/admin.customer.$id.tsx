@@ -412,7 +412,11 @@ export function AdminCustomer({ id }: { id: string }) {
                 toast.success(t("admin.customer.walletAdjustSuccess"));
               },
               onError: (e: Error) =>
-                toast.error(e?.message ?? t("admin.customer.walletAdjustError")),
+                toast.error(
+                  e?.message?.includes("WALLET_IDEMPOTENCY")
+                    ? t("admin.customer.walletAdjustDuplicate")
+                    : (e?.message ?? t("admin.customer.walletAdjustError")),
+                ),
             },
           )
         }

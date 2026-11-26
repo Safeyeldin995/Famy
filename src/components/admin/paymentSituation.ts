@@ -70,6 +70,19 @@ export function paymentSituation(
   if (paymobNeedsAdminReview(meta)) return "paymobNeedsAction";
 
   const status = p.status ?? "";
+  // Already refunded to the customer's wallet (customer cancel, online no-show):
+  // never "refund due", or the customer would be paid twice (#518).
+  const settledViaWallet =
+    meta?.refund_settled_via_wallet === true ||
+    meta?.refund_settled_via_wallet === "true" ||
+    meta?.wallet_refund_settled === true ||
+    meta?.wallet_refund_settled === "true";
+  if (settledViaWallet && (status === "captured" || status === "partially_refunded")) {
+    const fee = Number(meta?.cancellation_fee ?? 0);
+    return status === "partially_refunded" || (Number.isFinite(fee) && fee > 0)
+      ? "partiallyRefunded"
+      : "refunded";
+  }
   const booking = p.booking?.status ?? "";
   const type = methodType(p);
   const proofPath = normalizedPaymentProof(p.proof_path);

@@ -6,6 +6,8 @@ export type UgcReason = (typeof UGC_REASONS)[number];
 
 export type UgcSubjectType = "chat_message" | "chat_thread" | "review";
 
+export { ugcReportErrorKey } from "./ugcReportErrors";
+
 type ReportInput = {
   subjectType: UgcSubjectType;
   reason: UgcReason;
