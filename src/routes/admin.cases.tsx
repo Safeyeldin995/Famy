@@ -22,6 +22,8 @@ import {
   adminControl,
   adminScreen,
   bookingCode,
+  CASE_STATUS_FILTER_OPEN,
+  matchesCaseStatusFilter,
   mergeCases,
   operationDate,
 } from "@/components/admin/operations";
@@ -484,7 +486,7 @@ export function AdminCases({
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab | "all">((search.tab as Tab) ?? "all");
-  const [status, setStatus] = useState(search.status ?? "");
+  const [status, setStatus] = useState(search.status ?? CASE_STATUS_FILTER_OPEN);
   const [query, setQuery] = useState(search.booking ?? "");
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -493,7 +495,9 @@ export function AdminCases({
   const noShowQ = useAdminNoShowReports();
 
   const rows = mergeCases(ticketsQ.data ?? [], disputesQ.data ?? [], noShowQ.data ?? []).filter(
-    (item) => (tab === "all" || item.kind === tab) && (!status || item.row.status === status),
+    (item) =>
+      (tab === "all" || item.kind === tab) &&
+      matchesCaseStatusFilter(status, item.row.status),
   );
   const isLoading = ticketsQ.isLoading || disputesQ.isLoading || noShowQ.isLoading;
   const isError = ticketsQ.isError || disputesQ.isError || noShowQ.isError;
@@ -545,7 +549,7 @@ export function AdminCases({
             key={tOpt.key}
             onClick={() => {
               setTab(tOpt.key);
-              setStatus("");
+              setStatus(CASE_STATUS_FILTER_OPEN);
               setExpanded(null);
             }}
             className={`focus-ring rounded-full px-3 py-1.5 text-xs font-bold ${tab === tOpt.key ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground"}`}
@@ -571,6 +575,7 @@ export function AdminCases({
           onChange={(e) => setStatus(e.target.value)}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         >
+          <option value={CASE_STATUS_FILTER_OPEN}>{t("admin.cases.openStatuses")}</option>
           <option value="">{t("admin.bookings.allStatuses")}</option>
           {statusOptions.map((s) => (
             <option key={s} value={s}>

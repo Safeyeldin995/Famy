@@ -10,7 +10,7 @@ import {
 import { useAdminProviderStatement } from "@/lib/db/admin-daily-ops-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { formatEGP } from "@/lib/utils";
-import { adminControl, adminScreen, bookingCode } from "@/components/admin/operations";
+import { adminControl, adminScreen, bookingCode, operationDate } from "@/components/admin/operations";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { downloadStatementCsv } from "@/lib/admin/statementExport";
 import { sanitizeDownloadFilename } from "@/lib/admin/csvExport";
@@ -172,7 +172,7 @@ export function AdminProviderStatementPanel({
                 {q.data.rows.map((row) => (
                   <tr key={row.id} className="border-t">
                     <td className="p-2 whitespace-nowrap">
-                      {new Date(row.created_at).toLocaleString(lang, { timeZone: "Africa/Cairo" })}
+                      {operationDate(row.created_at, lang)}
                     </td>
                     <td className="p-2">
                       {(labels.kindLabels as Record<string, string>)[row.kind] ?? row.kind}
@@ -217,7 +217,7 @@ function StatementTotals({
         <p className="text-lg font-extrabold tabular-nums">{formatEGP(data.closing_balance)}</p>
       </div>
       <p className="text-xs text-muted-foreground sm:col-span-2">
-        {t("admin.statement.rows", { count: data.rows.length.toLocaleString(lang) })}
+        {t("admin.statement.rows", { count: data.rows.length.toLocaleString("en-US") })}
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import { downloadCsv } from "@/lib/admin/csvExport";
+import { adminDate } from "@/components/admin/adminPresentation";
 import type { ProviderStatement } from "@/lib/db/admin-daily-ops-queries";
 
 type Labels = {
@@ -44,7 +45,7 @@ export function downloadStatementCsv(
   const rows = statement.rows.map((row) => {
     const debit = row.direction === "debit" ? String(row.amount) : "";
     const credit = row.direction === "credit" ? String(row.amount) : "";
-    const date = new Date(row.created_at).toLocaleString(locale, { timeZone: "Africa/Cairo" });
+    const date = adminDate(row.created_at, locale);
     return [
       date,
       kindLabel(row.kind, labels),

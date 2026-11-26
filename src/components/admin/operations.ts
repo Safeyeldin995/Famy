@@ -66,6 +66,19 @@ export function matchesBooking(b: any, query: string) {
     )
   );
 }
+export const OPEN_CASE_STATUSES = new Set(["open", "info_requested", "pending"]);
+export const CASE_STATUS_FILTER_OPEN = "__open__";
+
+export function isOpenCaseStatus(status: string) {
+  return OPEN_CASE_STATUSES.has(status);
+}
+
+export function matchesCaseStatusFilter(filter: string, rowStatus: string) {
+  if (!filter) return true;
+  if (filter === CASE_STATUS_FILTER_OPEN) return isOpenCaseStatus(rowStatus);
+  return rowStatus === filter;
+}
+
 export function mergeCases(tickets: any[], disputes: any[], reports: any[]) {
   return [
     ...tickets.map((row) => ({ kind: "support", row })),
