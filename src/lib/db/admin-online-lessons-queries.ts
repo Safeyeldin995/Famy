@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withoutQaCatalogServices } from "@/lib/catalog/qaCatalog";
 
 export type OnlineKpiDelta = {
   current: number | null;
@@ -95,7 +96,7 @@ export function useAdminOnlineLessonFilterOptions() {
       const [services, providers] = await Promise.all([
         supabase
           .from("services")
-          .select("id, name_en, name_ar")
+          .select("id, slug, name_en, name_ar")
           .eq("is_active", true)
           .order("name_en"),
         supabase
@@ -108,7 +109,11 @@ export function useAdminOnlineLessonFilterOptions() {
       if (services.error) throw services.error;
       if (providers.error) throw providers.error;
       return {
-        services: services.data ?? [],
+        services: withoutQaCatalogServices(services.data ?? []).map(({ id, name_en, name_ar }) => ({
+          id,
+          name_en,
+          name_ar,
+        })),
         providers: (providers.data ?? []).map((row) => ({
           id: row.id as string,
           name: (row.profile as { full_name: string | null } | null)?.full_name ?? row.id,
