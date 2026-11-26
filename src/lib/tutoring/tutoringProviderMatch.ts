@@ -4,41 +4,81 @@ export type TutoringMatchContext = {
   serviceId: string | null | undefined;
   curriculumId: string | null;
   levelId: string | null;
+  /** Optional: when set, the tutor must also teach this subject. */
+  subjectCode?: string | null;
   studentFirstName: string | null;
 };
+
+type MatchCriteria = Pick<TutoringMatchContext, "serviceId" | "curriculumId" | "levelId" | "subjectCode">;
+
+/** True when the student's system and grade are both known, so matching can be strict. */
+export function hasStudentEducation(ctx: Pick<TutoringMatchContext, "curriculumId" | "levelId">): boolean {
+  return Boolean(ctx.curriculumId && ctx.levelId);
+}
 
 export function providerMatchesStudentEducation(
   providerId: string,
   capabilities: TeachingCapabilityOption[],
-  ctx: Pick<TutoringMatchContext, "serviceId" | "curriculumId" | "levelId">,
+  ctx: MatchCriteria,
 ): boolean {
-  if (!ctx.curriculumId || !ctx.levelId) return false;
+  if (!hasStudentEducation(ctx)) return false;
   return capabilities.some(
     (cap) =>
       cap.providerId === providerId &&
       cap.status === "approved" &&
       (!ctx.serviceId || cap.serviceId === ctx.serviceId) &&
       cap.curriculumId === ctx.curriculumId &&
-      cap.levelId === ctx.levelId,
+      cap.levelId === ctx.levelId &&
+      (!ctx.subjectCode || cap.subjectCode === ctx.subjectCode),
   );
 }
 
-export function sortProvidersForStudentEducation<T extends { id: string }>(
+/**
+ * Strict matching (PO decision, issue #536): once the student's system and grade are known,
+ * only tutors with an approved capability for that exact system + grade (+ subject when chosen)
+ * are shown. Without a complete profile the list is returned unchanged.
+ */
+export function filterProvidersForStudentEducation<T extends { id: string }>(
   providers: T[],
   capabilities: TeachingCapabilityOption[],
-  ctx: Pick<TutoringMatchContext, "serviceId" | "curriculumId" | "levelId">,
+  ctx: MatchCriteria,
 ): T[] {
-  if (!ctx.curriculumId || !ctx.levelId) return providers;
-  const matched: T[] = [];
-  const rest: T[] = [];
-  for (const provider of providers) {
-    if (providerMatchesStudentEducation(provider.id, capabilities, ctx)) {
-      matched.push(provider);
-    } else {
-      rest.push(provider);
-    }
+  if (!hasStudentEducation(ctx)) return providers;
+  return providers.filter((provider) =>
+    providerMatchesStudentEducation(provider.id, capabilities, ctx),
+  );
+}
+
+export type TutoringServiceKind = "school" | "homework" | "skill";
+
+/** Quran and music use a skill level, homework follow-up covers every subject, the rest is school tutoring. */
+export function tutoringServiceKind(serviceSlug: string | null | undefined): TutoringServiceKind {
+  if (serviceSlug === "quran-lessons" || serviceSlug === "music-lessons") return "skill";
+  if (serviceSlug === "homework-support") return "homework";
+  return "school";
+}
+
+/**
+ * Arguments for `match_tutors_for_student` per service kind:
+ * - school: subject + the child's system + grade;
+ * - homework: the child's system + grade, any subject;
+ * - skill (Quran / music): subject + the chosen skill level, no curriculum.
+ */
+export function studentMatchCriteria(input: {
+  serviceSlug: string | null | undefined;
+  subjectId: string | null;
+  curriculumId: string | null;
+  levelId: string | null;
+  skillLevelId?: string | null;
+}): { subjectId: string | null; curriculumId: string | null; levelId: string | null } {
+  const kind = tutoringServiceKind(input.serviceSlug);
+  if (kind === "skill") {
+    return { subjectId: input.subjectId, curriculumId: null, levelId: input.skillLevelId ?? null };
   }
-  return [...matched, ...rest];
+  if (kind === "homework") {
+    return { subjectId: null, curriculumId: input.curriculumId, levelId: input.levelId };
+  }
+  return { subjectId: input.subjectId, curriculumId: input.curriculumId, levelId: input.levelId };
 }
 
 export function tutoringMatchBadgeLabel(

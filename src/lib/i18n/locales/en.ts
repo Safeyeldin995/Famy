@@ -1278,6 +1278,8 @@ const en = {
     saveFailed: "Your booking was created, but we could not save school details for next time.",
     studentPicker: "Student",
     matchBadge: "Good fit for {{name}}",
+    noMatchTitle: "No tutor for {{name}} yet",
+    noMatchBody: "No tutor teaches this system and grade right now. Check again soon or change the student details.",
   },
   reschedule: {
     title: "Rescheduling",
@@ -4727,6 +4729,7 @@ const en = {
     payments_pending_review: "Payments pending review",
     online_lesson_issue_reports: "Online lesson reports",
     providers_at_cash_limit: "Providers at cash debt limit",
+    tutors_missing_teaching_data: "Tutors with missing subjects or grades",
     settlements_due: "Settlements this week",
   },
   adminReview: {

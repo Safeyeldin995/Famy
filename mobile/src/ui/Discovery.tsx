@@ -15,7 +15,7 @@ import {
   useMyProfile,
   useApprovedTeachingCapabilitiesForProviders,
 } from "@/lib/queries";
-import { localized, uniqueProviders, sortProvidersForStudentEducation } from "@/lib/presentation";
+import { localized, uniqueProviders } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { Page, QueryState, Choices, Field, Row, ui } from "./Page";
 import { ProviderCard } from "./ProviderCard";
@@ -39,6 +39,8 @@ import { colors } from "./theme";
 import { InPersonComingSoonCard } from "./customer/InPersonComingSoonCard";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
+  filterProvidersForStudentEducation,
+  hasStudentEducation,
   providerMatchesStudentEducation,
   tutoringMatchBadgeLabel,
 } from "@shared/tutoring/tutoringProviderMatch";
@@ -153,8 +155,15 @@ export function Discovery({ category: group }: { category?: string }) {
       education_level_id: m.education_level_id,
     })),
   });
+  // Strict matching (issue 536): once the student's system and grade are known, only matching tutors show.
+  const strictMatching =
+    schoolTutoring &&
+    hasStudentEducation({
+      curriculumId: studentProfile.educationCurriculumId,
+      levelId: studentProfile.educationLevelId,
+    });
   const ranked = schoolTutoring
-    ? sortProvidersForStudentEducation(items, caps.data ?? [], {
+    ? filterProvidersForStudentEducation(items, caps.data ?? [], {
         serviceId: serviceId || null,
         curriculumId: studentProfile.educationCurriculumId,
         levelId: studentProfile.educationLevelId,
@@ -308,7 +317,7 @@ export function Discovery({ category: group }: { category?: string }) {
       {selectedAddress || deliveryMode === "online" ? (
         <QueryState
           query={{
-            isLoading: a.isLoading || b.isLoading,
+            isLoading: a.isLoading || b.isLoading || (strictMatching && caps.isLoading),
             isError: a.isError || b.isError,
             refetch: () => Promise.all([a.refetch(), b.refetch()]),
           }}
@@ -316,8 +325,16 @@ export function Discovery({ category: group }: { category?: string }) {
           {!ranked.length ? (
             <CustomerEmpty
               Icon={Search}
-              title={t("customerRound2.noProviders")}
-              body={t("customerRound2.noProvidersBody")}
+              title={
+                strictMatching && studentProfile.studentFirstName
+                  ? t("studentEducation.noMatchTitle", { name: studentProfile.studentFirstName })
+                  : t("customerRound2.noProviders")
+              }
+              body={
+                strictMatching
+                  ? t("studentEducation.noMatchBody")
+                  : t("customerRound2.noProvidersBody")
+              }
             >
               <Button label={t("category.filters")} onPress={() => router.push("/search")} />
             </CustomerEmpty>

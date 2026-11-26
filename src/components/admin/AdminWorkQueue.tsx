@@ -28,6 +28,11 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     search: { queue: "pending_teaching_groups" },
   },
   { key: "pending_documents", route: "/admin/providers", search: { queue: "pending_documents" } },
+  {
+    key: "tutors_missing_teaching_data",
+    route: "/admin/providers",
+    search: { queue: "tutors_missing_teaching_data" },
+  },
   { key: "documents_expiring_soon", route: "/admin/documents-expiring" },
   { key: "open_cases", route: "/admin/cases" },
   {

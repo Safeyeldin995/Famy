@@ -1264,6 +1264,8 @@ const ar: Translation = {
     saveFailed: "تم إنشاء الحجز، لكن لم نتمكن من حفظ بيانات المدرسة للمرة الجاية",
     studentPicker: "الطالب",
     matchBadge: "مناسب لـ {{name}}",
+    noMatchTitle: "مفيش مدرس مناسب لـ {{name}} دلوقتي",
+    noMatchBody: "مفيش مدرس بيدرس النظام ده والسنة دي دلوقتي، ارجع تاني قريب أو عدل بيانات الطالب",
   },
   reschedule: {
     title: "إعادة الجدولة",
@@ -4633,6 +4635,7 @@ const ar: Translation = {
     payments_pending_review: "تحويلات بانتظار المراجعة",
     online_lesson_issue_reports: "بلاغات الحصص الأونلاين",
     providers_at_cash_limit: "مقدمو خدمة موقوفون بسبب المديونية",
+    tutors_missing_teaching_data: "مدرسين بيانات ناقصة",
     settlements_due: "تسويات قيد التحصيل",
   },
   adminReview: {
