@@ -19,6 +19,7 @@ import {
   useSetZoneService,
   useZoneProviderCoverage,
   useSetZoneProvider,
+  useAdminPickerServices,
   useAdminServices,
   useAdminProviders,
   useAllZoneCombinations,
@@ -418,7 +419,7 @@ function ZoneCombinationsSummary({
 
 function CoveragePanel({ zoneId }: { zoneId: string }) {
   const { t, i18n } = useTranslation();
-  const servicesQ = useAdminServices();
+  const servicesQ = useAdminPickerServices();
   const [providerSearch, setProviderSearch] = useState("");
   const debouncedProviderSearch = useDebounced(providerSearch, 300);
   const providerListLimit = debouncedProviderSearch.trim() ? 50 : 300;
