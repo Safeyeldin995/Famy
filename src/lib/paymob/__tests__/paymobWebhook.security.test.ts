@@ -117,6 +117,59 @@ describe("Paymob webhook security", () => {
     );
   });
 
+  it("counts a refund transaction of its own by its id and its own amount (#539)", async () => {
+    const h = harness();
+    h.obj.has_parent_transaction = true;
+    h.obj.id = 555;
+    h.obj.amount_cents = 3000;
+    (h.obj as Record<string, unknown>).is_refund = true;
+    (h.obj as Record<string, unknown>).parent_transaction = 123;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).toHaveBeenCalledWith(
+      "paymob_apply_refund_webhook",
+      expect.objectContaining({
+        p_paymob_transaction_id: 555,
+        p_amount_cents: 3000,
+        p_refund_kind: "transaction",
+        p_cumulative_amount_cents: null,
+      }),
+    );
+  });
+
+  it("treats a refunded original transaction as a cumulative total (#539)", async () => {
+    const h = harness();
+    h.obj.is_refunded = true;
+    (h.obj as Record<string, unknown>).refunded_amount_cents = 8000;
+    expect((await h.send()).status).toBe(200);
+    expect(h.rpc).toHaveBeenCalledWith(
+      "paymob_apply_refund_webhook",
+      expect.objectContaining({
+        p_paymob_transaction_id: 123,
+        p_refund_kind: "cumulative",
+        p_cumulative_amount_cents: 8000,
+      }),
+    );
+  });
+
+  it("ignores a refunded total larger than the transaction (#539)", async () => {
+    const h = harness();
+    h.obj.is_refunded = true;
+    (h.obj as Record<string, unknown>).refunded_amount_cents = 50000;
+    await h.send();
+    expect(h.rpc).toHaveBeenCalledWith(
+      "paymob_apply_refund_webhook",
+      expect.objectContaining({ p_refund_kind: "cumulative", p_cumulative_amount_cents: null }),
+    );
+  });
+
+  it("never routes a capture of an authorization to the refund path", async () => {
+    const h = harness();
+    h.obj.has_parent_transaction = true;
+    h.obj.is_capture = true;
+    await h.send();
+    expect(h.rpc).toHaveBeenCalledWith("paymob_apply_transaction_webhook", expect.anything());
+  });
+
   it("records an errored final transaction as failure, never capture", async () => {
     const h = harness();
     h.obj.error_occured = true;
