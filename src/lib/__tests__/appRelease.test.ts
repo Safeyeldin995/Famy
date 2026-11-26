@@ -6,6 +6,10 @@ import {
   decideAppRelease,
   parseAppReleaseSettings,
   validateAppReleaseSettings,
+  validateAppReleaseAdminSave,
+  parseAppReleaseCache,
+  resolveAppReleaseFetch,
+  serializeAppReleaseCache,
   type AppReleaseSettings,
 } from "../appRelease";
 
@@ -94,6 +98,42 @@ describe("validateAppReleaseSettings", () => {
         { field: "maintenance_message_en", code: "too_long" },
       ]),
     );
+  });
+});
+
+describe("validateAppReleaseAdminSave", () => {
+  it("requires store links when minimum versions increase", () => {
+    const prev = { ...DEFAULT_APP_RELEASE, min_version_ios: "1.0.0", min_version_android: "1.0.0" };
+    const next = { ...prev, min_version_ios: "1.1.0", min_version_android: "1.1.0" };
+    const errors = validateAppReleaseAdminSave({
+      release: next,
+      previousRelease: prev,
+      storeLinks: { play_url: "", app_store_url: "" },
+    });
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        { field: "app_store_url", code: "store_link_required" },
+        { field: "play_url", code: "store_link_required" },
+      ]),
+    );
+  });
+});
+
+describe("app release cache", () => {
+  it("reuses cached settings when fetch returns null", () => {
+    const cached = {
+      schema: 1,
+      savedAt: Date.now(),
+      release: base,
+      storeLinks: { play_url: "https://play.google.com/x", app_store_url: "" },
+    };
+    const raw = serializeAppReleaseCache(cached);
+    const parsed = parseAppReleaseCache(raw);
+    expect(parsed?.release.min_version_android).toBe(base.min_version_android);
+    expect(resolveAppReleaseFetch(null, parsed)).toEqual({
+      release: parsed!.release,
+      storeLinks: parsed!.storeLinks,
+    });
   });
 });
 

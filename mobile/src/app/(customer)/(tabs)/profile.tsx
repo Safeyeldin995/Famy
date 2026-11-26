@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Wallet,
   UserCheck,
+  UserX,
 } from "lucide-react-native";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { reloadAppAsync } from "expo";
@@ -157,6 +158,11 @@ export default function Profile() {
             label={t("common.notifications")}
             detail={t("notifPrefs.title")}
             onPress={() => router.push("/notification-preferences")}
+          />
+          <CustomerMenuRow
+            Icon={UserX}
+            label={t("ugc.blockedUsersTitle")}
+            onPress={() => router.push("/blocked-users")}
           />
           <CustomerMenuRow
             Icon={Globe}

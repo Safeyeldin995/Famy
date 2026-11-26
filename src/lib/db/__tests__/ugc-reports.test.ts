@@ -178,6 +178,41 @@ describe("ugc_reports and chat blocks", () => {
     expect(insert.ok).toBe(false);
     expect(insert.error).toMatch(/user_blocked/i);
   });
+
+  it("lets only the blocker unblock and restores booking", async () => {
+    const denied = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.unblock_chat_conversation($1) AS id`,
+      [conversationId],
+    );
+    expect(denied.ok).toBe(false);
+
+    const ok = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.unblock_chat_conversation($1) AS id`,
+      [conversationId],
+    );
+    expect(ok.ok).toBe(true);
+
+    const service = await queryRows<{ id: string }>(
+      db,
+      `SELECT id FROM public.services WHERE slug = 'hourly-babysitting' LIMIT 1`,
+    );
+    const insert = await asServiceRoleInsertBooking(db, service[0]!.id);
+    if (!insert.ok) {
+      expect(insert.error).not.toMatch(/user_blocked/i);
+    }
+    const status = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.my_chat_block_status($1::uuid) AS blocked`,
+      [conversationId],
+    );
+    expect(status.ok).toBe(true);
+    expect(Boolean(status.rows?.[0]?.blocked)).toBe(false);
+  });
 });
 
 async function asServiceRoleInsertBooking(

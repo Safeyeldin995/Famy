@@ -15,7 +15,9 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 | --- | --- | --- | --- | --- |
 | **Name** | Yes | With matched provider/customer for bookings | Account, bookings, chat | Required for account |
 | **Phone number** | Yes | With counterparty for active bookings | Auth (OTP), contact | Required |
-| **Email** | If OAuth / profile | As needed for auth | Sign-in | Optional (phone auth available) |
+| **Email** | If OAuth / profile; parent or guardian email for students aged 12–17 when required | As needed for auth and guardian contact | Sign-in, guardian link | Optional (phone auth available) |
+| **Date of birth** | Yes for online-lesson eligibility (including students 12–17) | No (internal) | Age verification | Required for online lessons |
+| **Phone number (guardian)** | When required for students 12–17 | Guardian link and booking contact | Guardian contact | Context-dependent |
 | **User IDs** | Yes | No (internal) | Account | Required |
 | **Address** | Yes | With provider for service | Booking fulfillment | Required for booking |
 | **Precise location (lat/long)** | Yes — whenever a service address is saved (GPS **or** manual pin on the map) | No (third parties) | App functionality: save service address, map pin, booking fulfillment | **Required** to save a service address (valid coordinates on submit) |
