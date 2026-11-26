@@ -13,6 +13,7 @@ export type NotificationCategory =
 
 export type FamyNotificationType =
   | "booking_request"
+  | "booking_requested"
   | "booking_confirmed"
   | "booking_on_the_way"
   | "booking_arrived"
@@ -24,6 +25,7 @@ export type FamyNotificationType =
   | "booking_no_show"
   | "booking_declined"
   | "booking_cancelled"
+  | "booking_cancelled_by_you"
   | "booking_expired"
   | "booking_reminder"
   | "booking_review_request"
@@ -57,7 +59,8 @@ export type NotificationTypeRow = {
 /** Table for PR / docs; not used at runtime for routing. */
 export const NOTIFICATION_TYPE_INVENTORY: readonly NotificationTypeRow[] = [
   { type: "booking_request", category: "booking", typicalDeepLink: "/pro/booking/{id}", recipient: "provider" },
-  { type: "booking_confirmed", category: "booking", typicalDeepLink: "/booking/{id}", recipient: "customer" },
+  { type: "booking_requested", category: "booking", typicalDeepLink: "/booking/{id} or /online/lessons/{id}", recipient: "customer" },
+  { type: "booking_confirmed", category: "booking", typicalDeepLink: "/booking/{id} or /online/lessons/{id}", recipient: "customer" },
   { type: "booking_on_the_way", category: "booking", typicalDeepLink: "/booking/{id}", recipient: "customer" },
   { type: "booking_arrived", category: "booking", typicalDeepLink: "/booking/{id}", recipient: "customer" },
   { type: "booking_arrival_confirmed", category: "booking", typicalDeepLink: "/pro/booking/{id}", recipient: "provider" },
@@ -68,6 +71,7 @@ export const NOTIFICATION_TYPE_INVENTORY: readonly NotificationTypeRow[] = [
   { type: "booking_no_show", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
   { type: "booking_declined", category: "booking", typicalDeepLink: "/booking/{id}", recipient: "customer" },
   { type: "booking_cancelled", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
+  { type: "booking_cancelled_by_you", category: "booking", typicalDeepLink: "/booking/{id} or /online/lessons/{id}", recipient: "customer" },
   { type: "booking_expired", category: "booking", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
   { type: "booking_reminder", category: "reminder", typicalDeepLink: "/booking/{id} or /pro/booking/{id}", recipient: "both" },
   { type: "booking_review_request", category: "booking", typicalDeepLink: "/booking/{id}?review=1", recipient: "customer" },

@@ -6,7 +6,10 @@ import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { OnlineWebLessonPaymentPanel } from "@/components/online/OnlineWebLessonPaymentPanel";
 import { useBooking } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
-import { useCancelBooking } from "@/lib/db/cancellation-queries";
+import { useBookingCancellation, useCancelBooking } from "@/lib/db/cancellation-queries";
+import { bookingTeachingSummary } from "@/lib/tutoring/bookingTeachingSummary";
+import { onlineLessonJourneyIndex } from "@/lib/online/onlineLessonJourney";
+import { cancelDialogCopy, cancelSuccessCopy } from "@/lib/online/onlineLessonCancelCopy";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
@@ -57,6 +60,9 @@ function OnlineLessonDetail() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelPolicyQ = useOnlineCancellationPolicySummary();
   const cancelFeeQ = useBookingCancellationFee(bookingId, cancelOpen);
+  const cancellationQ = useBookingCancellation(
+    bookingQ.data && String(bookingQ.data.status) === "cancelled" ? bookingId : undefined,
+  );
   const lang = currentLang();
   const locale = formatLocale(lang);
 
@@ -155,12 +161,21 @@ function OnlineLessonDetail() {
   const customer = (booking as { customer?: { full_name?: string; avatar_url?: string } }).customer;
   const cancelPolicyBody = cancelPolicyQ.summary;
   const cancelFee = cancelFeeQ.data;
-  const cancelDialogBody =
-    cancelFee != null && cancelFee > 0
-      ? `${cancelPolicyBody} ${t("onlineWeb.cancelPolicy.feeNow", {
-          amount: formatEGP(cancelFee, undefined, lang),
-        })}`
-      : cancelPolicyBody;
+  const isPendingRequest = String(booking.status) === "pending";
+  const cancelDialog = cancelDialogCopy({
+    pending: isPendingRequest,
+    fee: cancelFee ?? null,
+    policySummary: cancelPolicyBody,
+    formatAmount: (n) => formatEGP(n, undefined, lang),
+    t,
+  });
+  const journeyIndex = onlineLessonJourneyIndex(
+    String(booking.status),
+    captured,
+    Date.now(),
+    String(booking.start_at),
+    String(booking.end_at),
+  );
   const serviceRow = booking.service as { name_ar?: string; name_en?: string } | null | undefined;
   const serviceLabel =
     lang === "ar"
@@ -186,6 +201,15 @@ function OnlineLessonDetail() {
         {t("common.back")}
       </Link>
 
+      {String(booking.status) === "cancelled" ? (
+        <CancelledBanner
+          cancellation={cancellationQ.data ?? null}
+          isProviderView={isProvider}
+          formatAmount={(n) => formatEGP(n, undefined, lang)}
+          t={t}
+        />
+      ) : null}
+
       <LessonCard
         provider={provider}
         customer={customer}
@@ -200,6 +224,8 @@ function OnlineLessonDetail() {
         lang={lang}
         t={t}
       />
+
+      {isCustomer && journeyIndex >= 0 ? <LessonSteps current={journeyIndex} t={t} /> : null}
 
       {guidance ? (
         <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4 text-pro-14">
@@ -259,7 +285,7 @@ function OnlineLessonDetail() {
           className="text-pro-13 font-bold text-coral underline-offset-2 hover:underline"
           onClick={() => setCancelOpen(true)}
         >
-          {t("bookingDetail.cancel")}
+          {isPendingRequest ? t("onlineWeb.cancel.requestAction") : t("onlineWeb.cancel.lessonAction")}
         </button>
       ) : null}
 
@@ -269,8 +295,8 @@ function OnlineLessonDetail() {
         open={cancelOpen}
         actorType="customer"
         bookingStatus={String(booking.status)}
-        title={t("bookingDetail.cancelReasonTitle")}
-        body={cancelDialogBody}
+        title={cancelDialog.title}
+        body={cancelDialog.body}
         reasonLabel={t("bookingDetail.cancelReasonLabel")}
         notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
         confirmLabel={t("bookingDetail.confirmAction")}
@@ -283,8 +309,17 @@ function OnlineLessonDetail() {
             {
               onSuccess: () => {
                 setCancelOpen(false);
-                toast.success(t("admin.bookings.cancelSuccess"));
+                toast.success(
+                  cancelSuccessCopy({
+                    pending: isPendingRequest,
+                    fee: cancelFee ?? null,
+                    formatAmount: (n) => formatEGP(n, undefined, lang),
+                    t,
+                  }),
+                  { duration: 8000 },
+                );
                 void bookingQ.refetch();
+                void cancellationQ.refetch();
               },
               onError: () => toast.error(t("onlineWeb.lessonDetail.cancelFailed")),
             },
@@ -326,6 +361,10 @@ function LessonCard({
     ? customer?.full_name || t("pro.common.customer")
     : provider?.name || t("provider2.unnamed");
   const displayAvatar = isProviderView ? customer?.avatar_url : provider?.avatar;
+  const teachingLine = bookingTeachingSummary(
+    booking as Parameters<typeof bookingTeachingSummary>[0],
+    lang,
+  );
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -354,6 +393,9 @@ function LessonCard({
               {serviceLabel ? (
                 <p className="mt-1 text-pro-13 text-muted-foreground">{serviceLabel}</p>
               ) : null}
+              {teachingLine ? (
+                <p className="mt-1 text-pro-13 font-semibold text-foreground">{teachingLine}</p>
+              ) : null}
               <p className="mt-1 text-pro-13 font-bold tabular-nums">
                 {t("bookFlow.sessionLine", { minutes: formatNumber(durationMin, lang) })} ·{" "}
                 {formatEGP(totalDue, undefined, lang)}
@@ -364,5 +406,76 @@ function LessonCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function CancelledBanner({
+  cancellation,
+  isProviderView,
+  formatAmount,
+  t,
+}: {
+  cancellation: { cancelled_by_role?: string | null; previous_status?: string | null; cancellation_fee?: number | string | null } | null;
+  isProviderView: boolean;
+  formatAmount: (n: number) => string;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const fee = Number(cancellation?.cancellation_fee ?? 0);
+  const byCustomer = cancellation?.cancelled_by_role === "customer";
+  const wasRequest = cancellation?.previous_status === "pending";
+  const who = byCustomer
+    ? isProviderView
+      ? t("onlineWeb.cancelled.byStudent")
+      : t("onlineWeb.cancelled.byYou")
+    : cancellation?.cancelled_by_role === "provider"
+      ? isProviderView
+        ? t("onlineWeb.cancelled.byYou")
+        : t("onlineWeb.cancelled.byTutor")
+      : t("onlineWeb.cancelled.bySystem");
+  return (
+    <div className="space-y-1 rounded-2xl border border-coral/30 bg-coral/5 p-4" role="status">
+      <p className="text-pro-16 font-bold text-foreground">
+        {wasRequest ? t("onlineWeb.cancelled.requestTitle") : t("onlineWeb.cancelled.lessonTitle")}
+      </p>
+      {cancellation ? <p className="text-pro-13 text-muted-foreground">{who}</p> : null}
+      {cancellation ? (
+        <p className="text-pro-13 font-bold text-foreground">
+          {fee > 0
+            ? t("onlineWeb.cancelled.fee", { amount: formatAmount(fee) })
+            : t("onlineWeb.cancelled.noFee")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const LESSON_STEP_KEYS = ["requested", "accepted", "paid", "lesson"] as const;
+
+function LessonSteps({ current, t }: { current: number; t: ReturnType<typeof useTranslation>["t"] }) {
+  // Journey 0 requested, 1 accepted (pay now), 2-3 paid, 4-5 in or after the lesson.
+  const active = current <= 0 ? 0 : current === 1 ? 1 : current <= 3 ? 2 : 3;
+  return (
+    <ol className="grid grid-cols-4 gap-2" aria-label={t("onlineWeb.steps.label")}>
+      {LESSON_STEP_KEYS.map((key, i) => {
+        const done = i < active;
+        const now = i === active;
+        return (
+          <li
+            key={key}
+            aria-current={now ? "step" : undefined}
+            className={`min-w-0 rounded-2xl border p-3 text-center text-pro-12 font-bold ${
+              now
+                ? "border-brand bg-brand/10 text-brand"
+                : done
+                  ? "border-border bg-white text-foreground"
+                  : "border-border/60 bg-white text-muted-foreground"
+            }`}
+          >
+            <span className="block tabular-nums">{i + 1}</span>
+            <span className="block truncate">{t(`onlineWeb.steps.${key}`)}</span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

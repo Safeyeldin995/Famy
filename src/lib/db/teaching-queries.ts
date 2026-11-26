@@ -89,8 +89,9 @@ export function mapCapabilityOption(row: ProviderTeachingCapabilityRow): Teachin
   };
 }
 
-export function useTeachingCurricula(includeInactive = false) {
+export function useTeachingCurricula(includeInactive = false, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["teaching-curricula", includeInactive],
     queryFn: async () => {
       let query = supabase

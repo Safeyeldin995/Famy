@@ -175,14 +175,22 @@ export function BookingActions({
       {cancellable && (
         <Button
           variant="secondary"
-          label={t(lateStage ? "bookingDetail.cancelWithFee" : "bookingDetail.cancel")}
+          label={t(
+            booking.status === "pending"
+              ? "bookingDetail.cancelRequest"
+              : lateStage
+                ? "bookingDetail.cancelWithFee"
+                : "bookingDetail.cancel",
+          )}
           onPress={() => setOpen(true)}
         />
       )}
       {open && cancellable && (
         <>
           <Text weight={(cancelFee.data ?? 0) > 0 ? "bold" : undefined}>
-            {feeApplies
+            {booking.status === "pending"
+              ? t("bookingDetail.cancelRequestFree")
+              : feeApplies
               ? t("bookingDetail.cancelFeeNotice", {
                   amount: money(cancelFee.data ?? 0, i18n.language),
                 })
@@ -223,7 +231,15 @@ export function BookingActions({
                 {
                   onSuccess: () => {
                     setOpen(false);
-                    toast.show(t("bookingDetail.closedCancelledTitle"));
+                    toast.show(
+                      booking.status === "pending"
+                        ? t("bookingDetail.cancelRequestDone")
+                        : feeApplies
+                          ? t("bookingDetail.cancelDoneFee", {
+                              amount: money(cancelFee.data ?? 0, i18n.language),
+                            })
+                          : t("bookingDetail.cancelDoneFree"),
+                    );
                   },
                   onError: () => setError(t("common.somethingWentWrong")),
                 },

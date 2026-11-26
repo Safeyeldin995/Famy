@@ -1,3 +1,4 @@
+import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -167,7 +168,7 @@ function AdminStudentLinks() {
                   toast.success(t("admin.studentLinks.revokeSuccess"));
                 },
                 onError: (e: Error) =>
-                  toast.error(e.message || t("admin.studentLinks.revokeError")),
+                  toast.error(adminErrorText(t, e, t("admin.studentLinks.revokeError"))),
               },
             );
           }}

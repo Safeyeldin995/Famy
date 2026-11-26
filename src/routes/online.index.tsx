@@ -9,10 +9,16 @@ import {
   StepConfirmPay,
   StepJoinLesson,
 } from "@/components/online/OnlineLandingIllustrations";
-import { ONLINE_WEB_ROUTE_IDS, ONLINE_WEB_WALLET_TERMS_AR } from "@/lib/web/onlineWebSurface";
-import { currentLang } from "@/lib/i18n";
+import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useMyProvider } from "@/lib/db/provider-queries";
+import { OnlineStudentHome, OnlineTutorHome } from "@/components/online/OnlineHomeDashboards";
+import {
+  OnlineCurriculaGrid,
+  OnlineLandingFaq,
+  OnlineTutorRecruit,
+} from "@/components/online/OnlineLandingSections";
 
 export const Route = createFileRoute("/online/")({
   head: ({ matches }) =>
@@ -21,7 +27,7 @@ export const Route = createFileRoute("/online/")({
       {
         ar: {
           title: "دروس أونلاين | فامي",
-          description: "احجز درس خصوصي أونلاين مع مدربين فامي الموثوقين من الكمبيوتر.",
+          description: "احجز درس خصوصي أونلاين مع مدرسين فامي الموثوقين من الموبايل أو الكمبيوتر، في كل مصر.",
         },
         en: {
           title: "Online lessons | Famy",
@@ -46,35 +52,72 @@ const WHY = [
   { key: "whyRefund", Icon: Wallet },
 ] as const;
 
-const SUBJECTS = ["subjectSchool", "subjectHomework", "subjectQuran", "subjectMusic"] as const;
 
 function OnlineHome() {
   const { t } = useTranslation();
   const { isAuthenticated, loading } = useAuth();
-  const walletTerms =
-    currentLang() === "ar" ? ONLINE_WEB_WALLET_TERMS_AR : t("onlineWeb.walletTerms");
+
+  const myProviderQ = useMyProvider();
+  const isTutor = isAuthenticated && Boolean(myProviderQ.data?.id);
+  // The primary action follows the session: browse (student), requests (tutor),
+  // or sign in (visitor). Never ask a signed-in user to sign in.
+  const primary = !isAuthenticated
+    ? {
+        to: ONLINE_WEB_ROUTE_IDS.login,
+        search: { returnTo: ONLINE_WEB_ROUTE_IDS.tutors },
+        label: t("onlineWeb.home.browseTutorsSignIn"),
+      }
+    : isTutor
+      ? { to: ONLINE_WEB_ROUTE_IDS.providerRequests, search: undefined, label: t("onlineWeb.home.tutorRequests") }
+      : { to: ONLINE_WEB_ROUTE_IDS.tutors, search: undefined, label: t("onlineWeb.home.browseTutors") };
+  const secondary = !isAuthenticated
+    ? { to: ONLINE_WEB_ROUTE_IDS.login, search: { returnTo: undefined }, label: t("onlineWeb.home.signIn") }
+    : isTutor
+      ? { to: ONLINE_WEB_ROUTE_IDS.providerLessons, search: undefined, label: t("onlineWeb.home.tutorLessons") }
+      : { to: ONLINE_WEB_ROUTE_IDS.lessons, search: undefined, label: t("onlineWeb.nav.lessons") };
+  const sessionSettled = !loading && (!isAuthenticated || !myProviderQ.isLoading);
+
+  const primaryCta = sessionSettled ? (
+    <Link to={primary.to} search={primary.search as never}>
+      <PrimaryButton className="h-12 px-7">{primary.label}</PrimaryButton>
+    </Link>
+  ) : (
+    <PrimaryButton className="h-12 px-7" disabled aria-busy="true">
+      {t("common.loading")}
+    </PrimaryButton>
+  );
 
   const ctas = (
     <div className="flex flex-wrap gap-3">
-      <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}>
-        <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
-      </Link>
-      {!loading && !isAuthenticated ? (
-        <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
+      {primaryCta}
+      {sessionSettled ? (
+        <Link to={secondary.to} search={secondary.search as never}>
           <PrimaryButton variant="outline" className="h-12 px-7">
-            {t("onlineWeb.home.signIn")}
-          </PrimaryButton>
-        </Link>
-      ) : null}
-      {!loading && isAuthenticated ? (
-        <Link to={ONLINE_WEB_ROUTE_IDS.lessons}>
-          <PrimaryButton variant="outline" className="h-12 px-7">
-            {t("onlineWeb.nav.lessons")}
+            {secondary.label}
           </PrimaryButton>
         </Link>
       ) : null}
     </div>
   );
+
+  if (sessionSettled && isTutor && myProviderQ.data?.id) {
+    return (
+      <div className="space-y-12">
+        <OnlineTutorHome providerId={myProviderQ.data.id} />
+        <OnlineLandingFaq />
+      </div>
+    );
+  }
+
+  if (sessionSettled && isAuthenticated) {
+    return (
+      <div className="space-y-12 lg:space-y-14">
+        <OnlineStudentHome />
+        <OnlineCurriculaGrid signedIn />
+        <OnlineLandingFaq />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12 lg:space-y-16">
@@ -132,19 +175,11 @@ function OnlineHome() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-pro-22 font-extrabold text-foreground">{t("onlineWeb.home.subjectsTitle")}</h2>
-        <ul className="flex flex-wrap gap-2">
-          {SUBJECTS.map((key) => (
-            <li
-              key={key}
-              className="rounded-full border border-border bg-surface px-4 py-2 text-pro-14 font-bold text-foreground"
-            >
-              {t(`onlineWeb.home.${key}`)}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <OnlineCurriculaGrid signedIn={false} />
+
+      <OnlineLandingFaq />
+
+      <OnlineTutorRecruit />
 
       <section className="rounded-3xl bg-ink p-6 text-ink-foreground sm:p-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -152,17 +187,9 @@ function OnlineHome() {
             <h2 className="text-pro-22 font-extrabold">{t("onlineWeb.home.ctaTitle")}</h2>
             <p className="text-pro-16 opacity-80">{t("onlineWeb.home.ctaBody")}</p>
           </div>
-          <Link
-            to={ONLINE_WEB_ROUTE_IDS.login}
-            search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}
-            className="shrink-0"
-          >
-            <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
-          </Link>
+          <div className="shrink-0">{primaryCta}</div>
         </div>
       </section>
-
-      <p className="text-pro-13 leading-relaxed text-muted-foreground">{walletTerms}</p>
     </div>
   );
 }

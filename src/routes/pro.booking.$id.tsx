@@ -89,6 +89,12 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
   const nav = useNavigate();
   const q = useProviderBooking(id);
   const { party } = useBookingParty(id);
+  // Online lessons have their own page on the web (/online/lessons/<id>).
+  useEffect(() => {
+    if (!preview && q.data && String((q.data as { service_mode?: string }).service_mode) === "online") {
+      void nav({ to: "/online/lessons/$bookingId", params: { bookingId: id }, search: { paymob_return: undefined }, replace: true });
+    }
+  }, [preview, q.data, id, nav]);
   // Re-render on a clock so a time-locked step unlocks by itself.
   const [nowMs, setNowMs] = useState(() => (preview ? +new Date(PREVIEW_NOW_ISO) : Date.now()));
   useEffect(() => {

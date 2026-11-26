@@ -3,6 +3,7 @@ import { WorkMoney } from "@/components/provider/WorkMoney";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDate, formatTime } from "@/lib/format";
 import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
+import { TutorTeachingDataBanner } from "@/components/provider/TutorTeachingDataBanner";
 import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -101,6 +102,10 @@ function ProDashboard() {
           </div>
         }
       />
+
+      <div className="px-5">
+        <TutorTeachingDataBanner />
+      </div>
 
       {bookingsQ.data ? (
         <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />

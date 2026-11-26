@@ -51,10 +51,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function ProviderProfile() {
-  const { id, serviceId: fromServiceId, serviceMode: serviceModeParam } = useLocalSearchParams<{
+  const {
+    id,
+    serviceId: fromServiceId,
+    serviceMode: serviceModeParam,
+    forWhom,
+    capabilityId,
+  } = useLocalSearchParams<{
     id: string;
     serviceId?: string;
     serviceMode?: string;
+    /** From the tutoring match (issue 536): the learner and the matched subject/grade. */
+    forWhom?: string;
+    capabilityId?: string;
   }>();
   const serviceMode = normalizeServiceDeliveryMode(serviceModeParam);
   useEffect(() => {
@@ -215,10 +224,13 @@ export default function ProviderProfile() {
                           providerId: id,
                           serviceId: fromServiceId,
                           ...(serviceMode === "online" ? { serviceMode: "online" } : {}),
+                          ...(forWhom ? { forWhom } : {}),
+                          ...(capabilityId ? { capabilityId } : {}),
                         }
                       : {
                           providerId: id,
                           ...(serviceMode === "online" ? { serviceMode: "online" } : {}),
+                          ...(forWhom ? { forWhom } : {}),
                         },
                 })
               }
@@ -410,7 +422,9 @@ export default function ProviderProfile() {
                 </Section>
               ) : null}
               {!available.length ? (
-                <View style={{ borderRadius: 16, padding: space.lg, backgroundColor: colors.surface2 }}>
+                <View
+                  style={{ borderRadius: 16, padding: space.lg, backgroundColor: colors.surface2 }}
+                >
                   <Text tone="muted" style={{ textAlign: "center" }}>
                     {t("providerPage.notBookable", { name: firstName })}
                   </Text>
