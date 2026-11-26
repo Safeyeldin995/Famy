@@ -44,7 +44,7 @@ export function useMyProvider() {
       const { data, error } = await supabase
         .from("providers")
         .select(
-          `id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, created_at, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`,
+          `id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, governorate, offering_mode, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, created_at, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`,
         )
         .eq("profile_id", user.id)
         .maybeSingle();

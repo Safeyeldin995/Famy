@@ -18,6 +18,10 @@ import {
 } from "@/lib/booking/pending-expiry";
 import { commissionPercentEqual, parseCommissionPercent } from "@/lib/billing/commissionPercent";
 import { validateStoreLinksSettings, type StoreLinksSettings } from "@/lib/storeLinks";
+import {
+  parseOnlineAvailability,
+  type OnlineAvailabilitySettings,
+} from "@/lib/geo/egyptGovernorates";
 
 export type BillingSettings = {
   vat_percent: number;
@@ -616,5 +620,41 @@ export function useBookingCancellationFee(bookingId: string | undefined, enabled
       if (error) throw error;
       return Number(data ?? 0);
     },
+  });
+}
+
+/** Governorates where online lessons are closed (default: none, open across Egypt). */
+export function useOnlineAvailabilitySettings() {
+  return useQuery({
+    queryKey: ["settings", "online_availability"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "online_availability")
+        .maybeSingle();
+      if (error) throw error;
+      return parseOnlineAvailability(data?.value ?? null);
+    },
+  });
+}
+
+export function useUpdateOnlineAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: OnlineAvailabilitySettings) => {
+      const payload = parseOnlineAvailability(value);
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "online_availability", value: payload as unknown as Json }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseOnlineAvailability(data.value);
+      if (JSON.stringify(stored) !== JSON.stringify(payload)) {
+        throw new Error("Online availability did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "online_availability"] }),
   });
 }

@@ -36,6 +36,7 @@ import {
 } from "@shared/catalog/homeCategories";
 import { categoryAllowsOnlineDiscovery } from "@shared/catalog/discoveryOnlineDelivery";
 import { colors } from "./theme";
+import { InPersonComingSoonCard } from "./customer/InPersonComingSoonCard";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
   providerMatchesStudentEducation,
@@ -54,6 +55,7 @@ export function Discovery({ category: group }: { category?: string }) {
   const [addressId, setAddressId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [serviceMode, setServiceMode] = useState<"in_person" | "online">("in_person");
+  const [modeTouched, setModeTouched] = useState(false);
   const [sort, setSort] = useState("top");
   const [searchSort, setSearchSort] = useState<"default" | "price">("default");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -71,6 +73,18 @@ export function Discovery({ category: group }: { category?: string }) {
   };
   const selectedAddress =
     addressId || addresses.data?.find((a) => a.is_default)?.id || addresses.data?.[0]?.id;
+  const onlineChoosable = !!onlineCaps.data?.onlineSessions && categoryAllowsOnlineDiscovery(group);
+  // No saved address usually means the customer lives outside our at-home zones:
+  // start on online lessons, which are open across Egypt.
+  useEffect(() => {
+    if (!modeTouched && onlineChoosable && addresses.isSuccess && !addresses.data?.length) {
+      setServiceMode("online");
+    }
+  }, [modeTouched, onlineChoosable, addresses.isSuccess, addresses.data?.length]);
+  const chooseMode = (mode: "in_person" | "online") => {
+    setModeTouched(true);
+    setServiceMode(mode);
+  };
   useEffect(() => {
     if (category && !serviceId && services.data?.[0]) setServiceId(services.data[0].id);
   }, [category, services.data, serviceId]);
@@ -271,10 +285,10 @@ export function Discovery({ category: group }: { category?: string }) {
           <QueryState query={caps} />
         </QueryState>
       )}
-      {onlineCaps.data?.onlineSessions && categoryAllowsOnlineDiscovery(group) ? (
+      {onlineChoosable ? (
         <CustomerChips
           value={deliveryMode}
-          onChange={(v) => setServiceMode(v === "online" ? "online" : "in_person")}
+          onChange={(v) => chooseMode(v === "online" ? "online" : "in_person")}
           options={[
             { value: "in_person", label: t("search.deliveryInPerson") },
             { value: "online", label: t("search.deliveryOnline") },
@@ -307,6 +321,12 @@ export function Discovery({ category: group }: { category?: string }) {
             >
               <Button label={t("category.filters")} onPress={() => router.push("/search")} />
             </CustomerEmpty>
+          ) : null}
+          {!ranked.length && deliveryMode === "in_person" ? (
+            <InPersonComingSoonCard
+              serviceId={serviceId || null}
+              onShowOnline={onlineChoosable ? () => chooseMode("online") : undefined}
+            />
           ) : null}
           <View style={{ gap: space.md }}>
             {ranked.map((p) => (
@@ -354,6 +374,12 @@ export function Discovery({ category: group }: { category?: string }) {
           <Button label={t("addresses.addAddress")} onPress={() => router.push("/addresses/new")} />
         </CustomerEmpty>
       )}
+      {!selectedAddress && deliveryMode === "in_person" ? (
+        <InPersonComingSoonCard
+          serviceId={serviceId || null}
+          onShowOnline={onlineChoosable ? () => chooseMode("online") : undefined}
+        />
+      ) : null}
     </Page>
   );
 }

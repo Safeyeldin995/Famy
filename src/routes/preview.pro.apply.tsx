@@ -17,6 +17,8 @@ function PreviewProviderApply() {
       initialStep={step}
       initial={{
         name: "منى عادل",
+        mode: "in_person",
+        governorate: "",
         zones: ["zayed", "october"],
         services: ["hourly"],
         prices: { hourly: 250 },

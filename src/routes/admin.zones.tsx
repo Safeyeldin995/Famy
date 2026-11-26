@@ -28,6 +28,8 @@ import {
 import { combinationLabel, partnerZoneIdsFor } from "@/lib/geo/zoneCombinations";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { ZoneServiceMatrix } from "@/components/admin/ZoneServiceMatrix";
+import { OnlineGovernoratesPanel } from "@/components/admin/OnlineGovernoratesPanel";
 import {
   ZonePolygonEditor,
   type LatLng,
@@ -849,6 +851,12 @@ function AdminZones() {
           </ul>
         )}
       </section>
+      {!creating && !editingId && (
+        <>
+          <ZoneServiceMatrix />
+          <OnlineGovernoratesPanel />
+        </>
+      )}
       {!creating && !editingId && allOtherZones.length > 0 && (
         <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.zones.overviewTitle")}</h2>

@@ -19,12 +19,21 @@ import {
 import { hasSelectedServicePrices, needsServicePrice } from "@/lib/provider/priceOptions";
 import { isFixedPackage, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
+import { BottomSheetSelect } from "@/components/famio/BottomSheetSelect";
+import { governorateOptions, isEgyptGovernorateCode } from "@/lib/geo/egyptGovernorates";
+import {
+  applyBasicsReady,
+  serviceAllowedForMode,
+  servicesForMode,
+  type ApplyWorkMode,
+} from "@/lib/provider/applyWorkMode";
 
 export type ApplyService = {
   id: string;
   name_en: string;
   name_ar: string;
-  category?: { slug?: string | null } | null;
+  category?: { slug?: string | null; online_allowed?: boolean | null } | null;
+  online_allowed?: boolean | null;
   provider_pricing_allowed?: boolean | null;
   minimum_price?: number | null;
   maximum_price?: number | null;
@@ -34,6 +43,10 @@ export type ApplyService = {
 };
 export type ApplyDraft = {
   name: string;
+  /** How the provider will work; online only needs no service zone. */
+  mode: ApplyWorkMode;
+  /** Governorate of residence (code); required when working online. */
+  governorate: string;
   zones: string[];
   services: string[];
   prices: Record<string, number | null>;
@@ -42,7 +55,7 @@ export type ApplyDraft = {
   agreed: boolean;
 };
 export function applyStepReady(step: number, draft: ApplyDraft, services: ApplyService[]) {
-  if (step === 1) return !!draft.name.trim() && draft.zones.length > 0;
+  if (step === 1) return applyBasicsReady(draft);
   if (step === 2)
     return (
       draft.services.length > 0 && hasSelectedServicePrices(services, draft.services, draft.prices)
@@ -82,7 +95,19 @@ export function ProviderApplyFlow({
   const [error, setError] = useState("");
   const [captureError, setCaptureError] = useState<string | null>(null);
   const ar = i18n.language.startsWith("ar");
-  const ready = applyStepReady(step, draft, services);
+  const visibleServices = servicesForMode(services, draft.mode);
+  const ready = applyStepReady(step, draft, visibleServices);
+  const chooseMode = (mode: ApplyWorkMode) =>
+    setDraft((d) => ({
+      ...d,
+      mode,
+      // Online only: drop at-home-only services picked earlier (approved ones stay).
+      services: d.services.filter((id) => {
+        if (lockedServices.includes(id)) return true;
+        const service = services.find((s) => s.id === id);
+        return !service || serviceAllowedForMode(service, mode);
+      }),
+    }));
   const checklist = buildApplyDocumentChecklist({
     selectedServiceIds: draft.services,
     requirements,
@@ -175,6 +200,45 @@ export function ProviderApplyFlow({
               </p>
             )}
             <div>
+              <span className="apply-label">{t("onlineNationwide.workMode")}</span>
+              <div className="apply-chips" role="radiogroup" aria-label={t("onlineNationwide.workMode")}>
+                {(
+                  [
+                    ["in_person", "onlineNationwide.workModeInPerson"],
+                    ["online", "onlineNationwide.workModeOnline"],
+                    ["both", "onlineNationwide.workModeBoth"],
+                  ] as const
+                ).map(([mode, key]) => (
+                  <CheckChip
+                    key={mode}
+                    selected={draft.mode === mode}
+                    disabled={busy}
+                    onClick={() => chooseMode(mode)}
+                  >
+                    {t(key)}
+                  </CheckChip>
+                ))}
+              </div>
+            </div>
+            {draft.mode !== "in_person" && (
+              <div>
+                <p className="mb-2 text-pro-12 text-muted-foreground">
+                  {t("onlineNationwide.workModeOnlineHint")}
+                </p>
+                <BottomSheetSelect
+                  label={t("onlineNationwide.governorate")}
+                  value={draft.governorate}
+                  disabled={busy}
+                  onChange={(governorate) => setDraft((d) => ({ ...d, governorate }))}
+                  options={governorateOptions(i18n.language)}
+                />
+                {attempted && !isEgyptGovernorateCode(draft.governorate) && (
+                  <p className="text-pro-12 text-coral">{t("onlineNationwide.governorateRequired")}</p>
+                )}
+              </div>
+            )}
+            {draft.mode !== "online" && (
+            <div>
               <span className="apply-label">{t("providerApply.zones")}</span>
               <div className="apply-chips">
                 {zones.map((zone) => (
@@ -202,6 +266,7 @@ export function ProviderApplyFlow({
                 {t("providerApply.zonesHint")}
               </p>
             </div>
+            )}
           </>
         )}
         {step === 2 && (
@@ -209,8 +274,8 @@ export function ProviderApplyFlow({
             {attempted && !ready && (
               <p className="text-pro-12 text-coral">{t("proRound2.servicesRequired")}</p>
             )}
-            {services.length === 0 && <p>{t("providerApply.noServices")}</p>}
-            {services.map((service) => {
+            {visibleServices.length === 0 && <p>{t("providerApply.noServices")}</p>}
+            {visibleServices.map((service) => {
               const tutoring = service.category?.slug === "tutoring";
               const fixed = isFixedPackage(service);
               const unit = servicePriceUnit(service);
