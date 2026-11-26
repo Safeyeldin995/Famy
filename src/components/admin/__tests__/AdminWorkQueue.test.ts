@@ -13,6 +13,7 @@ describe("admin work queue counts", () => {
     expect(counts.pending_teaching_groups).toBe(6);
     expect(counts.payments_pending_review).toBe(12);
     expect(counts.online_lesson_issue_reports).toBe(13);
+    expect(counts.ugc_reports).toBe(14);
     expect(WORK_QUEUE_ITEMS.every((item) => item.route.startsWith("/admin/"))).toBe(true);
   });
 
