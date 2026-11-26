@@ -770,15 +770,35 @@ export function useActiveZones() {
   });
 }
 
-/** "Bring Famy to my area" from a pin outside every service zone (max 5/day per user). */
+export type AreaRequestInput =
+  | { lat: number; lng: number }
+  | { governorate: string; serviceId?: string | null };
+
+/**
+ * "Bring Famy to my area": from a pin outside every service zone, or by
+ * governorate (and service) when an at-home service isn't offered there yet.
+ * The server allows 5 a day per customer.
+ */
 export function useRequestArea() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (pos: { lat: number; lng: number }) => {
+    mutationFn: async (input: AreaRequestInput) => {
+      if ("governorate" in input) {
+        const gov = await supabase.rpc("set_my_governorate" as never, {
+          p_governorate: input.governorate,
+        } as never);
+        if (gov.error) throw gov.error;
+      }
+      const row =
+        "governorate" in input
+          ? { governorate: input.governorate, service_id: input.serviceId ?? null }
+          : { lat: input.lat, lng: input.lng };
       // area_requests is newer than the generated types.
-      const { error } = await supabase
-        .from("area_requests" as never)
-        .insert({ lat: pos.lat, lng: pos.lng } as never);
+      const { error } = await supabase.from("area_requests" as never).insert(row as never);
       if (error) throw error;
+    },
+    onSuccess: (_data, input) => {
+      if ("governorate" in input) void qc.invalidateQueries({ queryKey: ["my-profile"] });
     },
   });
 }

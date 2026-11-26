@@ -17,6 +17,8 @@ const services = [
 ];
 const draft: ApplyDraft = {
   name: "Synthetic Name",
+  mode: "in_person",
+  governorate: "",
   zones: ["z"],
   services: ["s"],
   prices: { s: 250 },

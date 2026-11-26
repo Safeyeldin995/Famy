@@ -16,6 +16,7 @@ export type AreaRequestCluster = {
 export function clusterAreaRequests(rows: AreaRequestRow[]): AreaRequestCluster[] {
   const cells = new Map<string, { rows: AreaRequestRow[] }>();
   for (const row of rows) {
+    if (typeof row.lat !== "number" || typeof row.lng !== "number") continue;
     const key = `${row.lat.toFixed(2)},${row.lng.toFixed(2)}`;
     const cell = cells.get(key) ?? { rows: [] };
     cell.rows.push(row);
@@ -36,6 +37,34 @@ export function clusterAreaRequests(rows: AreaRequestRow[]): AreaRequestCluster[
     .sort((a, b) => b.customers - a.customers || b.requests - a.requests);
 }
 
+export type AreaRequestSummaryRow = {
+  governorate: string | null;
+  service_id: string | null;
+  service_name_ar: string | null;
+  service_name_en: string | null;
+  request_count: number;
+  customer_count: number;
+  last_requested_at: string;
+};
+
+/** "Tell me when you arrive" requests by governorate and service (admin only). */
+export function useAdminAreaRequestSummary() {
+  return useQuery({
+    queryKey: ["admin", "area-requests", "summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_area_request_summary" as never);
+      if (error) throw error;
+      return ((data ?? []) as unknown as AreaRequestSummaryRow[])
+        .filter((r) => r.governorate)
+        .map((r) => ({
+          ...r,
+          request_count: Number(r.request_count),
+          customer_count: Number(r.customer_count),
+        }));
+    },
+  });
+}
+
 export function useAdminAreaRequests() {
   return useQuery({
     queryKey: ["admin", "area-requests"],
@@ -44,6 +73,8 @@ export function useAdminAreaRequests() {
       const { data, error } = await supabase
         .from("area_requests" as never)
         .select("user_id, lat, lng, created_at")
+        // Governorate-only requests have no pin; they are in the summary instead.
+        .not("lat", "is", null)
         .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;

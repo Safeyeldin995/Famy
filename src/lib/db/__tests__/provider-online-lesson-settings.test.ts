@@ -70,8 +70,17 @@ describe("provider online lesson settings (#403)", () => {
     expect(row[0]?.offering_mode).toBe("in_person");
   });
 
-  it("rejects offering_mode online for unverified providers", async () => {
-    await seedDraftProvider(db);
+  it("rejects offering_mode online for approved but unverified providers", async () => {
+    // Applicants (DRAFT / NEEDS_CHANGES) may pick online; see online-nationwide-waitlist.test.ts.
+    const seed = await seedDraftProvider(db);
+    await fillOnboardingSections(db, IDS.zone, seed.serviceId);
+    await submitOnboarding(db);
+    await approveProviderApplication(db);
+    await asServiceRole(db, async () => {
+      await queryRows(db, `UPDATE public.providers SET is_verified = false WHERE id = $1`, [
+        IDS.provider,
+      ]);
+    });
     const attempt = await tryAsUser(
       db,
       IDS.providerUser,

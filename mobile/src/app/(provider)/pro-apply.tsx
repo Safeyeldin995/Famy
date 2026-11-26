@@ -4,7 +4,11 @@ import { providerHeaderShowsBack } from "@/lib/provider/providerHeaderBack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { defaultWorkingHours } from "@shared/provider/setupHelpers";
-import { needsServicePrice, type ApplyDraft } from "@/lib/provider/applyDraft";
+import {
+  needsServicePrice,
+  normalizeApplyWorkMode,
+  type ApplyDraft,
+} from "@/lib/provider/applyDraft";
 import { ProviderApplyFlow } from "@/ui/provider/ProviderApplyFlow";
 import {
   useActiveZones,
@@ -98,7 +102,22 @@ export default function ProApplyScreen() {
     const serviceRows = services.data!;
     if (saveStep === 1) {
       await save.mutateAsync({ section: "personal", payload: { legal_name: draft.name } });
-      await save.mutateAsync({ section: "coverage", payload: { zone_ids: draft.zones } });
+      if (draft.mode !== "in_person") {
+        const gov = await supabase.rpc("set_my_governorate" as never, {
+          p_governorate: draft.governorate,
+        } as never);
+        if (gov.error) throw gov.error;
+      }
+      const mode = await supabase.rpc("provider_update_offering_mode", {
+        p_offering_mode: draft.mode,
+      });
+      if (mode.error) throw mode.error;
+      // Online only needs no service zone; at-home work keeps the chosen zones.
+      await save.mutateAsync({
+        section: "coverage",
+        payload: { zone_ids: draft.mode === "online" ? [] : draft.zones },
+      });
+      await qc.invalidateQueries({ queryKey: ["my-provider"] });
     } else if (saveStep === 2) {
       await save.mutateAsync({ section: "services", payload: { service_ids: draft.services } });
       for (const existing of savedServices) {
@@ -157,6 +176,8 @@ export default function ProApplyScreen() {
     const serviceRows = services.data!;
     const initial: ApplyDraft = {
       name: snapshotData.profile?.full_name ?? profile?.full_name ?? "",
+      mode: normalizeApplyWorkMode(provider!.offering_mode),
+      governorate: typeof provider!.governorate === "string" ? provider!.governorate : "",
       zones: selections
         .data!.zones.map((z: { zone_id: string }) => z.zone_id)
         .filter((id: string) => zones.data!.some((z: { id: string }) => z.id === id)),

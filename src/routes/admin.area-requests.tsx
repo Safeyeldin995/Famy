@@ -1,5 +1,9 @@
 import { QueryError } from "@/components/famio/QueryError";
-import { useAdminAreaRequests } from "@/lib/db/admin-area-request-queries";
+import {
+  useAdminAreaRequests,
+  useAdminAreaRequestSummary,
+} from "@/lib/db/admin-area-request-queries";
+import { governorateName } from "@/lib/geo/egyptGovernorates";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +28,7 @@ function AdminAreaRequests() {
 
   return (
     <div className="space-y-4">
+      <AreaRequestSummary date={date} />
       <div>
         <h1 className="text-xl font-extrabold">{t("adminAreaRequests.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("adminAreaRequests.subtitle")}</p>
@@ -64,5 +69,57 @@ function AdminAreaRequests() {
         </ul>
       )}
     </div>
+  );
+}
+
+/** "Tell me when you arrive" requests by governorate and service. */
+function AreaRequestSummary({ date }: { date: (iso: string) => string }) {
+  const { t, i18n } = useTranslation();
+  const q = useAdminAreaRequestSummary();
+  const ar = i18n.language.startsWith("ar");
+
+  if (q.isLoading) return <p className="text-sm">{t("common.loading")}</p>;
+  if (q.isError) return <QueryError onRetry={() => q.refetch()} />;
+  const rows = q.data ?? [];
+
+  return (
+    <section className="space-y-2">
+      <div>
+        <h2 className="text-xl font-extrabold">{t("onlineNationwide.adminWaitlistTitle")}</h2>
+        <p className="text-sm text-muted-foreground">{t("onlineNationwide.adminWaitlistHint")}</p>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("onlineNationwide.adminWaitlistEmpty")}</p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-xs text-muted-foreground">
+                <th className="px-4 py-2 text-start">{t("onlineNationwide.adminWaitlistGovernorate")}</th>
+                <th className="px-4 py-2 text-start">{t("onlineNationwide.adminWaitlistService")}</th>
+                <th className="px-4 py-2 text-end">{t("onlineNationwide.adminWaitlistCustomers")}</th>
+                <th className="px-4 py-2 text-end">{t("onlineNationwide.adminWaitlistLatest")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={`${r.governorate}:${r.service_id ?? "any"}`} className="border-t border-border">
+                  <td className="px-4 py-2 font-bold">
+                    {governorateName(r.governorate, i18n.language) ||
+                      t("onlineNationwide.adminWaitlistUnknown")}
+                  </td>
+                  <td className="px-4 py-2">
+                    {(ar ? r.service_name_ar : r.service_name_en) ||
+                      t("onlineNationwide.adminWaitlistAnyService")}
+                  </td>
+                  <td className="px-4 py-2 text-end tabular-nums">{r.customer_count}</td>
+                  <td className="px-4 py-2 text-end">{date(r.last_requested_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

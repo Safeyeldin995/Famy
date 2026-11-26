@@ -15,7 +15,7 @@ export function useMyProvider() {
       const { data, error } = await supabase
         .from("providers")
         .select(
-          `id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, offering_mode, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, buffer_minutes, min_notice_hours, max_advance_days, created_at, profile:profiles(*), ratings:ratings_summary(*)`,
+          `id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, offering_mode, governorate, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, buffer_minutes, min_notice_hours, max_advance_days, created_at, profile:profiles(*), ratings:ratings_summary(*)`,
         )
         .eq("profile_id", user.id)
         .maybeSingle();

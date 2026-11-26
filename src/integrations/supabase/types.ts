@@ -1054,6 +1054,7 @@ export type Database = {
           is_active: boolean
           name_ar: string
           name_en: string
+          online_allowed: boolean
           parent_id: string | null
           slug: string
           sort_order: number
@@ -1068,6 +1069,7 @@ export type Database = {
           is_active?: boolean
           name_ar: string
           name_en: string
+          online_allowed?: boolean
           parent_id?: string | null
           slug: string
           sort_order?: number
@@ -1082,6 +1084,7 @@ export type Database = {
           is_active?: boolean
           name_ar?: string
           name_en?: string
+          online_allowed?: boolean
           parent_id?: string | null
           slug?: string
           sort_order?: number
@@ -2052,6 +2055,7 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           full_name: string | null
+          governorate: string | null
           id: string
           is_suspended: boolean
           locale: string
@@ -2065,6 +2069,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           full_name?: string | null
+          governorate?: string | null
           id: string
           is_suspended?: boolean
           locale?: string
@@ -2078,6 +2083,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           full_name?: string | null
+          governorate?: string | null
           id?: string
           is_suspended?: boolean
           locale?: string
@@ -3073,6 +3079,8 @@ export type Database = {
           bio_en: string | null
           buffer_minutes: number
           city: string | null
+          governorate: string | null
+          offering_mode: string
           country: string
           created_at: string
           deleted_at: string | null
@@ -3102,6 +3110,8 @@ export type Database = {
           bio_en?: string | null
           buffer_minutes?: number
           city?: string | null
+          governorate?: string | null
+          offering_mode?: string
           country?: string
           created_at?: string
           deleted_at?: string | null
@@ -3131,6 +3141,8 @@ export type Database = {
           bio_en?: string | null
           buffer_minutes?: number
           city?: string | null
+          governorate?: string | null
+          offering_mode?: string
           country?: string
           created_at?: string
           deleted_at?: string | null
@@ -3370,6 +3382,7 @@ export type Database = {
           minimum_price: number | null
           name_ar: string
           name_en: string
+          online_allowed: boolean
           pricing_model: string
           provider_pricing_allowed: boolean
           requires_teaching_curriculum: boolean
@@ -3393,6 +3406,7 @@ export type Database = {
           minimum_price?: number | null
           name_ar: string
           name_en: string
+          online_allowed?: boolean
           pricing_model?: string
           provider_pricing_allowed?: boolean
           requires_teaching_curriculum?: boolean
@@ -3416,6 +3430,7 @@ export type Database = {
           minimum_price?: number | null
           name_ar?: string
           name_en?: string
+          online_allowed?: boolean
           pricing_model?: string
           provider_pricing_allowed?: boolean
           requires_teaching_curriculum?: boolean

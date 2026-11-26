@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useActiveZones } from "@/lib/bookingQueries";
+import { useOnlineSessionsAvailable } from "@/lib/useOnlineSessionsAvailable";
 import { useGuestProviders } from "@/lib/queries";
 import { getGuestZone, setGuestZone } from "@/lib/guest";
 import { localized } from "@/lib/presentation";
@@ -10,7 +11,7 @@ import { Page, QueryState, Choices } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 
 /** Browse providers without an account: pick an area, then see who covers it. */
 export default function GuestHome() {
@@ -19,6 +20,7 @@ export default function GuestHome() {
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const providers = useGuestProviders(zoneId);
+  const online = useOnlineSessionsAvailable();
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +70,29 @@ export default function GuestHome() {
           }))}
         />
       </QueryState>
+      {online.data?.onlineSessions ? (
+        <View
+          testID="guest-online-nationwide"
+          style={{
+            gap: space.sm,
+            padding: space.lg,
+            borderRadius: radius.lg,
+            backgroundColor: colors.brandTint,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Text weight="heavy">{t("onlineNationwide.guestOnlineTitle")}</Text>
+          <Text size="sm" tone="muted">
+            {t("onlineNationwide.guestOnlineBody")}
+          </Text>
+          <Button
+            variant="secondary"
+            label={t("onlineNationwide.guestOnlineCta")}
+            onPress={() => router.dismissTo("/login")}
+          />
+        </View>
+      ) : null}
       {zoneId ? (
         <View style={{ gap: space.md }}>
           <Text size="lg" weight="heavy">

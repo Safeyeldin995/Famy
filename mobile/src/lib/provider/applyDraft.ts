@@ -1,11 +1,19 @@
 import { hasSelectedServicePrices, needsServicePrice } from "@shared/provider/priceOptions";
 import { buildPriceOptions } from "@shared/provider/priceOptions";
+import {
+  applyBasicsReady,
+  normalizeApplyWorkMode,
+  serviceAllowedForMode,
+  servicesForMode,
+  type ApplyWorkMode,
+} from "@shared/provider/applyWorkMode";
 
 export type ApplyService = {
   id: string;
   name_en: string;
   name_ar: string;
-  category?: { slug?: string | null } | null;
+  category?: { slug?: string | null; online_allowed?: boolean | null } | null;
+  online_allowed?: boolean | null;
   provider_pricing_allowed?: boolean | null;
   minimum_price?: number | null;
   maximum_price?: number | null;
@@ -13,6 +21,10 @@ export type ApplyService = {
 
 export type ApplyDraft = {
   name: string;
+  /** How the provider will work; online only needs no service zone. */
+  mode: ApplyWorkMode;
+  /** Governorate of residence (code); required when working online. */
+  governorate: string;
   zones: string[];
   services: string[];
   prices: Record<string, number | null>;
@@ -22,7 +34,7 @@ export type ApplyDraft = {
 };
 
 export function applyStepReady(step: number, draft: ApplyDraft, services: ApplyService[]) {
-  if (step === 1) return !!draft.name.trim() && draft.zones.length > 0;
+  if (step === 1) return applyBasicsReady(draft);
   if (step === 2) {
     return (
       draft.services.length > 0 && hasSelectedServicePrices(services, draft.services, draft.prices)
@@ -40,4 +52,5 @@ export function initialStepperPrice(min: number | null, max: number | null) {
   );
 }
 
-export { needsServicePrice };
+export { needsServicePrice, normalizeApplyWorkMode, serviceAllowedForMode, servicesForMode };
+export type { ApplyWorkMode };

@@ -27,6 +27,7 @@ import { defaultWorkingHours } from "@/lib/provider/setupHelpers";
 import { useReplaceAvailability } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { providerApplyBootstrapLoading } from "@/lib/provider/providerApplyBootstrap";
+import { normalizeApplyWorkMode } from "@/lib/provider/applyWorkMode";
 
 export const Route = createFileRoute("/pro/apply")({ validateSearch: applyStepSearch, component: ProviderApplyRoute });
 function ProviderApplyRoute() {
@@ -96,6 +97,8 @@ function ProviderApplyRoute() {
   const serviceRows = services.data!;
   const initial: ApplyDraft = {
     name: snapshotData.profile?.full_name ?? provider.data.profile?.full_name ?? "",
+    mode: normalizeApplyWorkMode(provider.data.offering_mode),
+    governorate: provider.data.governorate ?? "",
     zones: selections
       .data!.zones.map((z) => z.zone_id)
       .filter((id) => zones.data!.some((z) => z.id === id)),
@@ -110,7 +113,22 @@ function ProviderApplyRoute() {
   const persist = async (step: number, draft: ApplyDraft) => {
     if (step === 1) {
       await save.mutateAsync({ section: "personal", payload: { legal_name: draft.name } });
-      await save.mutateAsync({ section: "coverage", payload: { zone_ids: draft.zones } });
+      if (draft.mode !== "in_person") {
+        const gov = await supabase.rpc("set_my_governorate" as never, {
+          p_governorate: draft.governorate,
+        } as never);
+        if (gov.error) throw gov.error;
+      }
+      const mode = await supabase.rpc("provider_update_offering_mode" as never, {
+        p_offering_mode: draft.mode,
+      } as never);
+      if (mode.error) throw mode.error;
+      // Online only needs no service zone; at-home work keeps the chosen zones.
+      await save.mutateAsync({
+        section: "coverage",
+        payload: { zone_ids: draft.mode === "online" ? [] : draft.zones },
+      });
+      await qc.invalidateQueries({ queryKey: ["my-provider"] });
     } else if (step === 2) {
       await save.mutateAsync({ section: "services", payload: { service_ids: draft.services } });
       for (const existing of savedServices) {

@@ -6,14 +6,19 @@ import {
   applyStepReady,
   initialStepperPrice,
   needsServicePrice,
+  serviceAllowedForMode,
+  servicesForMode,
   type ApplyDraft,
   type ApplyService,
+  type ApplyWorkMode,
 } from "@/lib/provider/applyDraft";
+import { governorateOptions, isEgyptGovernorateCode } from "@shared/geo/egyptGovernorates";
+import { BottomSheetSelect } from "./BottomSheetSelect";
 import { localized } from "@/lib/presentation";
 import { DocumentUploadCard } from "./DocumentUploadCard";
 import { ProviderPriceStepper } from "./ProviderPriceStepper";
 import { proCard } from "./cards";
-import { Field, ui } from "@/ui/Page";
+import { Choices, Field, ui } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
@@ -58,7 +63,8 @@ export function ProviderApplyFlow({
   const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const ready = applyStepReady(step, draft, services);
+  const visibleServices = servicesForMode(services, draft.mode);
+  const ready = applyStepReady(step, draft, visibleServices);
   const checklist = buildApplyDocumentChecklist({
     selectedServiceIds: draft.services,
     requirements,
@@ -86,6 +92,18 @@ export function ProviderApplyFlow({
       setBusy(false);
     }
   };
+
+  const chooseMode = (mode: ApplyWorkMode) =>
+    setDraft((d) => {
+      // Online only: drop at-home-only services the provider picked earlier
+      // (approved ones stay; the server keeps them).
+      const keep = d.services.filter((id) => {
+        if (lockedServices.includes(id)) return true;
+        const service = services.find((s) => s.id === id);
+        return !service || serviceAllowedForMode(service, mode);
+      });
+      return { ...d, mode, services: keep };
+    });
 
   const toggleZone = (id: string) =>
     setDraft((d) => ({
@@ -146,6 +164,37 @@ export function ProviderApplyFlow({
               {t("providerApply.missingBasics")}
             </Text>
           ) : null}
+          <Choices
+            label={t("onlineNationwide.workMode")}
+            value={draft.mode}
+            onChange={(v) => chooseMode(v === "online" ? "online" : v === "both" ? "both" : "in_person")}
+            options={[
+              { value: "in_person", label: t("onlineNationwide.workModeInPerson") },
+              { value: "online", label: t("onlineNationwide.workModeOnline") },
+              { value: "both", label: t("onlineNationwide.workModeBoth") },
+            ]}
+          />
+          {draft.mode !== "in_person" ? (
+            <>
+              <Text size="sm" tone="muted">
+                {t("onlineNationwide.workModeOnlineHint")}
+              </Text>
+              <BottomSheetSelect
+                label={t("onlineNationwide.governorate")}
+                value={draft.governorate}
+                onChange={(governorate) => setDraft((d) => ({ ...d, governorate }))}
+                options={governorateOptions(i18n.language)}
+                disabled={busy}
+              />
+              {attempted && !isEgyptGovernorateCode(draft.governorate) ? (
+                <Text tone="danger" size="sm">
+                  {t("onlineNationwide.governorateRequired")}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+          {draft.mode !== "online" ? (
+          <>
           <Text weight="bold">{t("providerApply.zones")}</Text>
           <View style={ui.wrap}>
             {zones.map((z) => {
@@ -177,12 +226,14 @@ export function ProviderApplyFlow({
               {t("providerApply.missingBasics")}
             </Text>
           ) : null}
+          </>
+          ) : null}
         </>
       )}
 
       {step === 2 && (
         <>
-          {services.map((service) => {
+          {visibleServices.map((service) => {
             const selected = draft.services.includes(service.id);
             const locked = lockedServices.includes(service.id);
             const Icon =
