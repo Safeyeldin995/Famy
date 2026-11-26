@@ -117,7 +117,7 @@ async function queueCount(queue: string): Promise<number> {
   return (result.rows as { n: number }[])[0]?.n ?? 0;
 }
 
-describe("admin work queue batch C (20261126200200)", () => {
+describe("admin work queue batch C (20261126220000)", () => {
   it("matches open_cases to open disputes, tickets, and no-show reports", async () => {
     const ticketBooking = await insertBooking("confirmed");
     const disputeBooking = await insertBooking("confirmed");
