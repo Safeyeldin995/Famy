@@ -23,7 +23,7 @@ afterAll(async () => {
 });
 
 describe("Codex PR #397 database fixes", () => {
-  it("rejects online create_booking for learners under 12", async () => {
+  it("rejects online create_booking for a child under 12 without parent supervision", async () => {
     const service = await queryRows<{ id: string }>(
       db,
       "SELECT id FROM public.services WHERE slug = 'hourly-babysitting' LIMIT 1",
@@ -38,7 +38,7 @@ describe("Codex PR #397 database fixes", () => {
       )`,
       [IDS.provider, service[0]!.id, randomUUID(), IDS.childMember],
     );
-    expect(result.error).toMatch(/BOOKING_ONLINE_AGE_MINIMUM/);
+    expect(result.error).toMatch(/BOOKING_PARENT_SUPERVISION_REQUIRED/);
   });
 
   it("blocks direct lesson-issue inserts and exposes party-safe view", async () => {

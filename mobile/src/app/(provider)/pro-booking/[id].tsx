@@ -37,7 +37,10 @@ import { Page, QueryState, ActionError, moneyTextStyle } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
-import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import {
+  supervisionModeProviderLabel,
+  hasSupervisionNote,
+} from "@shared/booking/supervisionMode";
 import { useToast } from "@/ui/Toast";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 import {
@@ -306,7 +309,7 @@ export default function ProBookingDetail() {
                   </Text>
                 </View>
               ) : null}
-              {isSupervisionMode(b.supervision_mode as string | null | undefined) ? (
+              {hasSupervisionNote(b.supervision_mode as string | null | undefined) ? (
                 <View style={proCard.row}>
                   <User size={16} color={colors.brand} />
                   <Text tone="muted" size="sm" style={{ flex: 1 }}>

@@ -1,7 +1,7 @@
 import { bookingFamilyMemberId } from "./babysittingRecipient";
 import { serviceQuote, type PackageService } from "@/lib/pricing/servicePackages";
 import { tutoringSessionQuote } from "@/lib/tutoring/teachingCapabilities";
-import type { SupervisionMode } from "./supervisionMode";
+import type { BookingSupervisionValue } from "./supervisionMode";
 
 type Capability = {
   id: string;
@@ -25,7 +25,7 @@ export function buildBookingRequest(choices: {
   eitherRequirements: { id: string }[];
   requirementChoices: Record<string, "customer" | "provider">;
   selectedCapability: Capability | null;
-  supervisionMode: SupervisionMode | null;
+  supervisionMode: BookingSupervisionValue | null;
 }) {
   return {
     provider_id: choices.providerId,

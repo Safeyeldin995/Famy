@@ -9,8 +9,8 @@ import { BookingRequestActions } from "./BookingRequestActions";
 import { BookingCountdown } from "./BookingCountdown";
 import { ProfileAvatar } from "./ProfileAvatar";
 import {
-  isSupervisionMode,
   supervisionModeProviderLabel,
+  hasSupervisionNote,
 } from "@/lib/booking/supervisionMode";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 
@@ -56,7 +56,7 @@ export function ProviderRequestCard({ booking: b }: { booking: RequestBooking })
           </span>
         </div>
         <p className="text-pro-14 font-bold">{ar ? b.service?.name_ar : b.service?.name_en}</p>
-        {(area || child || isSupervisionMode(b.supervision_mode)) && (
+        {(area || child || hasSupervisionNote(b.supervision_mode)) && (
           <p className="text-pro-13 text-muted-foreground">
             {[
               area,

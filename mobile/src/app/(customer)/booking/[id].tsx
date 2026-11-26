@@ -50,7 +50,10 @@ import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
 import { OnlineLessonTimeline } from "@/ui/online/OnlineLessonTimeline";
 import { OnlineLessonPaymentPanel } from "@/ui/online/OnlineLessonPaymentPanel";
 import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
-import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import {
+  supervisionModeProviderLabel,
+  hasSupervisionNote,
+} from "@shared/booking/supervisionMode";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 import { moneyHeld } from "@shared/payments/refundOwed";
 
@@ -408,7 +411,7 @@ export default function BookingDetail() {
                   label: info ? joinUiParts([info.time, info.duration], i18n.language) : "",
                 },
                 { Icon: MapPin, label: info.address },
-                ...(isSupervisionMode(b.supervision_mode)
+                ...(hasSupervisionNote(b.supervision_mode)
                   ? [
                       {
                         Icon: HelpCircle,
