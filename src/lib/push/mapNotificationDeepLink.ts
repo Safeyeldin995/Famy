@@ -57,11 +57,14 @@ export function mapNotificationDeepLink(
   }
 
   const onlineLesson = path.match(/^\/online\/lessons\/([^/]+)$/);
-  if (onlineLesson && workspace === "customer") {
-    return {
-      pathname: "/booking/[id]",
-      params: { id: onlineLesson[1]!, ...(openReview ? { review: "1" } : {}) },
-    };
+  if (onlineLesson) {
+    // Online booking notifications link to the web lesson page for both sides.
+    return workspace === "provider"
+      ? { pathname: "/pro-booking/[id]", params: { id: onlineLesson[1]! } }
+      : {
+          pathname: "/booking/[id]",
+          params: { id: onlineLesson[1]!, ...(openReview ? { review: "1" } : {}) },
+        };
   }
 
   const shortProvider = path.match(/^\/p\/([^/]+)$/);

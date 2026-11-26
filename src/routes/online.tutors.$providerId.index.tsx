@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "@/components/famio/ui";
-import { supabase } from "@/integrations/supabase/client";
 import { QueryError } from "@/components/famio/QueryError";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useMyProvider } from "@/lib/db/provider-queries";
+import { OnlineWebTutorAccountNotice } from "@/components/online/OnlineWebTutorAccountNotice";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { useProvider, useProviderReviews } from "@/lib/db/queries";
 import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
@@ -19,23 +20,49 @@ export const Route = createFileRoute("/online/tutors/$providerId/")({
 function OnlineTutorProfile() {
   const { providerId } = Route.useParams();
   const { t, i18n } = useTranslation();
-  const providerQ = useProvider(providerId, undefined, "online");
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const myProviderQ = useMyProvider();
+  // Tutor accounts can't book, and the customer-only profile RPC refuses them:
+  // show a clear notice instead of an error.
+  const isTutorAccount = isAuthenticated && Boolean(myProviderQ.data?.id);
+  const roleKnown = !authLoading && (!isAuthenticated || !myProviderQ.isLoading);
+  const providerQ = useProvider(
+    roleKnown && !isTutorAccount ? providerId : undefined,
+    undefined,
+    "online",
+  );
   const reviewsQ = useProviderReviews(providerId);
-  const sessionQ = useQuery({
-    queryKey: ["online-web-session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return Boolean(data.session);
-    },
-  });
   const requestPath = onlineWebTutorRequestPath(providerId);
+
+  if (!roleKnown) {
+    return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
+  }
+
+  if (isTutorAccount) {
+    return (
+      <div className="space-y-6 rounded-3xl bg-white p-6 shadow-sm">
+        <OnlineProfileBackLink />
+        <OnlineWebTutorAccountNotice />
+      </div>
+    );
+  }
 
   if (providerQ.isError) {
     return <QueryError onRetry={() => void providerQ.refetch()} />;
   }
 
-  if (providerQ.isLoading || !providerQ.data) {
+  if (providerQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
+  }
+
+  if (!providerQ.data) {
+    return (
+      <div className="space-y-4 rounded-3xl bg-white p-6 shadow-sm">
+        <OnlineProfileBackLink />
+        <p className="text-pro-16 font-bold text-foreground">{t("onlineWeb.profile.unavailableTitle")}</p>
+        <p className="text-pro-14 text-muted-foreground">{t("onlineWeb.profile.unavailableBody")}</p>
+      </div>
+    );
   }
 
   const ui = toUIProvider(providerQ.data);
@@ -62,7 +89,7 @@ function OnlineTutorProfile() {
       {ui.bio ? (
         <p className="text-pro-15 leading-relaxed text-muted-foreground">{ui.bio}</p>
       ) : null}
-      {sessionQ.data ? (
+      {isAuthenticated ? (
         <Link to="/online/tutors/$providerId/request" params={{ providerId }}>
           <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.requestLesson")}</PrimaryButton>
         </Link>
