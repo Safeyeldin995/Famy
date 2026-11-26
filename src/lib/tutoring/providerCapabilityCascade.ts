@@ -104,6 +104,34 @@ export function capabilitiesMatchingPick(
   });
 }
 
+/** True when subject (and curriculum if required) are set but grade is still missing. */
+export function capabilityPickAwaitingGrade(
+  pick: CapabilityPickValue,
+  requiresCurriculum: boolean,
+): boolean {
+  if (!pick.subjectCode) return false;
+  if (requiresCurriculum && !pick.curriculumId) return false;
+  return !pick.levelId;
+}
+
+/**
+ * Duration chips need a fully selected cascade (including grade). Deduplicate by duration
+ * minutes so one row per grade cannot surface multiple identical chips.
+ */
+export function durationOptionsFromCapabilityPick(
+  capabilities: TeachingCapabilityOption[],
+  pick: CapabilityPickValue,
+  requiresCurriculum: boolean,
+): TeachingCapabilityOption[] {
+  if (capabilityPickAwaitingGrade(pick, requiresCurriculum) || !pick.levelId) return [];
+  const matched = capabilitiesMatchingPick(capabilities, pick);
+  const byDuration = new Map<number, TeachingCapabilityOption>();
+  for (const cap of matched) {
+    if (!byDuration.has(cap.durationMin)) byDuration.set(cap.durationMin, cap);
+  }
+  return [...byDuration.values()].sort((a, b) => a.durationMin - b.durationMin);
+}
+
 export function soleOptionValue(options: LabeledOption[]): string {
   return options.length === 1 ? options[0]!.value : "";
 }
