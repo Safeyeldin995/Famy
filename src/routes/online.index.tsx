@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 import { useTranslation } from "react-i18next";
 import { BadgeCheck, CalendarClock, CreditCard, Wallet, Video } from "lucide-react";
 import { PrimaryButton } from "@/components/famio/ui";
@@ -14,6 +15,21 @@ import { ICON_STROKE } from "@/lib/icons/constants";
 import { useAuth } from "@/lib/auth/useAuth";
 
 export const Route = createFileRoute("/online/")({
+  head: ({ matches }) =>
+    siteHead(
+      "/online",
+      {
+        ar: {
+          title: "دروس أونلاين | فامي",
+          description: "احجز درس خصوصي أونلاين مع مدربين فامي الموثوقين من الكمبيوتر.",
+        },
+        en: {
+          title: "Online lessons | Famy",
+          description: "Book live online tutoring with verified Famy tutors from your computer.",
+        },
+      },
+      siteLanguage(matches),
+    ),
   component: OnlineHome,
 });
 
@@ -40,8 +56,8 @@ function OnlineHome() {
 
   const ctas = (
     <div className="flex flex-wrap gap-3">
-      <Link to={ONLINE_WEB_ROUTE_IDS.tutors}>
-        <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutors")}</PrimaryButton>
+      <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}>
+        <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
       </Link>
       {!loading && !isAuthenticated ? (
         <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
@@ -136,8 +152,12 @@ function OnlineHome() {
             <h2 className="text-pro-22 font-extrabold">{t("onlineWeb.home.ctaTitle")}</h2>
             <p className="text-pro-16 opacity-80">{t("onlineWeb.home.ctaBody")}</p>
           </div>
-          <Link to={ONLINE_WEB_ROUTE_IDS.tutors} className="shrink-0">
-            <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutors")}</PrimaryButton>
+          <Link
+            to={ONLINE_WEB_ROUTE_IDS.login}
+            search={{ returnTo: ONLINE_WEB_ROUTE_IDS.tutors }}
+            className="shrink-0"
+          >
+            <PrimaryButton className="h-12 px-7">{t("onlineWeb.home.browseTutorsSignIn")}</PrimaryButton>
           </Link>
         </div>
       </section>

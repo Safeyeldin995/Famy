@@ -12,7 +12,11 @@ export function siteLanguage(
   return (rootData as { language?: string } | undefined)?.language === "ar" ? "ar" : "en";
 }
 
-export function siteHead(path: string, copy: Copy, language: Language) {
+type HeadOptions = {
+  robots?: string;
+};
+
+export function siteHead(path: string, copy: Copy, language: Language, options?: HeadOptions) {
   const { title, description } = copy[language];
   const url = new URL(path, SITE_ORIGIN).href;
   const image = new URL(wordmark, SITE_ORIGIN).href;
@@ -21,6 +25,7 @@ export function siteHead(path: string, copy: Copy, language: Language) {
     meta: [
       { title },
       { name: "description", content: description },
+      ...(options?.robots ? [{ name: "robots", content: options.robots }] : []),
       { property: "og:type", content: "website" },
       { property: "og:url", content: url },
       { property: "og:site_name", content: "Famy" },
@@ -36,6 +41,10 @@ export function siteHead(path: string, copy: Copy, language: Language) {
     ],
     links: [{ rel: "canonical", href: url }],
   };
+}
+
+export function siteHeadPrivate(path: string, copy: Copy, language: Language) {
+  return siteHead(path, copy, language, { robots: "noindex, nofollow" });
 }
 
 export const siteStructuredData = {

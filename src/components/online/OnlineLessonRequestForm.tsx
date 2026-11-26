@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import {
 import { useRegisterParentGuardianContact } from "@/lib/db/student-parent-link-queries";
 import { sendParentGuardianEmailFn } from "@/lib/email/parentGuardianEmail.functions";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { getBookingErrorMessage } from "@/lib/booking/errors";
 import {
   cairoDayStrip,
   cairoTodayStart,
@@ -59,6 +60,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const [day, setDay] = useState(() => cairoTodayStart());
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const idempotencyKeyRef = useRef(crypto.randomUUID());
   const [parentPhone, setParentPhone] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const guardian = useOnlineStudentNeedsGuardianContact();
@@ -121,6 +123,10 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   useEffect(() => {
     setSlotStart(null);
   }, [capabilityId, day]);
+
+  useEffect(() => {
+    idempotencyKeyRef.current = crypto.randomUUID();
+  }, [resolvedServiceId, capabilityId, slotStart?.toISOString()]);
 
   const dayOptions = useMemo(() => cairoDayStrip(14), []);
 
@@ -188,7 +194,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
       const result = await create.mutateAsync({
         ...payload,
         family_member_id: bookingFamilyMemberId("myself"),
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: idempotencyKeyRef.current,
       });
       toast.success(t("onlineWeb.request.success"));
       if (guardian.isMinorStudent && (guardian.needsNewContact || parentPhone.trim() || parentEmail.trim())) {
@@ -196,7 +202,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
       }
       nav({ to: onlineWebLessonPath(result.id), replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong"));
+      toast.error(getBookingErrorMessage(error, (key, fallback) => t(key, fallback ?? key)));
     }
   };
 

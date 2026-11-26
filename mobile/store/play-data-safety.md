@@ -26,7 +26,8 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 | **Purchase history** | Yes (booking payments) | Payment processors (e.g. Paymob) | Payments, support | Required for paid bookings |
 | **App interactions** | Yes | Google (Firebase Analytics) | Product analytics (funnel events, no ads) | Required for usage |
 | **Device or other IDs** | Push token | Push infrastructure | Notifications | Optional (push opt-in) |
-| **Crash logs** | Not explicitly integrated in mobile app reviewed | — | — | — |
+| **Crash logs / diagnostics** | Yes (when `EXPO_PUBLIC_SENTRY_DSN` is set in the build) | With Sentry (processor) | Stability, error diagnosis | Required for production diagnostics |
+| **Health info** | Yes (optional family-member notes such as allergies or medical notes for childcare bookings) | With matched provider for active booking only | Booking safety / care context | Optional |
 | **Payment card numbers** | **No in app** | Entered on Paymob hosted flow when paying online | Online payment | User choice |
 
 ### Service address coordinates
@@ -54,6 +55,16 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 ### Provider verification
 
 - Government **ID images** and related documents uploaded during provider onboarding; visible to authorized Famy staff per product rules (not copied here).
+
+## Third-party processors (not sold)
+
+- **Supabase** — auth (phone), database, storage, realtime  
+- **Firebase Auth** — phone sign-in / OTP delivery (phone number to Google)  
+- **Paymob** — card wallet checkout (hosted flow)  
+- **LiveKit** — live audio/video for online lessons (ephemeral; not recorded)  
+- **Sentry** — crash and performance diagnostics (scrubbed before send)  
+- **Expo** — push notification delivery (device push token)  
+- **Google Maps** — map display and geocoding for service addresses  
 
 ## Security practices (typical answers)
 

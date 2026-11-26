@@ -3,6 +3,7 @@ import {
   assertOnlineBookingPrepaid,
   authorizeSessionJoin,
   authorizeSessionJoinWithCredential,
+  authorizeSessionReport,
   onlineLessonReportWindow,
   sessionJoinWindow,
   type SessionBookingSnapshot,
@@ -80,6 +81,20 @@ describe("authorizeSessionJoin", () => {
     const second = authorizeSessionJoin(booking, "c1", new Date(at.getTime() + 5 * 60_000));
     expect(first).toEqual({ ok: true, party: "customer" });
     expect(second).toEqual({ ok: true, party: "customer" });
+  });
+});
+
+describe("authorizeSessionReport", () => {
+  it("allows booking parties for online lessons without requiring joinable status", () => {
+    const booking = baseBooking({ status: "completed" });
+    expect(authorizeSessionReport(booking, "c1")).toEqual({ ok: true, party: "customer" });
+    expect(authorizeSessionReport(booking, "pr1")).toEqual({ ok: true, party: "provider" });
+    expect(authorizeSessionReport(booking, "other")).toEqual({ ok: false, code: "not_participant" });
+  });
+
+  it("rejects in-person bookings", () => {
+    const booking = baseBooking({ service_mode: "in_person" });
+    expect(authorizeSessionReport(booking, "c1")).toEqual({ ok: false, code: "not_online_booking" });
   });
 });
 
