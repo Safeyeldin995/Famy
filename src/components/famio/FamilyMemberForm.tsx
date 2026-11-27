@@ -283,7 +283,7 @@ export function FamilyMemberForm({
           label={`${t("familyMembers.phone", "Phone")} (${t("familyMembers.optional", "optional")})`}
           value={value.phone}
           onChange={(v) => set("phone", v)}
-          placeholder={t("familyMembers.phonePlaceholder", "01xxxxxxxxx")}
+          placeholder={t("familyMembers.phonePlaceholder")}
         />
         {touched && !phoneValid && <ErrorText>{t("validation.invalidPhone")}</ErrorText>}
       </div>
@@ -359,7 +359,7 @@ export function FamilyMemberForm({
           label={t("familyMembers.emergencyContactPhone", "Phone")}
           value={value.emergencyContactPhone}
           onChange={(v) => set("emergencyContactPhone", v)}
-          placeholder={t("familyMembers.phonePlaceholder", "01xxxxxxxxx")}
+          placeholder={t("familyMembers.phonePlaceholder")}
         />
         {touched && !emergencyValid && (
           <ErrorText>

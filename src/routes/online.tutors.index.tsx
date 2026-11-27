@@ -7,7 +7,7 @@ import { QueryError } from "@/components/famio/QueryError";
 import { useOnlineStudentMatch } from "@/components/online/OnlineStudentMatch";
 import { customerProviders } from "@/components/famio/customerProviders";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
-import { useProviders } from "@/lib/db/queries";
+import { useOnlineTutors } from "@/lib/db/queries";
 import {
   useApprovedTeachingCapabilitiesForProviders,
   useTeachingCurricula,
@@ -49,7 +49,7 @@ function OnlineTutorsIndex() {
   const navigate = useNavigate({ from: "/online/tutors/" });
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<DirectorySort>("recommended");
-  const tutorsQ = useProviders({ categorySlug: "tutoring", serviceMode: "online", limit: 80 });
+  const tutorsQ = useOnlineTutors(80);
   // «الحجز لمين؟» → subject → only the tutors who teach that learner's system and grade (issue #536).
   const match = useOnlineStudentMatch();
   const curriculaQ = useTeachingCurricula();

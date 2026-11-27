@@ -13,9 +13,18 @@ export type WalletLedgerRow = {
   amount: number | string;
   payment_method?: string | null;
   booking_id?: string | null;
-  note?: string | null;
+  /** Transfer reference (InstaPay / bank). The ledger `note` is admin-only and never read here. */
+  reference?: string | null;
   created_at: string;
 };
+
+/**
+ * Ledger columns the client reads. `authenticated` has a column grant on
+ * `provider_ledger_entries`, and `note` is not in it (it can hold the admin's note), so
+ * asking for it makes PostgREST refuse the whole request. Web and mobile share this list.
+ */
+export const PROVIDER_LEDGER_SELECT =
+  "id, kind, direction, amount, payment_method, booking_id, reference, created_at";
 
 export type WalletBooking = {
   id: string;
@@ -109,13 +118,6 @@ export function walletBookingRows(
   return rows.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
-/** "ref:InstaPay 55821 " -> "InstaPay 55821" (the wallet form stores only the reference). */
-export function transferReference(note: string | null | undefined): string | null {
-  const m = /^ref:([\s\S]*)$/.exec(String(note ?? "").trim());
-  const ref = m ? m[1].trim() : "";
-  return ref || null;
-}
-
 export function walletTransferRows(ledger: WalletLedgerRow[]): WalletTransferRow[] {
   const rows: WalletTransferRow[] = [];
   for (const e of ledger) {
@@ -133,7 +135,7 @@ export function walletTransferRows(ledger: WalletLedgerRow[]): WalletTransferRow
       at: e.created_at,
       kind,
       effect: signedAmount(e),
-      reference: transferReference(e.note),
+      reference: e.reference?.trim() || null,
     });
   }
   return rows.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));

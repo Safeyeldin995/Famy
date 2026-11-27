@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 
 type Props = {
@@ -22,12 +23,13 @@ export function PhoneNumberField({
   label,
   value,
   onChange,
-  placeholder = "1XX XXX XXXX",
+  placeholder,
   hint,
   disabled,
   autoFocus,
   onEnter,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="block text-pro-13 font-bold text-muted-foreground">
@@ -49,7 +51,7 @@ export function PhoneNumberField({
           autoComplete="tel-national"
           autoFocus={autoFocus}
           disabled={disabled}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("auth.phonePlaceholder")}
           value={value}
           onChange={(e) => onChange(normalizeDigitsToWestern(e.target.value).replace(/[^\d ]/g, ""))}
           onKeyDown={(e) => {

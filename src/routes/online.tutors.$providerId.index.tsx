@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { OnlineWebTutorAccountNotice } from "@/components/online/OnlineWebTutorAccountNotice";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
-import { useProvider, useProviderReviews } from "@/lib/db/queries";
+import { useGuestOnlineTutor, useProvider, useProviderReviews } from "@/lib/db/queries";
 import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { formatDate, formatEGP, formatLocale, formatNumber } from "@/lib/format";
 import { Clock, ShieldCheck, Star } from "lucide-react";
@@ -34,11 +34,14 @@ function OnlineTutorProfile() {
   // show a clear notice instead of an error.
   const isTutorAccount = isAuthenticated && Boolean(myProviderQ.data?.id);
   const roleKnown = !authLoading && (!isAuthenticated || !myProviderQ.isLoading);
-  const providerQ = useProvider(
-    roleKnown && !isTutorAccount ? providerId : undefined,
+  // Signed-out visitors read the anon-safe guest card; customers keep the full profile RPC.
+  const customerProviderQ = useProvider(
+    roleKnown && isAuthenticated && !isTutorAccount ? providerId : undefined,
     undefined,
     "online",
   );
+  const guestProviderQ = useGuestOnlineTutor(roleKnown && !isAuthenticated ? providerId : undefined);
+  const providerQ = isAuthenticated ? customerProviderQ : guestProviderQ;
   const reviewsQ = useProviderReviews(providerId);
   const capsQ = useApprovedTeachingCapabilities(roleKnown && !isTutorAccount ? providerId : undefined);
   const caps = capsQ.data ?? [];

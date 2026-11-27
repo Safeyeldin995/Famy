@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  transferReference,
+  PROVIDER_LEDGER_SELECT,
   walletBalance,
   walletBookingRows,
   walletState,
@@ -30,7 +30,7 @@ const ledger: WalletLedgerRow[] = [
     kind: "debt_payment_received",
     direction: "credit",
     amount: 83,
-    note: "ref:IP-55821 ",
+    reference: " IP-55821 ",
     created_at: "2026-11-12T10:00:00Z",
   },
   {
@@ -38,7 +38,7 @@ const ledger: WalletLedgerRow[] = [
     kind: "payout_sent",
     direction: "debit",
     amount: 340,
-    note: "ref:TR-9",
+    reference: "TR-9",
     created_at: "2026-11-13T10:00:00Z",
   },
 ];
@@ -100,9 +100,13 @@ describe("walletView", () => {
       ["sent", -340, "TR-9"],
       ["received", 83, "IP-55821"],
     ]);
-    expect(transferReference("no ref")).toBeNull();
-    expect(transferReference("ref:InstaPay 55821 ")).toBe("InstaPay 55821");
-    expect(transferReference("ref: ")).toBeNull();
+  });
+
+  it("reads the client-safe columns only (no admin note)", () => {
+    expect(PROVIDER_LEDGER_SELECT.split(",").map((c) => c.trim())).toEqual([
+      "id", "kind", "direction", "amount", "payment_method", "booking_id", "reference", "created_at",
+    ]);
+    expect(PROVIDER_LEDGER_SELECT).not.toMatch(/\bnote\b/);
   });
 
   it("a cancellation fee shows as the provider's earning on that booking", () => {

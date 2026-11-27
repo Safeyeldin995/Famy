@@ -2508,6 +2508,7 @@ export type Database = {
           direction: string
           amount: number
           payment_method: string | null
+          reference: string | null
           note: string | null
           created_by: string | null
           created_at: string
@@ -2521,6 +2522,7 @@ export type Database = {
           direction: string
           amount: number
           payment_method?: string | null
+          reference?: string | null
           note?: string | null
           created_by?: string | null
           created_at?: string
