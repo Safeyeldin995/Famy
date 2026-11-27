@@ -1580,6 +1580,7 @@ function BookContentForm({
             <Step title={t("bookFlow.paymentTitle")} sub={t("customerRound2.paymentSub")}>
               <CheckoutPromoPicker
                 serviceId={activeService.service.id}
+                serviceMode="in_person"
                 subtotal={subtotal}
                 applied={
                   promoStatus === "applied" && appliedPromoId

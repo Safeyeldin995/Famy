@@ -733,7 +733,17 @@ export type FeaturedPromoCode = {
   discount_value: number;
   minimum_booking_amount: number;
   expires_at: string | null;
+  /** all | online | in_person: which bookings the code applies to. */
+  applicable_mode?: "all" | "online" | "in_person";
 };
+
+/** True when a featured code fits a booking of this mode. */
+export function promoFitsMode(
+  applicableMode: FeaturedPromoCode["applicable_mode"] | null | undefined,
+  bookingMode: "online" | "in_person",
+): boolean {
+  return !applicableMode || applicableMode === "all" || applicableMode === bookingMode;
+}
 
 export function useFeaturedPromoCodes() {
   return useQuery({

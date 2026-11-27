@@ -7,8 +7,10 @@ import { TextField } from "@/components/famio/TextField";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import {
   useFeaturedPromoCodes,
+  promoFitsMode,
   validatePromoCode,
   type FeaturedPromoCode,
+  type PromoBookingMode,
 } from "@/lib/db/promo-codes-queries";
 import { promoDescription, promoDiscountLabel } from "@/lib/promo/display";
 import { formatEGP } from "@/lib/format";
@@ -18,6 +20,7 @@ export type AppliedCheckoutPromo = { id: string; discount: number; code: string 
 
 export function CheckoutPromoPicker({
   serviceId,
+  serviceMode,
   subtotal,
   applied,
   onApplied,
@@ -25,6 +28,8 @@ export function CheckoutPromoPicker({
   onClearBookingError,
 }: {
   serviceId: string;
+  /** Booking mode: codes limited to the other mode are hidden and refused. */
+  serviceMode: PromoBookingMode;
   subtotal: number;
   applied: AppliedCheckoutPromo | null;
   onApplied: (value: AppliedCheckoutPromo | null) => void;
@@ -33,6 +38,9 @@ export function CheckoutPromoPicker({
 }) {
   const { t, i18n } = useTranslation();
   const promos = useFeaturedPromoCodes();
+  const offers = (promos.data ?? []).filter((offer) =>
+    promoFitsMode(offer.applicable_mode, serviceMode),
+  );
   const [open, setOpen] = useState(false);
   const [manual, setManual] = useState("");
   const [checking, setChecking] = useState(false);
@@ -47,7 +55,7 @@ export function CheckoutPromoPicker({
       setSheetError("");
       onClearBookingError?.();
       try {
-        const result = await validatePromoCode(trimmed, serviceId, subtotal);
+        const result = await validatePromoCode(trimmed, serviceId, subtotal, serviceMode);
         if (result.ok) {
           onApplied({ id: result.promo_code_id, discount: result.discount_amount, code: trimmed });
           setManual("");
@@ -64,7 +72,7 @@ export function CheckoutPromoPicker({
         setApplyingId(null);
       }
     },
-    [onApplied, onClearBookingError, serviceId, subtotal, t],
+    [onApplied, onClearBookingError, serviceId, serviceMode, subtotal, t],
   );
 
   const remove = () => {
@@ -140,10 +148,10 @@ export function CheckoutPromoPicker({
               <div className="h-24 animate-pulse rounded-2xl bg-surface-2" />
             ) : promos.isError ? (
               <p className="text-pro-13 text-muted-foreground">{t("common.tryAgain")}</p>
-            ) : !promos.data?.length ? (
+            ) : !offers.length ? (
               <p className="text-pro-13 text-muted-foreground">{t("promoCodes.availableEmptyBody")}</p>
             ) : (
-              promos.data.map((offer) => (
+              offers.map((offer) => (
                 <CheckoutPromoOfferCard
                   key={offer.id}
                   offer={offer}

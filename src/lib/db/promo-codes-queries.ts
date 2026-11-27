@@ -10,6 +10,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type DiscountType = 'fixed' | 'percentage';
 export type ApplicableScope = 'all' | 'categories' | 'services';
+/** Which bookings a code applies to; combines with ApplicableScope. */
+export type ApplicableMode = 'all' | 'online' | 'in_person';
+export type PromoBookingMode = 'online' | 'in_person';
+
+/** True when a featured/validated code fits a booking of this mode. */
+export function promoFitsMode(
+  applicableMode: ApplicableMode | null | undefined,
+  bookingMode: PromoBookingMode,
+): boolean {
+  return !applicableMode || applicableMode === 'all' || applicableMode === bookingMode;
+}
 
 export type PromoCodeRow = {
   id: string;
@@ -27,6 +38,7 @@ export type PromoCodeRow = {
   usage_count: number;
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
+  applicable_mode: ApplicableMode;
   is_active: boolean;
   is_featured: boolean;
   created_at: string;
@@ -42,6 +54,7 @@ export type FeaturedPromoCode = {
   discount_value: number;
   minimum_booking_amount: number;
   expires_at: string | null;
+  applicable_mode: ApplicableMode;
 };
 
 export type PromoCodeInput = {
@@ -58,6 +71,7 @@ export type PromoCodeInput = {
   usage_limit_per_customer: number | null;
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
+  applicable_mode: ApplicableMode;
   is_active: boolean;
   is_featured: boolean;
 };
@@ -142,6 +156,33 @@ export function usePromoCodeScope(promoCodeId: string | null) {
   });
 }
 
+/** Category/service scope of every promo code, for the admin list (admin-only). */
+export function useAllPromoCodeScopes() {
+  return useQuery({
+    queryKey: ['admin', 'promo-codes', 'all-scopes'],
+    queryFn: async () => {
+      const [categories, services] = await Promise.all([
+        supabase.from('promo_code_categories').select('promo_code_id, category_id'),
+        supabase.from('promo_code_services').select('promo_code_id, service_id'),
+      ]);
+      if (categories.error) throw categories.error;
+      if (services.error) throw services.error;
+      const byPromo = new Map<string, { categoryIds: string[]; serviceIds: string[] }>();
+      const entry = (id: string) => {
+        let e = byPromo.get(id);
+        if (!e) {
+          e = { categoryIds: [], serviceIds: [] };
+          byPromo.set(id, e);
+        }
+        return e;
+      };
+      for (const r of categories.data ?? []) entry(r.promo_code_id).categoryIds.push(r.category_id);
+      for (const r of services.data ?? []) entry(r.promo_code_id).serviceIds.push(r.service_id);
+      return byPromo;
+    },
+  });
+}
+
 /** Replaces the full scope set for a promo code in one call (admin-only). */
 export function useSetPromoCodeScope() {
   const qc = useQueryClient();
@@ -156,6 +197,7 @@ export function useSetPromoCodeScope() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['admin', 'promo-codes', vars.promoCodeId, 'scope'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'promo-codes', 'all-scopes'] });
     },
   });
 }
@@ -178,11 +220,17 @@ export function useFeaturedPromoCodes() {
 
 /** Customer-facing: validates a single code server-side. Never exposes the
  * broader promo inventory — see validate_promo_code() in the migration. */
-export async function validatePromoCode(code: string, serviceId: string | null, subtotal: number): Promise<PromoValidationResult> {
+export async function validatePromoCode(
+  code: string,
+  serviceId: string | null,
+  subtotal: number,
+  serviceMode: PromoBookingMode,
+): Promise<PromoValidationResult> {
   const { data, error } = await supabase.rpc('validate_promo_code', {
     p_code: code,
     p_service_id: serviceId as any,
     p_subtotal: subtotal,
+    p_service_mode: serviceMode,
   });
   if (error) throw error;
   return data as unknown as PromoValidationResult;
