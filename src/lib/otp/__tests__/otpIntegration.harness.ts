@@ -19,8 +19,34 @@ function loadEnvFile(filePath: string) {
 loadEnvFile(path.resolve(process.cwd(), ".env"));
 loadEnvFile(path.resolve(process.cwd(), ".env.local"));
 
-export const supabaseUrl = process.env.QA_SUPABASE_URL ?? process.env.SUPABASE_URL;
-export const serviceRoleKey = process.env.QA_SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+/** Production Supabase project. Integration fixtures must never be written there. */
+export const PRODUCTION_SUPABASE_PROJECT_REF = "mjhkaiabfnzewprcnojp";
+
+/** True when the URL points at the Production Supabase project. */
+export function isProductionSupabaseUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).hostname.toLowerCase().startsWith(`${PRODUCTION_SUPABASE_PROJECT_REF}.`);
+  } catch {
+    return url.toLowerCase().includes(PRODUCTION_SUPABASE_PROJECT_REF);
+  }
+}
+
+const configuredUrl = process.env.QA_SUPABASE_URL ?? process.env.SUPABASE_URL;
+const configuredKey = process.env.QA_SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+/**
+ * Integration suites create users, services and zones. A local `.env` usually holds the
+ * Production SUPABASE_URL + service key, which is how hundreds of QA fixture services
+ * ended up in Production (Jul–Aug 2026). Refuse Production: the suites skip instead.
+ */
+const pointsAtProduction = isProductionSupabaseUrl(configuredUrl);
+if (pointsAtProduction) {
+  console.warn(
+    "[integration] Refusing to run integration fixtures against the Production Supabase project. Set QA_SUPABASE_URL / QA_SUPABASE_SECRET_KEY to the QA project.",
+  );
+}
+export const supabaseUrl = pointsAtProduction ? undefined : configuredUrl;
+export const serviceRoleKey = pointsAtProduction ? undefined : configuredKey;
 
 export function isOtpIntegrationMode(): boolean {
   return process.env.OTP_INTEGRATION === "1";

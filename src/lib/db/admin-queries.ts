@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { withoutQaCatalogServices } from '@/lib/catalog/qaCatalog';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
 import { normalizeAdminWorkQueueCounts } from '@/lib/db/admin-work-queue';
@@ -686,6 +687,26 @@ export function useAdminServices() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+/**
+ * Services for admin pickers (promo scope, zone services): the catalog without QA
+ * fixture rows. The full list, QA rows included, stays on the admin services page
+ * (its "test data" tab) through useAdminServices.
+ */
+export function useAdminPickerServices() {
+  return useQuery({
+    queryKey: ['admin', 'services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select(SERVICE_COLUMNS)
+        .order('name_en');
+      if (error) throw error;
+      return data ?? [];
+    },
+    select: (rows) => withoutQaCatalogServices(rows),
   });
 }
 

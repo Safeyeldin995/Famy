@@ -33,3 +33,10 @@ export function isQaCatalogService(row: {
 }): boolean {
   return isQaCatalogSlug(row.slug, row.category?.slug);
 }
+
+/** Drops QA fixture services from a list (admin pickers, catalog lists). */
+export function withoutQaCatalogServices<
+  T extends { slug?: string | null; category?: { slug?: string | null } | null },
+>(rows: readonly T[]): T[] {
+  return rows.filter((row) => !isQaCatalogService(row));
+}

@@ -18,7 +18,7 @@ import {
   type PromoCodeInput,
   type PromoCodeRow,
 } from "@/lib/db/promo-codes-queries";
-import { useAdminCategories, useAdminServices } from "@/lib/db/admin-queries";
+import { useAdminCategories, useAdminPickerServices } from "@/lib/db/admin-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/promo-codes")({ component: AdminPromoCodes });
@@ -639,7 +639,7 @@ function AdminPromoCodes() {
   const { t, i18n } = useTranslation();
   const q = useAdminPromoCodes();
   const categoriesQ = useAdminCategories();
-  const servicesQ = useAdminServices();
+  const servicesQ = useAdminPickerServices();
   const allScopesQ = useAllPromoCodeScopes();
   const create = useCreatePromoCode();
   const update = useUpdatePromoCode();

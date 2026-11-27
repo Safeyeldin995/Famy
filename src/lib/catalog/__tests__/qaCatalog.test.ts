@@ -71,3 +71,16 @@ describe("isQaCatalogService", () => {
     }
   });
 });
+
+describe("withoutQaCatalogServices", () => {
+  it("drops QA fixture services by slug and keeps real ones", async () => {
+    const { withoutQaCatalogServices } = await import("../qaCatalog");
+    const rows = [
+      { id: "1", slug: "qa-admin-service-1785170009531" },
+      { id: "2", slug: "babysitting-hourly" },
+      { id: "3", slug: "home-cleaning-deep", category: { slug: "home-cleaning" } },
+      { id: "4", slug: "x", category: { slug: "qa-cat" } },
+    ];
+    expect(withoutQaCatalogServices(rows).map((r) => r.id)).toEqual(["2", "3"]);
+  });
+});
