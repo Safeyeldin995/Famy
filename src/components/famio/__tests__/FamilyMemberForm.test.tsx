@@ -209,7 +209,7 @@ describe("FamilyMemberForm", () => {
     expect(screen.getByRole("button", { name: "familyMembers.genders.female" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "familyMembers.genders.other" })).toBeNull();
     await user.type(
-      screen.getAllByPlaceholderText("01xxxxxxxxx")[0],
+      screen.getAllByPlaceholderText("familyMembers.phonePlaceholder")[0],
       toArabicIndic("0101221000633"),
     );
 

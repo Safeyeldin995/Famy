@@ -414,6 +414,47 @@ export function useProvider(
 }
 
 /**
+ * Online tutors for the website directory. Signed-in customers use the customer search;
+ * signed-out visitors use the anon-safe `guest_search_online_tutors` (read-only, #560),
+ * so the page never sends an anonymous call to a customer-only RPC.
+ */
+export function useOnlineTutors(limit = 80) {
+  const { isAuthenticated, loading } = useAuth();
+  return useQuery({
+    enabled: !loading,
+    queryKey: ['online-tutors', isAuthenticated ? 'customer' : 'guest', limit],
+    refetchInterval: customerMarketplaceRefetchInterval,
+    refetchIntervalInBackground: false,
+    queryFn: async () => {
+      const { data, error } = isAuthenticated
+        ? await supabase.rpc('search_marketplace_providers', { p_service_mode: 'online' } as never)
+        : await supabase.rpc('guest_search_online_tutors' as never);
+      if (error) throw error;
+      return marketplaceRowsWithPackages(
+        selectMarketplaceProviderRows((data ?? []) as any[], { categorySlug: 'tutoring', limit }),
+      );
+    },
+  });
+}
+
+/** One online tutor's card for a signed-out visitor (same anon-safe source as the directory). */
+export function useGuestOnlineTutor(id: string | undefined) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ['guest-online-tutor', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('guest_search_online_tutors' as never);
+      if (error) throw error;
+      const rows = selectMarketplaceProviderRows(
+        ((data ?? []) as any[]).filter((row) => row.id === id),
+        { categorySlug: 'tutoring', limit: 1 },
+      );
+      return rows.length ? (await marketplaceRowsWithPackages(rows))[0] : null;
+    },
+  });
+}
+
+/**
  * Services this provider can actually be booked for right now (the same
  * eligibility the booking trigger enforces). `null` means "unknown" (still
  * loading, preview, or failed) so callers fall back to the approved list.

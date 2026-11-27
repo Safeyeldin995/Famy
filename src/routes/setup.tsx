@@ -197,7 +197,7 @@ function Setup() {
               label={t("oauth.phoneLabel")}
               value={contactPhone}
               onChange={(v) => setContactPhone(v.replace(/[^\d٠-٩ +]/g, ""))}
-              placeholder="01xxxxxxxxx"
+              placeholder={t("auth.phonePlaceholder")}
             />
             <p className="mt-1.5 text-pro-12 text-muted-foreground">{t("oauth.phoneHint")}</p>
           </div>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WalletBooking, WalletLedgerRow } from "@/lib/settlement/walletView";
 import { supabase } from "@/integrations/supabase/client";
+import { PROVIDER_LEDGER_SELECT } from "@/lib/settlement/walletView";
 
 export type ProviderBalance = {
   total_credits: number;
@@ -30,7 +31,7 @@ export type ProviderLedgerRow = {
   amount: number;
   payment_method: string | null;
   booking_id: string | null;
-  note?: string | null;
+  reference: string | null;
   created_at: string;
 };
 
@@ -93,7 +94,7 @@ export function useProviderLedger(providerId: string | undefined, limit = 50) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_ledger_entries")
-        .select("id, kind, direction, amount, payment_method, booking_id, note, created_at")
+        .select(PROVIDER_LEDGER_SELECT)
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false })
         .limit(limit);
