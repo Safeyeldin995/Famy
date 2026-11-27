@@ -51,7 +51,11 @@ export function LearnerChips({
       </Text>
       <CustomerChips
         value={value}
-        onChange={(v) => (v === ADD_CHILD ? router.push("/family-members/new") : onChange(v))}
+        onChange={(v) =>
+          v === ADD_CHILD
+            ? router.push({ pathname: "/family-members/new", params: { return: "back" } })
+            : onChange(v)
+        }
         options={[
           ...learners.map((l) => ({
             value: l.id,

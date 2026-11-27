@@ -222,7 +222,9 @@ export default function Students() {
         <Button
           variant="secondary"
           label={`+ ${t("studentMatch.page.addChild")}`}
-          onPress={() => router.push("/family-members/new")}
+          onPress={() =>
+            router.push({ pathname: "/family-members/new", params: { return: "back" } })
+          }
         />
       </QueryState>
     </Page>

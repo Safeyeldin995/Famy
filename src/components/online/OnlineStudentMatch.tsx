@@ -4,11 +4,12 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Bell, Pencil, Plus } from "lucide-react";
 import { EmptyState, PrimaryButton, SecondaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
+import { AddChildSheet } from "@/components/student/AddChildSheet";
 import {
   StudentProfileSteps,
   chipClass,
@@ -34,6 +35,7 @@ import {
   type MatchedTutorRow,
 } from "@/lib/db/student-match-queries";
 import { currentLang } from "@/lib/i18n";
+import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { tutoringServiceKind } from "@/lib/tutoring/tutoringProviderMatch";
 import {
   MYSELF_LEARNER_ID,
@@ -212,6 +214,8 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
     setEditingProfile(false);
     setDemandSent(false);
   };
+  // «ضيف ابن» opens in place; the new child is selected once saved (the list refetches first).
+  const [addingChild, setAddingChild] = useState(false);
 
   const learnerName = learner?.kind === "child" ? learner.firstName : null;
   const curriculum = curricula.find((c) => c.id === learner?.curriculumId) ?? null;
@@ -316,9 +320,17 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
 
       {isAuthenticated && shouldAskForWhom(learners) ? (
         <div className="space-y-2">
-          <p className="text-pro-13 font-bold text-muted-foreground">
-            {t("studentMatch.forWhomTitle")}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-pro-13 font-bold text-muted-foreground">
+              {t("studentMatch.forWhomTitle")}
+            </p>
+            <Link
+              to={ONLINE_WEB_ROUTE_IDS.students}
+              className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand"
+            >
+              {t("studentMatch.page.title")}
+            </Link>
+          </div>
           <div
             className="online-web-nav-scroll flex gap-2 overflow-x-auto pb-1"
             role="group"
@@ -338,7 +350,7 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
             <button
               type="button"
               className={`${chipClass(false)} inline-flex items-center gap-1`}
-              onClick={() => void nav({ to: "/family-members/new" })}
+              onClick={() => setAddingChild(true)}
             >
               <Plus className="h-4 w-4" aria-hidden />
               {t("studentMatch.addChild")}
@@ -350,7 +362,7 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
           <button
             type="button"
             className={`${chipClass(false)} inline-flex items-center gap-1`}
-            onClick={() => void nav({ to: "/family-members/new" })}
+            onClick={() => setAddingChild(true)}
           >
             <Plus className="h-4 w-4" aria-hidden />
             {t("studentMatch.addChild")}
@@ -476,6 +488,15 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
           ) : null}
         </>
       )}
+      {addingChild ? (
+        <AddChildSheet
+          onClose={() => setAddingChild(false)}
+          onCreated={(child) => {
+            setAddingChild(false);
+            setLearner(child.id);
+          }}
+        />
+      ) : null}
     </div>
   );
 
