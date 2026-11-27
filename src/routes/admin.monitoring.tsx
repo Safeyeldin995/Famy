@@ -55,6 +55,7 @@ function SummaryCard({
 }
 
 function SectionShell({
+  id,
   title,
   count,
   isLoading,
@@ -72,10 +73,14 @@ function SectionShell({
   onRetry: () => void;
   isEmpty: boolean;
   children: React.ReactNode;
+  id?: string;
 }) {
   const { t, i18n } = useTranslation();
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+    <section
+      id={id}
+      className="scroll-mt-20 rounded-2xl border border-border/60 bg-surface p-4 shadow-sm"
+    >
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           {title}
@@ -165,8 +170,9 @@ function AdminMonitoring() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SectionShell
+          id="recent-errors"
           title={t("admin.monitoring.recentErrors")}
-          count={errorLogsQ.data?.length ?? 0}
+          count={summary?.recent_errors ?? errorLogsQ.data?.length ?? 0}
           isLoading={errorLogsQ.isLoading}
           isError={errorLogsQ.isError}
           error={errorLogsQ.error}
@@ -204,8 +210,9 @@ function AdminMonitoring() {
         </SectionShell>
 
         <SectionShell
+          id="failed-payments"
           title={t("admin.monitoring.failedPayments")}
-          count={failedPaymentsQ.data?.length ?? 0}
+          count={summary?.failed_payments ?? failedPaymentsQ.data?.length ?? 0}
           isLoading={failedPaymentsQ.isLoading}
           isError={failedPaymentsQ.isError}
           error={failedPaymentsQ.error}
@@ -247,8 +254,9 @@ function AdminMonitoring() {
         </SectionShell>
 
         <SectionShell
+          id="failed-notifications"
           title={t("admin.monitoring.failedNotifications")}
-          count={failedNotificationsQ.data?.length ?? 0}
+          count={summary?.failed_notifications ?? failedNotificationsQ.data?.length ?? 0}
           isLoading={failedNotificationsQ.isLoading}
           isError={failedNotificationsQ.isError}
           error={failedNotificationsQ.error}
