@@ -15,3 +15,11 @@ verify_jwt = false
 # query parameter (see paymob-webhook/index.ts).
 [functions.paymob-webhook]
 verify_jwt = false
+
+# Local stack only (`supabase start`, used by the e2e-local CI job).
+# Production auth settings live in the Supabase dashboard; nothing here is
+# pushed to it. Admin pages need a TOTP second factor (AdminMfaGate and
+# has_role() both require aal2), so the local stack must allow TOTP too.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
