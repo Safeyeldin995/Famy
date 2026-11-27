@@ -112,7 +112,7 @@ export function useFamilyMember(id: string | undefined) {
 }
 
 function invalidateFamilyMembers(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: ['family-members'] });
+  return qc.invalidateQueries({ queryKey: ['family-members'] });
 }
 
 export function useCreateFamilyMember() {

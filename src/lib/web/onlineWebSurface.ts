@@ -19,6 +19,7 @@ export const ONLINE_WEB_ROUTE_IDS = {
   authCallback: `${ONLINE_WEB_PREFIX}/auth/callback`,
   wallet: `${ONLINE_WEB_PREFIX}/wallet`,
   tutors: `${ONLINE_WEB_PREFIX}/tutors`,
+  students: `${ONLINE_WEB_PREFIX}/students`,
   lessons: `${ONLINE_WEB_PREFIX}/lessons`,
   providerRequests: `${ONLINE_WEB_PREFIX}/provider/requests`,
   providerLessons: `${ONLINE_WEB_PREFIX}/provider/lessons`,
