@@ -23,7 +23,7 @@
 -- #550: refund terms count the card refund
 -- ---------------------------------------------------------------------------
 -- What Paymob already returned to the card for this payment, in EGP. The refund
--- webhook (paymob_record_refund, 20261126210000) keeps the running total in
+-- webhook (paymob_apply_refund_webhook, 20261126210000) keeps the running total in
 -- gateway_refund_amount_cents; a voided transaction returns the whole card amount.
 -- Never above what the payment funded.
 CREATE OR REPLACE FUNCTION public.payment_gateway_refunded_total(p_pay public.payments)
