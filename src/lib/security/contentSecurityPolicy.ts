@@ -100,7 +100,9 @@ export function buildContentSecurityPolicy(env: NodeJS.ProcessEnv = process.env)
 
   const connectSrc = uniqueSources([
     "'self'",
-    ...(supabase ? [supabase, supabase.replace(/^https:/, "wss:")] : []),
+    // Realtime uses the matching websocket scheme: wss:// for hosted projects,
+    // ws:// for the local stack (http://127.0.0.1:54321) used by e2e-local CI.
+    ...(supabase ? [supabase, supabase.replace(/^http(s?):/, "ws$1:")] : []),
     ...liveKitCspSources(liveKit),
     "https://accept.paymob.com",
     ...GOOGLE_MAPS_CONNECT_SRC,

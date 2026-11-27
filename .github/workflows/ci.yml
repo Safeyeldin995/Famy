@@ -110,6 +110,67 @@ jobs:
             src/lib/db/__tests__/cancellation-fee.test.ts \
             src/lib/db/__tests__/expire-pending-bookings.test.ts
 
+  # Staging without a hosted project: a throwaway Supabase stack on the runner
+  # (`supabase start`), every migration applied, deterministic seed data, and
+  # the guest / student / parent / tutor / admin journeys run against the
+  # production build. Loopback-only guard in qa/local-ci/env.mjs; no secrets.
+  e2e-local:
+    name: E2E on local Supabase (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 3.4.0
+
+      - name: Make migration versions unique for the local stack
+        run: node qa/local-ci/prepare-migrations.mjs
+
+      - name: Start local Supabase (applies all migrations)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
+
+      - name: Write local env and seed
+        run: |
+          node qa/local-ci/write-env.mjs
+          node qa/local-ci/seed.mjs
+
+      - name: Build against the local stack
+        run: |
+          set -a; . ./.env.local-ci; set +a
+          npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Journeys (guest, email auth, online booking, admin)
+        run: npm run test:e2e:local
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-local-report
+          path: qa/report/
+          retention-days: 7
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   # Non-required until PO adds QA Supabase + FAMY_QA_APP_ORIGIN secrets (job fails closed if incomplete).
   release-gate-admin-e2e:
     name: Release gate admin E2E (QA secrets required)
