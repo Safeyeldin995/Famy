@@ -22,8 +22,8 @@ test.describe.serial("guest", () => {
     profileErrors = onProfile.readErrors();
   });
 
-  // Product bug https://github.com/Safeyeldin995/Famy/issues/565: anon cannot run has_role() inside reviews_public_read.
-  test.fixme("the tutor profile loads its reviews for a guest with no failed requests", () => {
+  // Regression for #565: anon reads reviews without has_role().
+  test("the tutor profile loads its reviews for a guest with no failed requests", () => {
     expect(profileErrors.network).toEqual([]);
     expect(profileErrors.console).toEqual([]);
   });

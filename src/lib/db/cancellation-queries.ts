@@ -182,10 +182,12 @@ export function useBookingCancellation(bookingId: string | undefined) {
     enabled: !!bookingId,
     queryKey: ['booking-cancellation', bookingId],
     queryFn: async () => {
+      // refetch() ignores `enabled`, so never query with an undefined id.
+      if (!bookingId) return null;
       const { data, error } = await supabase
         .from('booking_cancellations')
         .select('*')
-        .eq('booking_id', bookingId!)
+        .eq('booking_id', bookingId)
         .maybeSingle();
       if (error) throw error;
       return data as BookingCancellationRow | null;
