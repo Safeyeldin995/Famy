@@ -47,9 +47,10 @@ $$;
 REVOKE ALL ON FUNCTION public.payment_gateway_refunded_total(public.payments) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.payment_gateway_refunded_total(public.payments) TO service_role;
 
--- What Famy still holds for this payment after Paymob returned part (or all)
--- of it to the card. The one number every wallet refund (admin or automatic)
--- starts from.
+-- What Famy still holds for this payment and can still refund: the funded
+-- total minus what Paymob returned to the card and minus earlier admin wallet
+-- refunds (wallet_refunded_total). The one number every wallet refund, admin
+-- or automatic, starts from (#550, #572).
 CREATE OR REPLACE FUNCTION public.payment_held_after_card_refund(p_pay public.payments)
 RETURNS numeric
 LANGUAGE sql
@@ -57,7 +58,9 @@ IMMUTABLE
 SET search_path = public
 AS $$
   SELECT GREATEST(
-    public.payment_checkout_funded_total(p_pay) - public.payment_gateway_refunded_total(p_pay),
+    public.payment_checkout_funded_total(p_pay)
+      - public.payment_gateway_refunded_total(p_pay)
+      - COALESCE(NULLIF(p_pay.metadata->>'wallet_refunded_total', '')::numeric, 0),
     0
   );
 $$;
@@ -186,7 +189,8 @@ BEGIN
     IF v_pay.status <> 'captured' THEN
       v_blocked := 'already_refunded';
     END IF;
-    v_max := GREATEST(v_held - v_already, 0);
+    -- v_held already takes off the earlier wallet refunds.
+    v_max := v_held;
   END IF;
 
   -- Paymob reported a refund without its amount: nothing can be offered until
