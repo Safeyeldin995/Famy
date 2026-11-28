@@ -4,7 +4,13 @@ import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ProviderApplyFlow, type ApplyDraft } from "@/components/provider/ProviderApplyFlow";
+import {
+  ProviderApplyFlow,
+  applyStepReady,
+  type ApplyDraft,
+} from "@/components/provider/ProviderApplyFlow";
+import { resumeApplyStep } from "@/lib/provider/applyServiceDoors";
+import { servicesForMode } from "@/lib/provider/applyWorkMode";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
@@ -29,7 +35,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { providerApplyBootstrapLoading } from "@/lib/provider/providerApplyBootstrap";
 import { normalizeApplyWorkMode } from "@/lib/provider/applyWorkMode";
 
-export const Route = createFileRoute("/pro/apply")({ validateSearch: applyStepSearch, component: ProviderApplyRoute });
+export const Route = createFileRoute("/pro/apply")({
+  validateSearch: applyStepSearch,
+  component: ProviderApplyRoute,
+});
 function ProviderApplyRoute() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -114,14 +123,20 @@ function ProviderApplyRoute() {
     if (step === 1) {
       await save.mutateAsync({ section: "personal", payload: { legal_name: draft.name } });
       if (draft.mode !== "in_person") {
-        const gov = await supabase.rpc("set_my_governorate" as never, {
-          p_governorate: draft.governorate,
-        } as never);
+        const gov = await supabase.rpc(
+          "set_my_governorate" as never,
+          {
+            p_governorate: draft.governorate,
+          } as never,
+        );
         if (gov.error) throw gov.error;
       }
-      const mode = await supabase.rpc("provider_update_offering_mode" as never, {
-        p_offering_mode: draft.mode,
-      } as never);
+      const mode = await supabase.rpc(
+        "provider_update_offering_mode" as never,
+        {
+          p_offering_mode: draft.mode,
+        } as never,
+      );
       if (mode.error) throw mode.error;
       // Online only needs no service zone; at-home work keeps the chosen zones.
       await save.mutateAsync({
@@ -156,22 +171,40 @@ function ProviderApplyRoute() {
       await save.mutateAsync({ section: "review", payload: { confirmed: draft.agreed } });
       const result = await submit.mutateAsync();
       if (!result.already_submitted && !provider.data!.submitted_at) {
-        toast.success(t("providerComplete.title"), { description: t("providerComplete.message"), duration: 10000 });
+        toast.success(t("providerComplete.title"), {
+          description: t("providerComplete.message"),
+          duration: 10000,
+        });
       }
       try {
-        const existing = await supabase.from("availability_rules").select("id").eq("provider_id", provider.data!.id).limit(1);
+        const existing = await supabase
+          .from("availability_rules")
+          .select("id")
+          .eq("provider_id", provider.data!.id)
+          .limit(1);
         if (existing.error) throw existing.error;
-        if (!existing.data.length) await replaceAvailability.mutateAsync({ providerId: provider.data!.id, rules: defaultWorkingHours() });
+        if (!existing.data.length)
+          await replaceAvailability.mutateAsync({
+            providerId: provider.data!.id,
+            rules: defaultWorkingHours(),
+          });
       } catch {
         // Submission succeeded. The pending-home hours task remains available for setup.
       }
       await navigate({ to: "/pro", replace: true });
     }
   };
+  // A returning applicant continues where they stopped, unless a link asks for a step.
+  const startStep =
+    step ??
+    resumeApplyStep({
+      basicsReady: applyStepReady(1, initial, serviceRows),
+      servicesReady: applyStepReady(2, initial, servicesForMode(serviceRows, initial.mode)),
+    });
   return (
     <ProviderApplyFlow
-      key={step ?? 1}
-      initialStep={step}
+      key={startStep}
+      initialStep={startStep}
       initial={initial}
       services={serviceRows}
       zones={zones.data!}

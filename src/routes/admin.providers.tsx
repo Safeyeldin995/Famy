@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/admin-queries";
 import { Search, ChevronRight, ShieldCheck, ChevronLeft } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { AdminPendingCertificates } from "@/components/admin/AdminPendingCertificates";
 import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
 import { currentLang } from "@/lib/i18n";
 import { isProviderWorkQueueKey } from "@/lib/db/admin-work-queue";
@@ -75,6 +76,7 @@ function ProviderManagement() {
           </div>
         )}
       </div>
+      <AdminPendingCertificates />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-h-11 min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">

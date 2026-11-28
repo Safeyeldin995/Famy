@@ -5,10 +5,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { defaultWorkingHours } from "@shared/provider/setupHelpers";
 import {
+  applyStepReady,
   needsServicePrice,
   normalizeApplyWorkMode,
+  servicesForMode,
   type ApplyDraft,
+  type ApplyService,
 } from "@/lib/provider/applyDraft";
+import { resumeApplyStep } from "@shared/provider/applyServiceDoors";
 import { ProviderApplyFlow } from "@/ui/provider/ProviderApplyFlow";
 import {
   useActiveZones,
@@ -35,7 +39,9 @@ import { ProviderAccountMenu } from "@/ui/provider/ProviderAccountMenu";
 export default function ProApplyScreen() {
   const { t } = useTranslation();
   const { step: stepParam } = useLocalSearchParams<{ step?: string }>();
-  const step = Math.min(3, Math.max(1, Number(stepParam) || 1)) as 1 | 2 | 3;
+  const requestedStep = Number(stepParam)
+    ? (Math.min(3, Math.max(1, Number(stepParam))) as 1 | 2 | 3)
+    : null;
   const qc = useQueryClient();
   const providerQ = useMyProvider();
   const provider = providerQ.data as Record<string, unknown> | null | undefined;
@@ -103,9 +109,12 @@ export default function ProApplyScreen() {
     if (saveStep === 1) {
       await save.mutateAsync({ section: "personal", payload: { legal_name: draft.name } });
       if (draft.mode !== "in_person") {
-        const gov = await supabase.rpc("set_my_governorate" as never, {
-          p_governorate: draft.governorate,
-        } as never);
+        const gov = await supabase.rpc(
+          "set_my_governorate" as never,
+          {
+            p_governorate: draft.governorate,
+          } as never,
+        );
         if (gov.error) throw gov.error;
       }
       const mode = await supabase.rpc("provider_update_offering_mode", {
@@ -200,6 +209,17 @@ export default function ProApplyScreen() {
       ),
       agreed: !!snapshotData.details?.accuracy_confirmed_at,
     };
+    // A returning applicant continues where they stopped, unless a link asks for a step.
+    const step =
+      requestedStep ??
+      resumeApplyStep({
+        basicsReady: applyStepReady(1, initial, serviceRows as ApplyService[]),
+        servicesReady: applyStepReady(
+          2,
+          initial,
+          servicesForMode(serviceRows as ApplyService[], initial.mode),
+        ),
+      });
     flow = (
       <ProviderApplyFlow
         key={step}

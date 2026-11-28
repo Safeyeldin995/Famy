@@ -133,6 +133,9 @@ vi.mock("@/lib/db/queries", () => ({
   useFavoriteIds: () => query([]),
   useToggleFavorite: () => ({ mutate: vi.fn() }),
 }));
+vi.mock("@/lib/db/credential-queries", () => ({
+  usePublicCredentials: () => ({ data: undefined }),
+}));
 vi.mock("@/lib/db/teaching-queries", () => ({
   useApprovedTeachingCapabilities: () => query(capabilities),
 }));

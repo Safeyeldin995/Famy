@@ -12,6 +12,8 @@ import {
   type SetupEdits,
 } from "@/components/provider/ProviderSetupForm";
 import { GroupedTeachingSetup } from "@/components/provider/GroupedTeachingSetup";
+import { CredentialsPage } from "@/components/provider/CredentialsEditor";
+import { credentialItems, type CredentialKind } from "@/lib/provider/credentials";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
@@ -46,7 +48,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/pro/setup/$item")({
   beforeLoad: ({ params }) => {
-    if (!setupItems.includes(params.item as SetupItem)) throw notFound();
+    if (
+      !setupItems.includes(params.item as SetupItem) &&
+      !credentialItems.includes(params.item as CredentialKind)
+    )
+      throw notFound();
   },
   component: ProviderSetupRoute,
 });
@@ -77,6 +83,10 @@ function ProviderSetupRoute() {
       <p role="status" className="p-5">
         {t("providerApply.loading")}
       </p>
+    );
+  if (credentialItems.includes(item as CredentialKind))
+    return (
+      <CredentialsPage kind={item as CredentialKind} providerId={provider.data.id} onBack={back} />
     );
   const selectedServices = services.data!.filter((s) =>
     selections.data!.services.some((row) => row.service_id === s.id),

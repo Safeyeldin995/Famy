@@ -7,6 +7,7 @@ import { useMyProvider } from "@/lib/db/provider-queries";
 import { OnlineWebTutorAccountNotice } from "@/components/online/OnlineWebTutorAccountNotice";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { useGuestOnlineTutor, useProvider, useProviderReviews } from "@/lib/db/queries";
+import { ProviderCredentialsSection } from "@/components/provider/ProviderCredentialsSection";
 import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { formatDate, formatEGP, formatLocale, formatNumber } from "@/lib/format";
 import { Clock, ShieldCheck, Star } from "lucide-react";
@@ -186,6 +187,8 @@ function OnlineTutorProfile() {
               </div>
             )}
           </section>
+
+          <ProviderCredentialsSection providerId={providerId} />
 
           <section className="space-y-3 rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-pro-18 font-extrabold">{t("onlineWeb.hub.reviewsTitle")}</h2>

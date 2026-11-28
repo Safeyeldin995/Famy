@@ -34,6 +34,8 @@ import { useProviderAvailability } from "@/lib/db/provider-queries";
 import { workingHoursState } from "@/lib/provider/setupHelpers";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { pendingHomeModel, type PendingHomeData } from "@/lib/provider/pendingHomeModel";
+import { useMyCredentials } from "@/lib/db/credential-queries";
+import { ProfileCompletionCard } from "./ProfileCompletionCard";
 import "@/components/famio/providerApply.css";
 
 const icons = {
@@ -56,8 +58,10 @@ export function PendingHomeView({
   hoursWarning,
   hoursHint = "providerSetup.hoursHint",
   changes,
+  credentialCounts,
 }: {
   data: PendingHomeData;
+  credentialCounts?: { education: number; experience: number; certificates: number };
   fullName: string;
   avatarUrl?: string;
   hoursHint?: string;
@@ -68,6 +72,12 @@ export function PendingHomeView({
   const proPath = useProPath();
   const firstName = fullName.trim().split(/\s+/)[0];
   const model = pendingHomeModel(data);
+  const completionData = {
+    ...data,
+    educationCount: credentialCounts?.education ?? 0,
+    experienceCount: credentialCounts?.experience ?? 0,
+    certificateCount: credentialCounts?.certificates ?? 0,
+  };
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -90,55 +100,25 @@ export function PendingHomeView({
       {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
         <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
         <p className="mt-2 whitespace-pre-wrap break-words">{changes.reason || t("providerChanges.reasonFallback")}</p>
-      </div> : model.remaining === 0 ? <div className="apply-note !block border border-success/30 bg-success/10 text-success" role="status">
-        <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
-        <p className="mt-2">{t("providerComplete.message")}</p>
-      </div> : <div className="apply-progcard">
-        <svg
-          width="58"
-          height="58"
-          viewBox="0 0 58 58"
-          role="img"
-          aria-label={t("providerApply.pending.progress", { done: model.done, total: model.total })}
-        >
-          <circle
-            cx="29"
-            cy="29"
-            r="24"
-            fill="none"
-            stroke="rgba(255,255,255,.18)"
-            strokeWidth="6"
-          />
-          <circle
-            cx="29"
-            cy="29"
-            r="24"
-            fill="none"
-            stroke="var(--brand)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray="150.8"
-            strokeDashoffset={model.strokeDashoffset}
-            transform="rotate(-90 29 29)"
-          />
-          <text
-            x="29"
-            y="34"
-            textAnchor="middle"
-            fill="#fff"
-            fontSize="14"
-            fontWeight="800"
-            direction="ltr"
-          >
-            {model.done}/{model.total}
-          </text>
-        </svg>
-        <div>
-          <h2>{t(model.titleKey, { remaining: model.remaining })}</h2>
-          <p>{t(model.subtitleKey)}</p>
+      </div> : null}
+      {!changes ? <>
+        <div className="apply-li apply-waiting" role="status">
+          <span className="apply-tile">
+            <ShieldCheck size={20} aria-hidden="true" />
+          </span>
+          <span className="apply-task-text">
+            <b>{t("providerApply.pending.review")}</b>
+            <small>{model.remaining ? t(model.titleKey, { remaining: model.remaining }) : t("providerComplete.message")}</small>
+          </span>
+          <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
         </div>
-      </div>}
-      <ul className="apply-list">
+        {model.remaining === 0 ? <div className="apply-note !block border border-success/30 bg-success/10 text-success" role="status">
+          <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
+          <p className="mt-2">{t("providerComplete.message")}</p>
+        </div> : null}
+        <ProfileCompletionCard data={completionData} />
+      </> : null}
+      {changes ? <ul className="apply-list">
         {changes && changesModel.applicationItems.map(({ key, step, done, highlighted }) => {
           const Icon = icons[key];
           return <li key={key}>
@@ -149,7 +129,7 @@ export function PendingHomeView({
             </Link>
           </li>;
         })}
-        {model.items.map(({ key, done, next }) => {
+        {changes && model.items.map(({ key, done, next }) => {
           const Icon = icons[key];
           return (
             <li key={key}>
@@ -176,19 +156,7 @@ export function PendingHomeView({
             </li>
           );
         })}
-        {!changes && <li>
-          <div className="apply-li apply-waiting">
-            <span className="apply-tile">
-              <ShieldCheck size={20} aria-hidden="true" />
-            </span>
-            <span className="apply-task-text">
-              <b>{t("providerApply.pending.review")}</b>
-              <small>{t("providerComplete.message")}</small>
-            </span>
-            <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
-          </div>
-        </li>}
-      </ul>
+      </ul> : null}
       {changes && <>
         {failed && <p role="alert" className="text-sm text-destructive">{t("providerApply.saveError")} {t(changesModel.hintKey)}</p>}
         <StickyCta disabled={!changesModel.canSubmit || busy} onClick={() => void resubmit()} hint={!changesModel.canSubmit || failed ? t(changesModel.hintKey) : undefined}>{t(busy ? "providerApply.saving" : "providerChanges.resubmit")}</StickyCta>
@@ -207,7 +175,8 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
   const services = usePhase1Services();
   const subjects = useMyTeachingCapabilities(providerId);
   const availability = useProviderAvailability(providerId);
-  const queries = [snapshot, refs, selections, services, subjects, availability, ...(changesRequested ? [completion] : [])];
+  const credentials = useMyCredentials(providerId);
+  const queries = [snapshot, refs, selections, services, subjects, availability, credentials, ...(changesRequested ? [completion] : [])];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess)) return null;
@@ -233,6 +202,11 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
       hoursHint={hours.needsNight ? "providerSetup.nightHint" : hours.isDefault ? "providerSetup.defaultHoursHint" : "providerSetup.hoursHint"}
       fullName={data.profile?.full_name ?? ""}
       avatarUrl={data.profile?.avatar_url}
+      credentialCounts={{
+        education: credentials.data!.education.length,
+        experience: credentials.data!.experience.length,
+        certificates: credentials.data!.certificates.length,
+      }}
       data={{
         hours: hours.done,
         photo: !!data.profile?.avatar_url,

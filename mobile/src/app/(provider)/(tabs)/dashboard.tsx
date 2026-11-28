@@ -22,6 +22,7 @@ import { joinUiParts } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
 import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
 import { TutorTeachingDataBanner } from "@/ui/provider/TutorTeachingDataBanner";
+import { ApprovedProfileCompletion } from "@/ui/provider/ApprovedProfileCompletion";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
@@ -238,6 +239,7 @@ export default function ProviderDashboard() {
         </Text>
       </Pressable>
       {nextAction ? <ProviderNextActionStrip action={nextAction} /> : null}
+      <ApprovedProfileCompletion providerId={providerId} />
       {statsQ.data && provider?.is_verified ? (
         <ProviderPerformanceCard stats={statsQ.data} />
       ) : null}

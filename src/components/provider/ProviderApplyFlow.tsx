@@ -19,6 +19,7 @@ import {
 import { hasSelectedServicePrices, needsServicePrice } from "@/lib/provider/priceOptions";
 import { isFixedPackage, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
+import { groupServicesByDoor, serviceDoor } from "@/lib/provider/applyServiceDoors";
 import { BottomSheetSelect } from "@/components/famio/BottomSheetSelect";
 import { governorateOptions, isEgyptGovernorateCode } from "@/lib/geo/egyptGovernorates";
 import {
@@ -30,6 +31,7 @@ import {
 
 export type ApplyService = {
   id: string;
+  slug?: string | null;
   name_en: string;
   name_ar: string;
   category?: { slug?: string | null; online_allowed?: boolean | null } | null;
@@ -201,7 +203,11 @@ export function ProviderApplyFlow({
             )}
             <div>
               <span className="apply-label">{t("onlineNationwide.workMode")}</span>
-              <div className="apply-chips" role="radiogroup" aria-label={t("onlineNationwide.workMode")}>
+              <div
+                className="apply-chips"
+                role="radiogroup"
+                aria-label={t("onlineNationwide.workMode")}
+              >
                 {(
                   [
                     ["in_person", "onlineNationwide.workModeInPerson"],
@@ -233,39 +239,41 @@ export function ProviderApplyFlow({
                   options={governorateOptions(i18n.language)}
                 />
                 {attempted && !isEgyptGovernorateCode(draft.governorate) && (
-                  <p className="text-pro-12 text-coral">{t("onlineNationwide.governorateRequired")}</p>
+                  <p className="text-pro-12 text-coral">
+                    {t("onlineNationwide.governorateRequired")}
+                  </p>
                 )}
               </div>
             )}
             {draft.mode !== "online" && (
-            <div>
-              <span className="apply-label">{t("providerApply.zones")}</span>
-              <div className="apply-chips">
-                {zones.map((zone) => (
-                  <CheckChip
-                    key={zone.id}
-                    selected={draft.zones.includes(zone.id)}
-                    disabled={busy}
-                    onClick={() =>
-                      setDraft((d) => ({
-                        ...d,
-                        zones: d.zones.includes(zone.id)
-                          ? d.zones.filter((id) => id !== zone.id)
-                          : [...d.zones, zone.id],
-                      }))
-                    }
-                  >
-                    {ar ? zone.name_ar : zone.name_en}
-                  </CheckChip>
-                ))}
+              <div>
+                <span className="apply-label">{t("providerApply.zones")}</span>
+                <div className="apply-chips">
+                  {zones.map((zone) => (
+                    <CheckChip
+                      key={zone.id}
+                      selected={draft.zones.includes(zone.id)}
+                      disabled={busy}
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          zones: d.zones.includes(zone.id)
+                            ? d.zones.filter((id) => id !== zone.id)
+                            : [...d.zones, zone.id],
+                        }))
+                      }
+                    >
+                      {ar ? zone.name_ar : zone.name_en}
+                    </CheckChip>
+                  ))}
+                </div>
+                {attempted && draft.zones.length === 0 && (
+                  <p className="text-pro-12 text-coral">{t("proRound2.zonesRequired")}</p>
+                )}
+                <p className="mt-2 text-pro-12 text-muted-foreground">
+                  {t("providerApply.zonesHint")}
+                </p>
               </div>
-              {attempted && draft.zones.length === 0 && (
-                <p className="text-pro-12 text-coral">{t("proRound2.zonesRequired")}</p>
-              )}
-              <p className="mt-2 text-pro-12 text-muted-foreground">
-                {t("providerApply.zonesHint")}
-              </p>
-            </div>
             )}
           </>
         )}
@@ -275,48 +283,63 @@ export function ProviderApplyFlow({
               <p className="text-pro-12 text-coral">{t("proRound2.servicesRequired")}</p>
             )}
             {visibleServices.length === 0 && <p>{t("providerApply.noServices")}</p>}
-            {visibleServices.map((service) => {
-              const tutoring = service.category?.slug === "tutoring";
-              const fixed = isFixedPackage(service);
-              const unit = servicePriceUnit(service);
-              const unitText = tutoring ? t("pricePicker.sessionUnit") : t(unit.key, unit.values);
-              return (
-                <ServiceCard
-                  key={service.id}
-                  title={ar ? service.name_ar : service.name_en}
-                  subtitle={applyServiceSubtitle(service, t)}
-                  selected={draft.services.includes(service.id)}
-                  disabled={busy || lockedServices.includes(service.id)}
-                  onClick={() => toggleService(service)}
-                  icon={
-                    tutoring ? (
-                      <BookOpen size={22} />
-                    ) : fixed ? (
-                      <Sun size={22} />
-                    ) : (
-                      <Baby size={22} />
-                    )
-                  }
-                >
-                  {tutoring ? (
-                    <p className="text-xs text-muted-foreground">
-                      {t("providerApply.teachingLater")}
-                    </p>
-                  ) : needsServicePrice(service) ? (
-                    <PriceStepper
-                      min={service.minimum_price ?? null}
-                      max={service.maximum_price ?? null}
-                      value={draft.prices[service.id] ?? null}
-                      onChange={(price) =>
-                        setDraft((d) => ({ ...d, prices: { ...d.prices, [service.id]: price } }))
+            {visibleServices.length > 0 && (
+              <p className="text-pro-12 text-muted-foreground">{t("providerApply.doorsHint")}</p>
+            )}
+            {groupServicesByDoor(visibleServices).map(({ door, services: doorServices }) => (
+              <section key={door} className="grid gap-3" aria-labelledby={`apply-door-${door}`}>
+                <h2 id={`apply-door-${door}`} className="apply-label !mb-0">
+                  {t(`providerApply.doors.${door}`)}
+                </h2>
+                {doorServices.map((service) => {
+                  const tutoring = serviceDoor(service) !== "babysitting";
+                  const fixed = isFixedPackage(service);
+                  const unit = servicePriceUnit(service);
+                  const unitText = tutoring
+                    ? t("pricePicker.sessionUnit")
+                    : t(unit.key, unit.values);
+                  return (
+                    <ServiceCard
+                      key={service.id}
+                      title={ar ? service.name_ar : service.name_en}
+                      subtitle={applyServiceSubtitle(service, t)}
+                      selected={draft.services.includes(service.id)}
+                      disabled={busy || lockedServices.includes(service.id)}
+                      onClick={() => toggleService(service)}
+                      icon={
+                        tutoring ? (
+                          <BookOpen size={22} />
+                        ) : fixed ? (
+                          <Sun size={22} />
+                        ) : (
+                          <Baby size={22} />
+                        )
                       }
-                      unitLabel={unitText}
-                      disabled={busy}
-                    />
-                  ) : null}
-                </ServiceCard>
-              );
-            })}
+                    >
+                      {tutoring ? (
+                        <p className="text-xs text-muted-foreground">
+                          {t("providerApply.teachingLater")}
+                        </p>
+                      ) : needsServicePrice(service) ? (
+                        <PriceStepper
+                          min={service.minimum_price ?? null}
+                          max={service.maximum_price ?? null}
+                          value={draft.prices[service.id] ?? null}
+                          onChange={(price) =>
+                            setDraft((d) => ({
+                              ...d,
+                              prices: { ...d.prices, [service.id]: price },
+                            }))
+                          }
+                          unitLabel={unitText}
+                          disabled={busy}
+                        />
+                      ) : null}
+                    </ServiceCard>
+                  );
+                })}
+              </section>
+            ))}
           </>
         )}
         {step === 3 && (

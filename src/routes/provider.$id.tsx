@@ -1,4 +1,5 @@
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
+import { ProviderCredentialsSection } from "@/components/provider/ProviderCredentialsSection";
 import { isFixedPackage, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, EmptyState } from "@/components/famio/ui";
@@ -404,6 +405,8 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
             ) : null}
           </Section>
         ) : null}
+
+        <ProviderCredentialsSection providerId={id} className="mt-6 space-y-4" />
 
         <Section
           title={

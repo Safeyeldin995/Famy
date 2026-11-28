@@ -2,20 +2,12 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import {
-  Baby,
-  BookOpen,
-  Check,
-  Clock,
-  MapPin,
-  MessageSquare,
-  Phone,
-  ShieldCheck,
-  User,
-} from "lucide-react-native";
+import { ShieldCheck } from "lucide-react-native";
 import { missingTeachingServices } from "@/lib/provider/teachingSetup";
 import { workingHoursState } from "@shared/provider/setupHelpers";
 import { pendingHomeModel } from "@shared/provider/pendingHomeModel";
+import { useMyCredentials } from "@/lib/provider/credentialQueries";
+import { ProfileCompletionCard } from "./ProfileCompletionCard";
 import {
   providerOnboardingTerminal,
   providerStatusBodyKey,
@@ -33,24 +25,13 @@ import {
 import { useMyTeachingCapabilities } from "@/lib/provider/teachingQueries";
 import { useMyProvider, useProviderAvailability } from "@/lib/provider/queries";
 import { useProviderReviewSlaHours } from "@/lib/provider/journeyQueries";
-import { customerNumber } from "@/lib/customerFormat";
 import { Page, QueryState } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { proCard } from "./cards";
 import { ProviderAccountMenu } from "./ProviderAccountMenu";
 import { ProviderHeader } from "./ProviderHeader";
-import { colors, radius, space } from "@/ui/theme";
-
-const icons = {
-  photo: User,
-  about: MessageSquare,
-  babysitting: Baby,
-  subjects: BookOpen,
-  reference: Phone,
-  personal: MapPin,
-  hours: Clock,
-};
+import { colors, space } from "@/ui/theme";
 
 type QuerySlice = {
   isPending?: boolean;
@@ -77,7 +58,7 @@ export function PendingHomeScreen({
   changesRequested?: boolean;
   onboardingStatus?: string;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const p = useMyProvider();
   const provider = p.data as Record<string, unknown> | null | undefined;
   const providerId = provider?.id as string | undefined;
@@ -89,8 +70,9 @@ export function PendingHomeScreen({
   const availability = useProviderAvailability(providerId);
   const submit = useSubmitOnboarding();
   const slaQ = useProviderReviewSlaHours();
+  const credentials = useMyCredentials(providerId);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const queries = [p, snapshot, refs, selections, services, subjects, availability];
+  const queries = [p, snapshot, refs, selections, services, subjects, availability, credentials];
   const gateQuery = combineQueries(queries as QuerySlice[]);
   const ready = !!provider && gateQuery.isSuccess && !gateQuery.isLoading && !gateQuery.isPending;
   const terminal = providerOnboardingTerminal(onboardingStatus);
@@ -171,6 +153,12 @@ export function PendingHomeScreen({
           ).length === 0,
       };
       const model = pendingHomeModel(pendingData);
+      const completionData = {
+        ...pendingData,
+        educationCount: credentials.data?.education.length ?? 0,
+        experienceCount: credentials.data?.experience.length ?? 0,
+        certificateCount: credentials.data?.certificates.length ?? 0,
+      };
       const firstName = (
         data.profile?.full_name?.trim().split(/\s+/)[0] || t("pro.common.greetingFallback")
       ).trim();
@@ -207,156 +195,43 @@ export function PendingHomeScreen({
               <Text>{String(provider.review_reason_public)}</Text>
             </View>
           ) : null}
-          {model.remaining ? (
+          {awaitingReview ? (
             <View
-              style={{
-                minHeight: 100,
-                borderRadius: radius.xl,
-                backgroundColor: colors.foreground,
-                flexDirection: "row",
-                alignItems: "center",
-                padding: space.xl,
-                gap: space.lg,
-              }}
+              style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: space.md }]}
             >
               <View
                 style={{
-                  width: 58,
-                  height: 58,
-                  borderRadius: 29,
-                  borderWidth: 6,
-                  borderColor: colors.brand,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: colors.warningTint,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Text
-                  weight="heavy"
-                  style={{ color: colors.brandForeground, writingDirection: "ltr" }}
-                >
-                  {model.done}/{model.total}
-                </Text>
+                <ShieldCheck size={20} color={colors.warning} />
               </View>
-              <View style={{ flex: 1, gap: space.sm }}>
-                <Text weight="heavy" style={{ color: colors.brandForeground }}>
-                  {t(model.titleKey, { remaining: model.remaining })}
+              <View style={{ flex: 1, gap: space.xs }}>
+                <Text weight="bold" size="sm">
+                  {t("providerApply.pending.review")}
                 </Text>
-                <Text size="xs" style={{ color: colors.brandForeground }}>
-                  {t("providerApply.pending.stepProgress", {
-                    done: customerNumber(model.done, i18n.language),
-                    total: customerNumber(model.total, i18n.language),
-                  })}
-                </Text>
-                <Text size="xs" style={{ color: colors.brandForeground }}>
-                  {t(model.subtitleKey)}
+                <Text tone="muted" size="xs">
+                  {model.remaining
+                    ? t(model.titleKey, { remaining: model.remaining })
+                    : t("providerApply.pending.reviewSla", { hours: slaQ.data ?? 24 })}
                 </Text>
               </View>
             </View>
-          ) : (
+          ) : null}
+          {model.remaining === 0 ? (
             <View style={[proCard.card, { backgroundColor: colors.successTint }]}>
               <Text weight="heavy" tone="success">
                 {t("providerComplete.title")}
               </Text>
               <Text tone="success">{t("providerComplete.message")}</Text>
-              <Text tone="success">
-                {t("providerApply.pending.reviewSla", { hours: slaQ.data ?? 24 })}
-              </Text>
             </View>
-          )}
-          <View style={{ gap: 0 }}>
-            {model.items.map(({ key, done, next }) => {
-              const Icon = icons[key];
-              return (
-                <Pressable
-                  key={key}
-                  accessibilityRole="button"
-                  accessibilityLabel={t(
-                    key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`,
-                  )}
-                  onPress={() =>
-                    router.push({ pathname: "/pro-setup/[item]", params: { item: key } })
-                  }
-                  style={{
-                    minHeight: 56,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: space.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      backgroundColor: done ? colors.successTint : colors.surface2,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Icon size={20} color={done ? colors.success : colors.muted} />
-                  </View>
-                  <View style={{ flex: 1, gap: space.xs }}>
-                    <Text weight="bold" size="sm">
-                      {t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
-                    </Text>
-                    <Text tone="muted" size="xs">
-                      {key === "subjects" && pendingData.missingSubjects.length
-                        ? t("providerClarity.missingSubjects", {
-                            services: pendingData.missingSubjects
-                              .map((service) =>
-                                i18n.language.startsWith("ar") ? service.name_ar : service.name_en,
-                              )
-                              .join(i18n.language.startsWith("ar") ? "، " : ", "),
-                          })
-                        : t(
-                            key === "hours"
-                              ? "providerSetup.hoursHint"
-                              : `providerApply.pending.items.${key}`,
-                          )}
-                    </Text>
-                  </View>
-                  {done ? (
-                    <Check size={18} color={colors.success} />
-                  ) : (
-                    <Text weight="bold" size="xs" tone={next ? "brand" : "muted"}>
-                      {t(`providerApply.pending.${next ? "start" : "minute"}`)}
-                    </Text>
-                  )}
-                </Pressable>
-              );
-            })}
-            {awaitingReview ? (
-              <View
-                style={{ minHeight: 56, flexDirection: "row", alignItems: "center", gap: space.md }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    backgroundColor: colors.warningTint,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ShieldCheck size={20} color={colors.warning} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text weight="bold" size="sm">
-                    {t("providerApply.pending.review")}
-                  </Text>
-                  <Text tone="muted" size="xs">
-                    {t("providerComplete.message")}
-                  </Text>
-                </View>
-                <Text size="xs" tone="muted">
-                  {t("providerApply.pending.waiting")}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          ) : null}
+          <ProfileCompletionCard data={completionData} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("providerDocuments.title")}

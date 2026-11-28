@@ -28,27 +28,27 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/db/queries", () => ({ useAvatarUrl: () => ({ data: "/signed-avatar-test.png" }) }));
 afterEach(cleanup);
 
-it("renders all seven editable preview tasks, progress, next and waiting states", () => {
+it("shows the review status and one «كمل ملفك» card ordered by impact", () => {
   render(<ProviderPendingHome preview />);
   expect(screen.getByRole("heading", { name: "أهلا يا منى" })).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "فاضلك 4 خطوات" })).toBeTruthy();
-  expect(screen.getByText("4/9")).toBeTruthy();
-  const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(7);
-  expect(links.map((link) => link.getAttribute("href"))).toEqual([
-    "/pro/setup/photo",
-    "/pro/setup/about",
-    "/pro/setup/babysitting",
-    "/pro/setup/subjects",
-    "/pro/setup/reference",
-    "/pro/setup/personal",
-    "/pro/setup/hours",
-  ]);
-  expect(links[0].classList.contains("apply-done")).toBe(true);
-  expect(links[4].classList.contains("apply-done")).toBe(true);
-  expect(screen.getByText("ابدأ").closest("a")).toBe(links[1]);
-  expect(screen.getAllByText("دقيقة")).toHaveLength(3);
   expect(screen.getByText("مراجعة فريق فامي").closest("a")).toBeNull();
+  expect(screen.getByText("فاضلك 4 خطوات")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "كمل ملفك" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "ملفك مكتمل 30%" })).toBeTruthy();
+  const links = screen.getAllByRole("link");
+  // Done items (photo, hours, reference) collapse behind one toggle.
+  expect(links.map((link) => link.getAttribute("href"))).toEqual([
+    "/pro/setup/subjects",
+    "/pro/setup/babysitting",
+    "/pro/setup/about",
+    "/pro/setup/experience",
+    "/pro/setup/education",
+    "/pro/setup/certificates",
+    "/pro/setup/personal",
+  ]);
+  // Only the items the approval already requires carry the tag.
+  expect(screen.getAllByText("مطلوب")).toHaveLength(3);
+  expect(screen.getByRole("button", { name: "اللي خلصته (3)" })).toBeTruthy();
   expect(screen.getByText("جاري")).toBeTruthy();
 });
 
@@ -74,9 +74,13 @@ it("uses the profile first name and signed photo", () => {
   expect(screen.getByAltText("").getAttribute("src")).toBe("/signed-avatar-test.png");
   expect(screen.getByAltText("").getAttribute("aria-hidden")).toBe("true");
   expect(screen.queryByRole("img", { name: "Sara Example" })).toBeNull();
-  expect(screen.queryByText("ابدأ")).toBeNull();
   expect(screen.getByRole("heading", { name: "طلبك كامل ✓" })).toBeTruthy();
-  expect(screen.queryByRole("img", { name: /7/ })).toBeNull();
+  // The optional extras still show in «كمل ملفك» without the «مطلوب» tag.
+  expect(screen.getByRole("heading", { name: "كمل ملفك" })).toBeTruthy();
+  expect(screen.queryByText("مطلوب")).toBeNull();
+  // The old "done/total" ring is gone; the card shows a percentage instead.
+  expect(screen.queryByText(/^\d+\/\d+$/)).toBeNull();
+  expect(screen.getByRole("img", { name: "ملفك مكتمل 71%" })).toBeTruthy();
   expect(
     screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة، هيوصلك إشعار أول ما نخلص"),
   ).toHaveLength(2);

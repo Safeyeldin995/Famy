@@ -10,6 +10,7 @@ import {
 
 export type ApplyService = {
   id: string;
+  slug?: string | null;
   name_en: string;
   name_ar: string;
   category?: { slug?: string | null; online_allowed?: boolean | null } | null;

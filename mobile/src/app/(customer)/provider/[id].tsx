@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ProviderCredentialsSection } from "@/ui/provider/ProviderCredentialsSection";
 import { useEffect, useState } from "react";
 import { logFamyEvent } from "@/lib/analytics";
 import { Pressable, Share, View } from "react-native";
@@ -462,6 +463,7 @@ export default function ProviderProfile() {
                 ) : null}
               </Section>
             ) : null}
+            <ProviderCredentialsSection providerId={id} />
             <Section
               title={t(
                 reviews.data?.length

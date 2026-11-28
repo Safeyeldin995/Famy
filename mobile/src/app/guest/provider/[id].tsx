@@ -14,6 +14,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
+import { ProviderCredentialsSection } from "@/ui/provider/ProviderCredentialsSection";
 
 /** Public provider profile for guests. Booking needs an account; we resume here after sign-up. */
 export default function GuestProvider() {
@@ -150,6 +151,8 @@ export default function GuestProvider() {
                 </View>
               ))}
             </View>
+
+            <ProviderCredentialsSection providerId={id} />
 
             {comments.length ? (
               <View style={{ gap: space.sm }}>

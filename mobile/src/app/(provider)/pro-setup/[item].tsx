@@ -22,6 +22,7 @@ import {
 import { SetupItemForm } from "@/ui/provider/SetupItemForm";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { TeachingGroupsSetup } from "@/ui/provider/TeachingGroupsSetup";
+import { CredentialsEditor } from "@/ui/provider/CredentialsEditor";
 import { Page, QueryState } from "@/ui/Page";
 
 const SETUP_ITEMS = [
@@ -32,7 +33,15 @@ const SETUP_ITEMS = [
   "reference",
   "personal",
   "hours",
+  "education",
+  "experience",
+  "certificates",
 ] as const;
+
+const CREDENTIAL_ITEMS = ["education", "experience", "certificates"] as const;
+type CredentialItem = (typeof CREDENTIAL_ITEMS)[number];
+const isCredentialItem = (item: string): item is CredentialItem =>
+  (CREDENTIAL_ITEMS as readonly string[]).includes(item);
 
 export default function ProSetupItemScreen() {
   const { item } = useLocalSearchParams<{ item: string }>();
@@ -125,43 +134,44 @@ export default function ProSetupItemScreen() {
       phone: row.phone,
       notes: row.notes ?? "",
     }));
-    body =
-      item === "subjects" ? (
-        <TeachingGroupsSetup
-          providerId={providerId!}
-          services={
-            selected.filter((s) => s.category?.slug === "tutoring") as {
-              id: string;
-              name_ar: string;
-              name_en: string;
-              minimum_price?: number | null;
-              maximum_price?: number | null;
-              allowed_session_durations?: number[] | null;
-            }[]
-          }
-        />
-      ) : (
-        <SetupItemForm
-          item={item}
-          snapshot={{
-            ...(snapshot.data as SetupSnapshot),
-            needsBabysitting,
-          }}
-          references={normalizedRefs}
-          rules={
-            (availability.data ?? []) as {
-              weekday: number;
-              start_time: string;
-              end_time: string;
-            }[]
-          }
-          needsBabysitting={needsBabysitting}
-          ageGroups={(ages.data ?? []) as { code: string; name_ar: string; name_en: string }[]}
-          providerId={providerId!}
-          profileId={profileId!}
-          onSave={persist}
-        />
-      );
+    body = isCredentialItem(item) ? (
+      <CredentialsEditor kind={item} providerId={providerId!} />
+    ) : item === "subjects" ? (
+      <TeachingGroupsSetup
+        providerId={providerId!}
+        services={
+          selected.filter((s) => s.category?.slug === "tutoring") as {
+            id: string;
+            name_ar: string;
+            name_en: string;
+            minimum_price?: number | null;
+            maximum_price?: number | null;
+            allowed_session_durations?: number[] | null;
+          }[]
+        }
+      />
+    ) : (
+      <SetupItemForm
+        item={item}
+        snapshot={{
+          ...(snapshot.data as SetupSnapshot),
+          needsBabysitting,
+        }}
+        references={normalizedRefs}
+        rules={
+          (availability.data ?? []) as {
+            weekday: number;
+            start_time: string;
+            end_time: string;
+          }[]
+        }
+        needsBabysitting={needsBabysitting}
+        ageGroups={(ages.data ?? []) as { code: string; name_ar: string; name_en: string }[]}
+        providerId={providerId!}
+        profileId={profileId!}
+        onSave={persist}
+      />
+    );
   }
 
   return (

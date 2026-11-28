@@ -29,6 +29,7 @@ import {
 } from "@/lib/db/provider-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { AdminReviewSection } from "@/components/admin/AdminReviewSection";
+import { AdminProviderCredentials } from "@/components/admin/AdminProviderCredentials";
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
@@ -794,6 +795,7 @@ export function AdminProvider({ id }: { id: string }) {
       >
         <TeachingCapabilityReviewQueue providerId={id} />
       </AdminReviewSection>
+      <AdminProviderCredentials providerId={id} />
       <AdminReviewSection
         providerId={id}
         section="hours_zones"

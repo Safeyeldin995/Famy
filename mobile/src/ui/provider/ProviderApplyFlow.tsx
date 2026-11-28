@@ -31,6 +31,7 @@ import {
   type ServiceRequirementRow,
 } from "@shared/provider/applyDocumentChecklist";
 import { onboardingMutationErrorMessage } from "@/lib/provider/onboardingErrors";
+import { groupServicesByDoor, serviceDoor } from "@shared/provider/applyServiceDoors";
 
 export function ProviderApplyFlow({
   initial,
@@ -142,6 +143,28 @@ export function ProviderApplyFlow({
           }}
         />
       ) : null}
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" tone="muted" weight="bold">
+          {t("providerApply.step", { step })}
+        </Text>
+        <View
+          style={{ flexDirection: "row", gap: space.xs }}
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 1, max: 3, now: step }}
+        >
+          {[1, 2, 3].map((n) => (
+            <View
+              key={n}
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: n <= step ? colors.brand : colors.border,
+              }}
+            />
+          ))}
+        </View>
+      </View>
       <Text size="title" weight="heavy">
         {t(`providerApply.${step === 1 ? "welcome" : step === 2 ? "services" : "identity"}`)}
       </Text>
@@ -167,7 +190,9 @@ export function ProviderApplyFlow({
           <Choices
             label={t("onlineNationwide.workMode")}
             value={draft.mode}
-            onChange={(v) => chooseMode(v === "online" ? "online" : v === "both" ? "both" : "in_person")}
+            onChange={(v) =>
+              chooseMode(v === "online" ? "online" : v === "both" ? "both" : "in_person")
+            }
             options={[
               { value: "in_person", label: t("onlineNationwide.workModeInPerson") },
               { value: "online", label: t("onlineNationwide.workModeOnline") },
@@ -194,125 +219,140 @@ export function ProviderApplyFlow({
             </>
           ) : null}
           {draft.mode !== "online" ? (
-          <>
-          <Text weight="bold">{t("providerApply.zones")}</Text>
-          <View style={ui.wrap}>
-            {zones.map((z) => {
-              const selected = draft.zones.includes(z.id);
-              return (
-                <Pressable
-                  key={z.id}
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={localized(z, i18n.language)}
-                  accessibilityState={{ checked: selected }}
-                  onPress={() => toggleZone(z.id)}
-                  style={[
-                    ui.choice,
-                    selected && {
-                      backgroundColor: colors.brandTint,
-                      borderColor: colors.brand,
-                    },
-                  ]}
-                >
-                  <Text tone={selected ? "brand" : "default"} weight="bold">
-                    {localized(z, i18n.language)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {attempted && !draft.zones.length ? (
-            <Text tone="danger" size="sm">
-              {t("providerApply.missingBasics")}
-            </Text>
-          ) : null}
-          </>
+            <>
+              <Text weight="bold">{t("providerApply.zones")}</Text>
+              <View style={ui.wrap}>
+                {zones.map((z) => {
+                  const selected = draft.zones.includes(z.id);
+                  return (
+                    <Pressable
+                      key={z.id}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={localized(z, i18n.language)}
+                      accessibilityState={{ checked: selected }}
+                      onPress={() => toggleZone(z.id)}
+                      style={[
+                        ui.choice,
+                        selected && {
+                          backgroundColor: colors.brandTint,
+                          borderColor: colors.brand,
+                        },
+                      ]}
+                    >
+                      <Text tone={selected ? "brand" : "default"} weight="bold">
+                        {localized(z, i18n.language)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {attempted && !draft.zones.length ? (
+                <Text tone="danger" size="sm">
+                  {t("providerApply.missingBasics")}
+                </Text>
+              ) : null}
+            </>
           ) : null}
         </>
       )}
 
       {step === 2 && (
         <>
-          {visibleServices.map((service) => {
-            const selected = draft.services.includes(service.id);
-            const locked = lockedServices.includes(service.id);
-            const Icon =
-              service.category?.slug === "tutoring"
-                ? BookOpen
-                : service.category?.slug === "babysitting"
-                  ? Baby
-                  : Sun;
-            return (
-              <View
-                key={service.id}
-                style={[proCard.card, selected && { borderWidth: 2, borderColor: colors.brand }]}
-              >
-                <Pressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={localized(service, i18n.language)}
-                  accessibilityState={{ checked: selected, disabled: locked }}
-                  onPress={() => toggleService(service)}
-                  disabled={busy || locked}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: space.md,
-                    minHeight: 44,
-                  }}
-                >
+          {visibleServices.length ? (
+            <Text size="sm" tone="muted">
+              {t("providerApply.doorsHint")}
+            </Text>
+          ) : null}
+          {groupServicesByDoor(visibleServices).map(({ door, services: doorServices }) => (
+            <View key={door} style={{ gap: space.md }}>
+              <Text weight="heavy" accessibilityRole="header">
+                {t(`providerApply.doors.${door}`)}
+              </Text>
+              {doorServices.map((service) => {
+                const selected = draft.services.includes(service.id);
+                const locked = lockedServices.includes(service.id);
+                const teaching = serviceDoor(service) !== "babysitting";
+                const Icon = teaching
+                  ? BookOpen
+                  : service.category?.slug === "babysitting"
+                    ? Baby
+                    : Sun;
+                return (
                   <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: selected ? colors.brandTint : colors.surface2,
-                    }}
+                    key={service.id}
+                    style={[
+                      proCard.card,
+                      selected && { borderWidth: 2, borderColor: colors.brand },
+                    ]}
                   >
-                    <Icon size={22} color={selected ? colors.brand : colors.muted} />
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={localized(service, i18n.language)}
+                      accessibilityState={{ checked: selected, disabled: locked }}
+                      onPress={() => toggleService(service)}
+                      disabled={busy || locked}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: space.md,
+                        minHeight: 44,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 12,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: selected ? colors.brandTint : colors.surface2,
+                        }}
+                      >
+                        <Icon size={22} color={selected ? colors.brand : colors.muted} />
+                      </View>
+                      <Text weight="heavy" style={{ flex: 1 }}>
+                        {localized(service, i18n.language)}
+                        {locked ? ` (${t("mobilePro.serviceLocked")})` : ""}
+                      </Text>
+                      <View
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 8,
+                          borderWidth: selected ? 0 : 2,
+                          borderColor: colors.border,
+                          backgroundColor: selected ? colors.brand : colors.surface,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {selected ? <Check size={14} color={colors.brandForeground} /> : null}
+                      </View>
+                    </Pressable>
+                    {selected && teaching ? (
+                      <Text size="xs" tone="muted">
+                        {t("providerApply.teachingLater")}
+                      </Text>
+                    ) : null}
+                    {selected && needsServicePrice(service) ? (
+                      <ProviderPriceStepper
+                        min={service.minimum_price ?? null}
+                        max={service.maximum_price ?? null}
+                        value={draft.prices[service.id] ?? null}
+                        onChange={(price) =>
+                          setDraft((d) => ({
+                            ...d,
+                            prices: { ...d.prices, [service.id]: price },
+                          }))
+                        }
+                        disabled={busy}
+                      />
+                    ) : null}
                   </View>
-                  <Text weight="heavy" style={{ flex: 1 }}>
-                    {localized(service, i18n.language)}
-                    {locked ? ` (${t("mobilePro.serviceLocked")})` : ""}
-                  </Text>
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 8,
-                      borderWidth: selected ? 0 : 2,
-                      borderColor: colors.border,
-                      backgroundColor: selected ? colors.brand : colors.surface,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {selected ? <Check size={14} color={colors.brandForeground} /> : null}
-                  </View>
-                </Pressable>
-                {selected && service.category?.slug === "tutoring" ? (
-                  <Text size="xs" tone="muted">
-                    {t("providerApply.teachingLater")}
-                  </Text>
-                ) : null}
-                {selected && needsServicePrice(service) ? (
-                  <ProviderPriceStepper
-                    min={service.minimum_price ?? null}
-                    max={service.maximum_price ?? null}
-                    value={draft.prices[service.id] ?? null}
-                    onChange={(price) =>
-                      setDraft((d) => ({
-                        ...d,
-                        prices: { ...d.prices, [service.id]: price },
-                      }))
-                    }
-                    disabled={busy}
-                  />
-                ) : null}
-              </View>
-            );
-          })}
+                );
+              })}
+            </View>
+          ))}
           {attempted && !draft.services.length ? (
             <Text tone="danger" size="sm">
               {t("providerApply.missingServices")}
