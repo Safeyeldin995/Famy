@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 
 export type ProviderStatementRow = {
   id: string;
@@ -96,7 +97,8 @@ export type PaymentQueueTab =
   | "needs_action"
   | "refunds_due"
   | "receipts_ready"
-  | "cash_to_confirm";
+  | "cash_to_confirm"
+  | "paymob";
 
 export function useAdminPaymentQueue(
   tab: PaymentQueueTab,
@@ -134,6 +136,7 @@ export function useAdminPaymentQueueCounts() {
         receipts_ready: number;
         cash_to_confirm: number;
         fee_payments: number;
+        paymob: number;
       };
     },
   });
@@ -186,7 +189,8 @@ export type AdminGlobalSearchResult = {
 };
 
 export function useAdminGlobalSearch(query: string, enabled: boolean) {
-  const trimmed = query.trim();
+  // A phone typed with Arabic digits matches the stored 0-9 digits.
+  const trimmed = normalizeDigitsToWestern(query).trim();
   return useQuery({
     enabled: enabled && trimmed.length >= 2,
     queryKey: ["admin", "global-search", trimmed],

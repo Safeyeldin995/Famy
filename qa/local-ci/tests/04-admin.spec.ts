@@ -93,7 +93,7 @@ test.describe.serial("admin", () => {
     await page.goto("/admin/bookings");
     const queue = page.getByText("مراجعات تداخل الجلسات الأونلاين").locator("xpath=..");
     await expect(queue).toBeVisible();
-    const row = queue.getByRole("listitem").filter({ hasText: /admin_review_overlap|تداخل/ });
+    const row = queue.getByRole("listitem").filter({ hasText: "الطالب والمدرس اتقابلوا 12 دقيقة من 30" });
     await expect(row).toHaveCount(1);
     reviewRowText = (await row.innerText()).trim();
     await row.getByRole("button", { name: "إغلاق البلاغ" }).click();
@@ -107,8 +107,8 @@ test.describe.serial("admin", () => {
     expectNoErrors(errors);
   });
 
-  // Product bug https://github.com/Safeyeldin995/Famy/issues/568: the queue prints the stored English reason.
-  test.fixme("the review queue explains the reason in Arabic (no internal codes)", () => {
+  // Regression for #568: the queue shows an Arabic reason, never the stored code.
+  test("the review queue explains the reason in Arabic (no internal codes)", () => {
     expect(reviewRowText).not.toMatch(/[a-z]+_[a-z_]+/);
     expect(reviewRowText).not.toMatch(/Online session evidence/);
   });
