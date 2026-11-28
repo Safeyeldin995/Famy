@@ -6,8 +6,10 @@ import {
 } from "@/lib/catalog/closedBetaCategories";
 
 describe("closedBetaCategories", () => {
-  it("admits babysitting and tutoring only", () => {
-    expect([...CLOSED_BETA_CATEGORY_SLUGS]).toEqual(["babysitting", "tutoring"]);
+  it("admits babysitting, tutoring, Quran and music only", () => {
+    expect([...CLOSED_BETA_CATEGORY_SLUGS]).toEqual(["babysitting", "tutoring", "quran", "music"]);
+    expect(isClosedBetaCategorySlug("quran")).toBe(true);
+    expect(isClosedBetaCategorySlug("music")).toBe(true);
     expect(isClosedBetaCategorySlug("babysitting")).toBe(true);
     expect(isClosedBetaCategorySlug("tutoring")).toBe(true);
   });

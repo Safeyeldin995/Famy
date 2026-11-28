@@ -35,6 +35,7 @@ import {
   servicesForHomeCategory,
 } from "@shared/catalog/homeCategories";
 import { categoryAllowsOnlineDiscovery } from "@shared/catalog/discoveryOnlineDelivery";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 import { colors } from "./theme";
 import { InPersonComingSoonCard } from "./customer/InPersonComingSoonCard";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
@@ -73,7 +74,7 @@ import {
 
 export function Discovery({ category: group }: { category?: string }) {
   const { t, i18n } = useTranslation();
-  // Quran/music are their own groups but live in the "tutoring" DB category.
+  // Each home group is its own DB category (tutoring, quran, music, babysitting).
   const homeGroup = isHomeCategoryId(group) ? group : null;
   const category = homeGroup ? homeCategoryDbSlug(homeGroup) : group;
   const lessonGroup = homeGroup ? homeCategoryLessonSlug(homeGroup) : null;
@@ -123,13 +124,37 @@ export function Discovery({ category: group }: { category?: string }) {
     serviceMode: deliveryMode,
     limit: category ? 50 : 60,
   });
-  const b = useProviders({
+  // Teaching spans three categories; with a category set the three queries share one key.
+  const bTutoring = useProviders({
     categorySlug: category || "tutoring",
     serviceId: serviceId || undefined,
     addressId: selectedAddress,
     serviceMode: deliveryMode,
     limit: category ? 50 : 60,
   });
+  const bQuran = useProviders({
+    categorySlug: category || "quran",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddress,
+    serviceMode: deliveryMode,
+    limit: category ? 50 : 60,
+  });
+  const bMusic = useProviders({
+    categorySlug: category || "music",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddress,
+    serviceMode: deliveryMode,
+    limit: category ? 50 : 60,
+  });
+  const b = {
+    data:
+      bTutoring.data || bQuran.data || bMusic.data
+        ? [...(bTutoring.data ?? []), ...(bQuran.data ?? []), ...(bMusic.data ?? [])]
+        : undefined,
+    isLoading: bTutoring.isLoading || bQuran.isLoading || bMusic.isLoading,
+    isError: bTutoring.isError || bQuran.isError || bMusic.isError,
+    refetch: () => Promise.all([bTutoring.refetch(), bQuran.refetch(), bMusic.refetch()]),
+  };
   const members = useActiveFamilyMembers();
   const education = useCustomerEducationProfile();
   const profile = useMyProfile();
@@ -174,7 +199,7 @@ export function Discovery({ category: group }: { category?: string }) {
       : [...(a.data ?? []), ...(b.data ?? [])],
   );
   const caps = useApprovedTeachingCapabilitiesForProviders(
-    category === "tutoring" || !category ? all.map((p) => p.id) : [],
+    isTutoringCategorySlug(category) || !category ? all.map((p) => p.id) : [],
   );
   const items = all
     .filter((p) => {
@@ -182,7 +207,12 @@ export function Discovery({ category: group }: { category?: string }) {
         filter === "all" ||
         (filter === "top" && Number(p.ratings.rating_avg) >= 4.85) ||
         [...(a.data ?? []), ...(b.data ?? [])].some(
-          (r) => r.id === p.id && r.services[0]?.service.category.slug === filter,
+          (r) => {
+            const slug = r.services[0]?.service.category.slug;
+            return (
+              r.id === p.id && (filter === "tutoring" ? isTutoringCategorySlug(slug) : slug === filter)
+            );
+          },
         );
       return (
         categoryMatches &&
@@ -216,7 +246,7 @@ export function Discovery({ category: group }: { category?: string }) {
   });
   const selectedServiceSlug = (services.data ?? []).find((s) => s.id === serviceId)?.slug;
   const kind = tutoringServiceKind(selectedServiceSlug);
-  const tutoringCategory = category === "tutoring" && !!serviceId;
+  const tutoringCategory = isTutoringCategorySlug(category) && !!serviceId;
   const learner = findLearner(learners, student);
   const serviceSubjects = subjectsForService(
     (subjects.data ?? []) as never,
@@ -407,7 +437,7 @@ export function Discovery({ category: group }: { category?: string }) {
           />
         </QueryState>
       </View>
-      {category === "tutoring" ? (
+      {isTutoringCategorySlug(category) ? (
         <QueryState
           query={{
             isLoading:
@@ -571,7 +601,7 @@ export function Discovery({ category: group }: { category?: string }) {
                       ? matchedCapabilityFor(p.id, caps.data ?? [], matchCriteria)
                       : null;
                     const extra: Record<string, string> = {};
-                    if (category === "tutoring" && learnerFamilyMemberId(student))
+                    if (isTutoringCategorySlug(category) && learnerFamilyMemberId(student))
                       extra.forWhom = student;
                     if (cap) {
                       extra.capabilityId = cap.id;

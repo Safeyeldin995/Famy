@@ -2,6 +2,7 @@
  * /online tutors: «الحجز لمين؟» → (system + grade if missing) → subject → only matching tutors.
  * Issue #536 PR 2. No filter UI: the learner's saved system and grade drive the match.
  */
+import { TEACHING_CATEGORY_SLUGS } from "@/lib/tutoring/teachingCapabilities";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -97,7 +98,7 @@ export function useOnlineStudentMatch(): OnlineStudentMatch {
   const nav = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const servicesQ = useMarketplaceServices("tutoring");
+  const servicesQ = useMarketplaceServices(TEACHING_CATEGORY_SLUGS);
   const curriculaQ = useCurriculaWithStyle();
   const levelsQ = useTeachingLevels();
   const subjectsQ = useTeachingSubjects();

@@ -27,6 +27,7 @@ import {
   servicesForMode,
   type ApplyWorkMode,
 } from "@/lib/provider/applyWorkMode";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 export type ApplyService = {
   id: string;
@@ -276,7 +277,7 @@ export function ProviderApplyFlow({
             )}
             {visibleServices.length === 0 && <p>{t("providerApply.noServices")}</p>}
             {visibleServices.map((service) => {
-              const tutoring = service.category?.slug === "tutoring";
+              const tutoring = isTutoringCategorySlug(service.category?.slug);
               const fixed = isFixedPackage(service);
               const unit = servicePriceUnit(service);
               const unitText = tutoring ? t("pricePicker.sessionUnit") : t(unit.key, unit.values);

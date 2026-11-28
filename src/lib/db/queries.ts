@@ -24,6 +24,7 @@ import {
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
 import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
+import { TEACHING_CATEGORY_SLUGS } from '@/lib/tutoring/teachingCapabilities';
 import { isQaCatalogService, isQaCatalogSlug } from '@/lib/catalog/qaCatalog';
 import { selectMarketplaceProviderRows } from '@/lib/db/marketplaceProviderRows';
 
@@ -431,7 +432,10 @@ export function useOnlineTutors(limit = 80) {
         : await supabase.rpc('guest_search_online_tutors' as never);
       if (error) throw error;
       return marketplaceRowsWithPackages(
-        selectMarketplaceProviderRows((data ?? []) as any[], { categorySlug: 'tutoring', limit }),
+        selectMarketplaceProviderRows((data ?? []) as any[], {
+          categorySlugs: TEACHING_CATEGORY_SLUGS,
+          limit,
+        }),
       );
     },
   });
@@ -447,7 +451,7 @@ export function useGuestOnlineTutor(id: string | undefined) {
       if (error) throw error;
       const rows = selectMarketplaceProviderRows(
         ((data ?? []) as any[]).filter((row) => row.id === id),
-        { categorySlug: 'tutoring', limit: 1 },
+        { categorySlugs: TEACHING_CATEGORY_SLUGS, limit: 1 },
       );
       return rows.length ? (await marketplaceRowsWithPackages(rows))[0] : null;
     },
@@ -482,7 +486,7 @@ export function useBookableServiceIds(
   });
 }
 
-export function useMarketplaceServices(categorySlug?: string) {
+export function useMarketplaceServices(categorySlug?: string | readonly string[]) {
   return useQuery({
     queryKey: ['marketplace-services', categorySlug ?? 'all'],
     queryFn: async () => {
@@ -492,7 +496,8 @@ export function useMarketplaceServices(categorySlug?: string) {
         .eq('is_active', true)
         .is('deleted_at', null)
         .order('name_en');
-      if (categorySlug) query = query.eq('category.slug', categorySlug);
+      if (typeof categorySlug === 'string') query = query.eq('category.slug', categorySlug);
+      else if (categorySlug?.length) query = query.in('category.slug', [...categorySlug]);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? [])

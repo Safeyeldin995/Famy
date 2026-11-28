@@ -124,8 +124,12 @@ export function mapNotificationDeepLink(
     const confirm = query.get("confirm");
     return confirm ? { pathname: "/students", params: { confirm } } : { pathname: "/students" };
   }
-  if ((path === "/online/tutors" || path === "/category/tutoring") && workspace === "customer") {
+  if (path === "/online/tutors" && workspace === "customer") {
     return { pathname: "/category/[id]", params: { id: "tutoring" } };
+  }
+  const categoryMatch = /^\/category\/(tutoring|quran|music)$/.exec(path);
+  if (categoryMatch && workspace === "customer") {
+    return { pathname: "/category/[id]", params: { id: categoryMatch[1] } };
   }
 
   if (path === "/notifications") {

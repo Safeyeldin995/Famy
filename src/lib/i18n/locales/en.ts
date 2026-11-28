@@ -28,7 +28,8 @@ const en = {
     retry: "Try again",
     forceTitle: "A new version of Famy is available",
     forceBody: "A new version of Famy is available, update to continue",
-    forceIosStore: "A new version of Famy is available. Open the App Store on your iPhone and update Famy to continue.",
+    forceIosStore:
+      "A new version of Famy is available. Open the App Store on your iPhone and update Famy to continue.",
     updateNow: "Update now",
     softBanner: "A new Famy update is available",
     softUpdate: "Update",
@@ -65,7 +66,7 @@ const en = {
     },
     services: {
       title: "Our services",
-      body: "Babysitting, tutoring, and lessons — booked and managed in the Famy app.",
+      body: "Pick what you need: lessons, Quran, music, or a babysitter at home.",
       babysittingHourly: "Hourly babysitting",
       babysittingHourlyBody: "Trusted sitters at home, by the hour.",
       babysittingFullDay: "Full-day babysitting",
@@ -942,6 +943,19 @@ const en = {
     saveFailed: "Could not save your profile.",
   },
   home: {
+    doors: {
+      empty: "No services are available right now. Try again later.",
+      tutorTitle: "Lessons",
+      tutorBody: "School subjects, languages and homework help, at home or online",
+      quranTitle: "Quran",
+      quranBody: "Memorization, tajweed and review, at home or online",
+      musicTitle: "Music",
+      musicBody: "Piano, guitar, oud and violin, at home or online",
+      babysitterTitle: "Babysitter",
+      babysitterBody: "Care for your kids at home, by the hour, full day or overnight",
+      onlineCta: "Book an online lesson",
+      appCta: "Get the app",
+    },
     babysittingTag: "Trusted sitters for your kids at home",
     quranTitle: "Quran lessons",
     quranTag: "Memorization, tajweed and review at home",
@@ -2375,7 +2389,8 @@ const en = {
       "This conversation is hidden. You can contact Famy support if you need more help.",
     blockedThreadNote: "Messaging is blocked between you and this user.",
     blockedUsersTitle: "Blocked users",
-    blockedUsersSubtitle: "People you blocked cannot message you or book with you until you unblock them.",
+    blockedUsersSubtitle:
+      "People you blocked cannot message you or book with you until you unblock them.",
     blockedUsersEmpty: "You have not blocked anyone.",
     blockedUnknownUser: "User",
     unblockTitle: "Unblock this user?",
