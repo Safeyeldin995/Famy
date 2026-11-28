@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { BadgeCheck, Star } from "lucide-react-native";
-import { useGuestProvider, useProviderReviews } from "@/lib/queries";
+import { Star } from "lucide-react-native";
+import { useGuestProvider } from "@/lib/queries";
+import { ProviderTrustBadges, PublicProviderReviews } from "@/ui/provider/ProviderTrust";
 import { getGuestZone, saveGuestIntent } from "@/lib/guest";
 import { localized, money } from "@/lib/presentation";
 import { providerRatingSummary } from "@/lib/providerRating";
@@ -30,7 +31,6 @@ export default function GuestProvider() {
   const [zoneReady, setZoneReady] = useState(!!zone);
   const zoneId = zone || storedZone;
   const detail = useGuestProvider(id, zoneId);
-  const reviews = useProviderReviews(id);
 
   useEffect(() => {
     if (zone) return;
@@ -52,7 +52,9 @@ export default function GuestProvider() {
   const p = detail.data?.provider;
   const name = p?.profile.full_name || t("provider2.unnamed");
   const bio = (ar ? p?.bio_ar : p?.bio_en) || p?.bio_en;
-  const comments = (reviews.data ?? []).filter((r) => r.comment?.trim()).slice(0, 3);
+  const serviceSlugs = (detail.data?.services ?? []).map(({ service }) => service.category?.slug);
+  const onlyTutoring =
+    serviceSlugs.length > 0 && serviceSlugs.every((slug) => isTutoringCategorySlug(slug));
 
   const book = async () => {
     if (id) await saveGuestIntent(id, serviceId);
@@ -62,7 +64,7 @@ export default function GuestProvider() {
   return (
     <Page
       title={p ? name : t("guest.title")}
-      queries={[detail, reviews]}
+      queries={[detail]}
       footer={
         p ? (
           <View style={{ gap: space.xs }}>
@@ -99,16 +101,14 @@ export default function GuestProvider() {
                     {t("providerPage.newOnFamy")}
                   </Text>
                 )}
-                {p.is_verified ? (
-                  <View style={[customerStyle.row, { gap: space.xs }]}>
-                    <BadgeCheck size={16} color={colors.success} />
-                    <Text size="sm" tone="success">
-                      {t("providerPage.idVerified")}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             </View>
+
+            <ProviderTrustBadges
+              providerId={id}
+              tutoring={onlyTutoring}
+              verifiedFallback={p.is_verified}
+            />
 
             {bio ? (
               <View style={{ gap: space.sm }}>
@@ -152,34 +152,12 @@ export default function GuestProvider() {
               ))}
             </View>
 
-            {comments.length ? (
-              <View style={{ gap: space.sm }}>
-                <Text size="lg" weight="heavy">
-                  {t("guest.reviews")}
-                </Text>
-                {comments.map((r) => (
-                  <View
-                    key={r.id}
-                    style={{
-                      gap: space.xs,
-                      padding: space.md,
-                      borderRadius: radius.lg,
-                      backgroundColor: colors.surface,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <View style={[customerStyle.row, { gap: space.xs }]}>
-                      <Star size={14} color={colors.warning} fill={colors.warning} />
-                      <Text size="sm" weight="bold">
-                        {r.rating}
-                      </Text>
-                    </View>
-                    <Text size="sm">{r.comment}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
+            <View style={{ gap: space.sm }}>
+              <Text size="lg" weight="heavy">
+                {t("guest.reviews")}
+              </Text>
+              <PublicProviderReviews providerId={id} />
+            </View>
           </>
         ) : null}
       </QueryState>

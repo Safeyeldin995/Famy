@@ -16,7 +16,7 @@ test.describe.serial("guest", () => {
     await tutor.click();
     await expect(page).toHaveURL(/\/online\/tutors\/[0-9a-f-]{36}/);
     await expect(page.getByRole("heading", { name: LOCAL_CI_USERS.tutor.fullName })).toBeVisible();
-    await expect(page.getByRole("link", { name: "اطلب درس" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /^احجز مع / }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "تقييمات الطلبة" })).toBeVisible();
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
     profileErrors = onProfile.readErrors();

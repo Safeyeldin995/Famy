@@ -6,18 +6,17 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { OnlineWebTutorAccountNotice } from "@/components/online/OnlineWebTutorAccountNotice";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
-import { useGuestOnlineTutor, useProvider, useProviderReviews } from "@/lib/db/queries";
+import { useGuestOnlineTutor, useProvider } from "@/lib/db/queries";
 import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
-import { formatDate, formatEGP, formatLocale, formatNumber } from "@/lib/format";
+import { formatEGP, formatNumber } from "@/lib/format";
 import { Clock, ShieldCheck, Star } from "lucide-react";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
+import { useCurriculaWithStyle } from "@/lib/db/student-match-queries";
 import { currentLang } from "@/lib/i18n";
 import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
-import {
-  NO_CURRICULUM_CODE,
-  summarizeTutorTeaching,
-  type DirectoryCapability,
-} from "@/lib/online/onlineTutorDirectory";
+import { summarizeTutorTeaching, type DirectoryCapability } from "@/lib/online/onlineTutorDirectory";
+import { groupTeaching, teachingGroupPrice } from "@/lib/provider/teachingGroups";
+import { ProviderTrustBadges, PublicProviderReviews } from "@/components/provider/ProviderTrust";
 import { ONLINE_WEB_ROUTE_IDS, onlineWebTutorRequestPath } from "@/lib/web/onlineWebSurface";
 import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
 
@@ -42,10 +41,13 @@ function OnlineTutorProfile() {
   );
   const guestProviderQ = useGuestOnlineTutor(roleKnown && !isAuthenticated ? providerId : undefined);
   const providerQ = isAuthenticated ? customerProviderQ : guestProviderQ;
-  const reviewsQ = useProviderReviews(providerId);
   const capsQ = useApprovedTeachingCapabilities(roleKnown && !isTutorAccount ? providerId : undefined);
   const caps = capsQ.data ?? [];
   const summary = summarizeTutorTeaching(caps as DirectoryCapability[]);
+  const curriculaQ = useCurriculaWithStyle();
+  const styleByCurriculum = new Map(
+    (curriculaQ.data ?? []).map((c) => [c.code, c.level_label_style] as const),
+  );
   const policy = useOnlineCancellationPolicySummary();
   const lang = currentLang();
   const requestPath = onlineWebTutorRequestPath(providerId);
@@ -93,9 +95,12 @@ function OnlineTutorProfile() {
 
   const ui = toUIProvider(providerQ.data);
   const priceLabel = providerPriceLabel(ui, t);
+  const firstName = (ui.name || t("provider2.unnamed")).split(" ")[0];
+  const bookLabel = t("providerProfile.bookWith", { name: firstName });
+  const groups = groupTeaching(caps as DirectoryCapability[], styleByCurriculum, lang);
   const bookCta = isAuthenticated ? (
     <Link to="/online/tutors/$providerId/request" params={{ providerId }} className="block">
-      <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.requestLesson")}</PrimaryButton>
+      <PrimaryButton className="h-12 w-full">{bookLabel}</PrimaryButton>
     </Link>
   ) : (
     <Link
@@ -104,7 +109,7 @@ function OnlineTutorProfile() {
       onClick={() => stashOnlineWebReturnTo(requestPath)}
       className="block"
     >
-      <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.requestLesson")}</PrimaryButton>
+      <PrimaryButton className="h-12 w-full">{bookLabel}</PrimaryButton>
     </Link>
   );
 
@@ -123,11 +128,20 @@ function OnlineTutorProfile() {
                     <ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-label={t("onlineWeb.hub.verified")} />
                   ) : null}
                 </h1>
-                <p className="mt-1 flex items-center gap-1 text-pro-14 text-muted-foreground">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
-                  {formatNumber(ui.rating, i18n.language)}
-                  <span aria-hidden>·</span>
-                  {t("onlineWeb.profile.reviews", { count: reviewsQ.data?.length ?? ui.reviews })}
+                {ui.reviews > 0 ? (
+                  <p className="mt-1 flex items-center gap-1 text-pro-14 text-muted-foreground">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+                    <span className="font-bold text-foreground">{formatNumber(Number(ui.rating.toFixed(1)), i18n.language)}</span>
+                    <span aria-hidden>·</span>
+                    {t("providerPage.reviewCount", { count: ui.reviews })}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-pro-14 font-bold text-muted-foreground">{t("providerPage.newOnFamy")}</p>
+                )}
+                <p className="mt-1 text-pro-16 font-extrabold text-foreground lg:hidden">
+                  {summary.minPrice !== null
+                    ? t("onlineWeb.hub.fromPrice", { price: formatEGP(summary.minPrice) })
+                    : priceLabel}
                 </p>
                 {summary.subjects.length ? (
                   <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -142,6 +156,12 @@ function OnlineTutorProfile() {
             </div>
           </section>
 
+          <ProviderTrustBadges
+            providerId={providerId}
+            tutoring
+            verifiedFallback={ui.badges.includes("ID Verified")}
+          />
+
           <section className="space-y-3 rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-pro-18 font-extrabold">{t("onlineWeb.hub.aboutTitle")}</h2>
             <p className="whitespace-pre-line text-pro-15 leading-relaxed text-muted-foreground">
@@ -151,71 +171,38 @@ function OnlineTutorProfile() {
 
           <section className="space-y-3 rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-pro-18 font-extrabold">{t("onlineWeb.hub.teachesTitle")}</h2>
-            {capsQ.isLoading ? (
-              <div className="skeleton h-24 rounded-2xl" aria-busy="true" />
-            ) : caps.length === 0 ? (
+            {capsQ.isLoading || curriculaQ.isLoading ? (
+              <div className="skeleton h-24 rounded-2xl" aria-busy="true" aria-label={t("common.loading")} />
+            ) : capsQ.isError ? (
+              <QueryError compact onRetry={() => void capsQ.refetch()} />
+            ) : groups.length === 0 ? (
               <p className="text-pro-14 text-muted-foreground">{t("onlineWeb.hub.noTeaching")}</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[32rem] text-start text-pro-14">
-                  <thead>
-                    <tr className="border-b border-border/60 text-pro-12 text-muted-foreground">
-                      <th className="py-2 text-start font-bold">{t("onlineWeb.hub.colSubject")}</th>
-                      <th className="py-2 text-start font-bold">{t("onlineWeb.hub.colCurriculum")}</th>
-                      <th className="py-2 text-start font-bold">{t("onlineWeb.hub.colLevel")}</th>
-                      <th className="py-2 text-start font-bold">{t("onlineWeb.hub.colDuration")}</th>
-                      <th className="py-2 text-start font-bold">{t("onlineWeb.hub.colPrice")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {caps.map((c) => (
-                      <tr key={c.id} className="border-b border-border/40 last:border-0">
-                        <td className="py-2.5 font-bold">{lang === "ar" ? c.subjectNameAr : c.subjectNameEn}</td>
-                        <td className="py-2.5 text-muted-foreground">
-                          {c.curriculumCode === NO_CURRICULUM_CODE ? "—" : lang === "ar" ? c.curriculumNameAr : c.curriculumNameEn}
-                        </td>
-                        <td className="py-2.5 text-muted-foreground">{lang === "ar" ? c.levelNameAr : c.levelNameEn}</td>
-                        <td className="py-2.5 text-muted-foreground">
-                          {t("onlineWeb.hub.durationMin", { count: c.durationMin })}
-                        </td>
-                        <td className="py-2.5 font-bold">{c.price > 0 ? formatEGP(c.price) : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {groups.map((g) => (
+                  <li key={g.key} className="min-w-0 space-y-1.5 rounded-2xl bg-surface-2 p-4">
+                    <p className="text-pro-15 font-extrabold text-foreground">
+                      {g.curriculum ? `${g.subject} · ${g.curriculum}` : g.subject}
+                    </p>
+                    <p className="text-pro-14 text-muted-foreground">
+                      {g.ranges
+                        .map((r) => (r.to ? t("providerPage.levelRange", r) : r.from))
+                        .join("، ")}
+                    </p>
+                    {teachingGroupPrice(g, t, (v) => formatEGP(v)) ? (
+                      <p className="text-pro-14 font-bold text-brand">
+                        {teachingGroupPrice(g, t, (v) => formatEGP(v))}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 
           <section className="space-y-3 rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-pro-18 font-extrabold">{t("onlineWeb.hub.reviewsTitle")}</h2>
-            {reviewsQ.isLoading ? (
-              <div className="skeleton h-20 rounded-2xl" aria-busy="true" />
-            ) : (reviewsQ.data ?? []).length === 0 ? (
-              <p className="text-pro-14 text-muted-foreground">{t("onlineWeb.hub.noReviews")}</p>
-            ) : (
-              <ul className="space-y-3">
-                {(reviewsQ.data ?? []).map((r) => (
-                  <li key={r.id} className="rounded-2xl bg-surface-2 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-0.5" aria-label={String(r.rating)}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${i < Number(r.rating) ? "fill-amber-400 text-amber-400" : "text-border"}`}
-                            aria-hidden
-                          />
-                        ))}
-                      </span>
-                      <span className="text-pro-12 text-muted-foreground">
-                        {formatDate(new Date(r.created_at), { day: "numeric", month: "short", year: "numeric" }, formatLocale(lang))}
-                      </span>
-                    </div>
-                    {r.comment ? <p className="mt-2 text-pro-14 leading-relaxed text-foreground">{r.comment}</p> : null}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <PublicProviderReviews providerId={providerId} emptyText={t("onlineWeb.hub.noReviews")} />
           </section>
         </div>
 

@@ -16,6 +16,8 @@ import {
 import { formatEGP, formatNumber } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { bioSnippet, cardCompletedCount, trustBadgeText } from "@/lib/provider/trustBadges";
+import { useProviderTrustStats } from "@/lib/db/trust-queries";
 import {
   DIRECTORY_TRACKS,
   NO_CURRICULUM_CODE,
@@ -279,14 +281,28 @@ function OnlineTutorsIndex() {
                       {match.active && match.badge ? (
                         <p className="mt-1 text-pro-12 font-bold text-brand">{match.badge}</p>
                       ) : null}
-                      <p className="mt-1 flex items-center gap-1 text-pro-13 text-muted-foreground">
-                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
-                        {p.reviews > 0 ? formatNumber(p.rating, i18n.language) : "—"}
-                        <span aria-hidden>·</span>
-                        {t("onlineWeb.profile.reviews", { count: p.reviews })}
-                      </p>
+                      {p.reviews > 0 ? (
+                        <p className="mt-1 flex items-center gap-1 text-pro-13 text-muted-foreground">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+                          <span className="font-bold text-foreground">
+                            {formatNumber(Number(p.rating.toFixed(1)), i18n.language)}
+                          </span>
+                          <span aria-hidden>·</span>
+                          {t("providerPage.reviewCount", { count: p.reviews })}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-pro-13 font-bold text-muted-foreground">
+                          {t("providerPage.newOnFamy")}
+                        </p>
+                      )}
+                      <TutorLessonsCount providerId={p.id} />
                     </div>
                   </div>
+                  {bioSnippet(p.bio) ? (
+                    <p className="line-clamp-2 text-pro-14 leading-relaxed text-muted-foreground">
+                      {bioSnippet(p.bio)}
+                    </p>
+                  ) : null}
                   {p.summary.subjects.length ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {p.summary.subjects.slice(0, 4).map((s) => (
@@ -313,9 +329,11 @@ function OnlineTutorsIndex() {
                   ) : null}
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-3">
                     <span className="text-pro-15 font-extrabold text-foreground">
-                      {p.summary.minPrice !== null
-                        ? t("onlineWeb.hub.fromPrice", { price: formatEGP(p.summary.minPrice) })
-                        : formatEGP(p.hourlyRate, { perHour: true })}
+                      {match.active && p.minPrice !== null
+                        ? t("providerPage.perSession", { price: formatEGP(p.minPrice) })
+                        : p.summary.minPrice !== null
+                          ? t("onlineWeb.hub.fromPrice", { price: formatEGP(p.summary.minPrice) })
+                          : formatEGP(p.hourlyRate, { perHour: true })}
                     </span>
                     {p.summary.durations.length ? (
                       <span className="flex items-center gap-1 text-pro-12 text-muted-foreground">
@@ -339,4 +357,13 @@ function OnlineTutorsIndex() {
       </p>
     </div>
   );
+}
+
+/** «12 حصة على فامي» under the rating; nothing until there is at least one completed lesson. */
+function TutorLessonsCount({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
+  const stats = useProviderTrustStats(providerId);
+  const badge = cardCompletedCount(stats.data, true);
+  if (!badge) return null;
+  return <p className="mt-0.5 text-pro-12 font-bold text-success">{trustBadgeText(t, badge)}</p>;
 }
