@@ -9,6 +9,8 @@ import { customerMoney } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
+import { bioSnippet, cardCompletedCount, trustBadgeText } from "@shared/provider/trustBadges";
+import { useProviderTrustStats } from "@/lib/trustQueries";
 import { Text } from "./Text";
 import { colors, fontSizeTokenForAvatarInitial, radius, space } from "./theme";
 import { ui } from "./Page";
@@ -67,6 +69,12 @@ export function ProviderCard({
   const { t, i18n } = useTranslation();
   const service = p.services[0]?.service;
   const packageInfo = service && isFixedPackage(service) ? packageLabel(service) : null;
+  const categorySlugs = [...new Set(p.services.map((item) => item.service?.category?.slug))];
+  const tutoringOnly =
+    categorySlugs.length > 0 && categorySlugs.every((slug) => slug === "tutoring");
+  const stats = useProviderTrustStats(p.id);
+  const completed = cardCompletedCount(stats.data, tutoringOnly);
+  const bio = bioSnippet((i18n.language === "ar" ? p.bio_ar : p.bio_en) || p.bio_en);
   return (
     <Pressable
       accessibilityRole="button"
@@ -110,7 +118,7 @@ export function ProviderCard({
           )}
         </View>
         <Text size="sm" tone="muted">
-          {[...new Set(p.services.map((item) => item.service?.category?.slug))]
+          {categorySlugs
             .map((slug) =>
               slug === "babysitting"
                 ? t("roles.babysitter")
@@ -135,6 +143,16 @@ export function ProviderCard({
               : t("providerPage.newOnFamy")}
           </Text>
         </View>
+        {completed ? (
+          <Text size="xs" weight="bold" tone="success">
+            {trustBadgeText(t, completed)}
+          </Text>
+        ) : null}
+        {bio ? (
+          <Text size="sm" tone="muted" numberOfLines={2}>
+            {bio}
+          </Text>
+        ) : null}
         {subtitle ? (
           <Text weight="bold" style={{ marginTop: space.xs }}>
             {subtitle}
@@ -144,7 +162,10 @@ export function ProviderCard({
             <Text weight="bold" style={{ marginTop: space.xs }}>
               {packageInfo
                 ? joinUiParts(
-                    [customerMoney(p.hourly_rate, i18n.language), t(packageInfo.key, packageInfo.values)],
+                    [
+                      customerMoney(p.hourly_rate, i18n.language),
+                      t(packageInfo.key, packageInfo.values),
+                    ],
                     i18n.language,
                   )
                 : service?.category?.slug === "tutoring"

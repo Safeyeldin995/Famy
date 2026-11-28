@@ -11,7 +11,6 @@ import {
   useBookableServiceIds,
   useDefaultAddress,
   useProvider,
-  useProviderReviews,
   useProviderServices,
   useFavoriteIds,
   useToggleFavorite,
@@ -21,14 +20,16 @@ import {
   isTutoringCategorySlug,
   type TeachingCapabilityOption,
 } from "@/lib/tutoring/teachingCapabilities";
-import { levelRanges } from "@/lib/tutoring/levelRanges";
+import { groupTeaching, teachingGroupPrice } from "@/lib/provider/teachingGroups";
+import { useCurriculaWithStyle } from "@/lib/db/student-match-queries";
+import { ProviderTrustBadges, PublicProviderReviews } from "@/components/provider/ProviderTrust";
 import { useProviderAvailability } from "@/lib/db/provider-queries";
 import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
 import { currentLang } from "@/lib/i18n";
 import { formatDate, formatEGP, formatNumber } from "@/lib/format";
-import { ArrowLeft, BadgeCheck, Heart, Share2, Star } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
@@ -75,36 +76,12 @@ const iconButton =
   "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border/60 bg-white text-foreground";
 
 /** Subject + curriculum + duration + price groups, with grade ranges. */
-function teachingGroups(caps: TeachingCapabilityOption[], ar: boolean) {
-  const groups = new Map<string, TeachingCapabilityOption[]>();
-  for (const cap of caps) {
-    const key = [
-      cap.serviceId,
-      cap.subjectCode,
-      cap.curriculumCode,
-      cap.durationMin,
-      cap.price,
-    ].join("|");
-    groups.set(key, [...(groups.get(key) ?? []), cap]);
-  }
-  return [...groups].map(([key, rows]) => ({
-    key,
-    subject: ar ? rows[0].subjectNameAr : rows[0].subjectNameEn,
-    curriculum: ar ? rows[0].curriculumNameAr : rows[0].curriculumNameEn,
-    durationMin: rows[0].durationMin,
-    price: rows[0].price,
-    ranges: levelRanges(
-      rows.map((row) => ({ code: row.levelCode, name: ar ? row.levelNameAr : row.levelNameEn })),
-    ),
-  }));
-}
-
 export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const { blocking } = useProviderOnlyCustomerRedirect();
   const id = providerId;
   const addressQ = useDefaultAddress();
   const provQ = useProvider(id, addressQ.data?.id);
-  const reviewsQ = useProviderReviews(id);
+  const curriculaQ = useCurriculaWithStyle();
   const servicesQ = useProviderServices(id);
   const bookableQ = useBookableServiceIds(id, addressQ.data?.id);
   const availQ = useProviderAvailability(id);
@@ -148,7 +125,6 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const p = toUIProvider(provQ.data);
   const name = p.name || t("provider2.unnamed");
   const firstName = name.split(" ")[0] || name;
-  const reviews = reviewsQ.data ?? [];
   const isFav = (favIdsQ.data ?? []).includes(p.id);
   const bookable = bookableQ.data ?? null;
   const caps = capsQ.data ?? [];
@@ -169,10 +145,12 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
       .filter((row) => isTutoringCategorySlug(row.service.category?.slug))
       .map((row) => row.service.id),
   );
-  const groups = teachingGroups(
+  const groups = groupTeaching(
     caps.filter((cap) => tutoringServiceIds.has(cap.serviceId)),
-    ar,
+    new Map((curriculaQ.data ?? []).map((c) => [c.code, c.level_label_style] as const)),
+    ar ? "ar" : "en",
   );
+  const onlyTutoring = services.length > 0 && careServices.length === 0;
   const categories = [
     ...new Set(
       services.map(
@@ -277,14 +255,16 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
             ) : (
               <span className="text-muted-foreground">{t("providerPage.newOnFamy")}</span>
             )}
-            {p.badges.includes("ID Verified") ? (
-              <span className="inline-flex items-center gap-1 text-success">
-                <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                {t("providerPage.idVerified")}
-              </span>
-            ) : null}
           </div>
         </section>
+
+        <div className="mt-5">
+          <ProviderTrustBadges
+            providerId={p.id}
+            tutoring={onlyTutoring}
+            verifiedFallback={p.badges.includes("ID Verified")}
+          />
+        </div>
 
         <dl className="mt-5 grid grid-cols-3 divide-x divide-border/60 rounded-2xl border border-border/60 bg-white py-3 text-center rtl:divide-x-reverse">
           <div>
@@ -346,7 +326,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
               {groups.map((group) => (
                 <li key={group.key} className="rounded-2xl bg-surface-2/70 p-3.5">
                   <p className="text-pro-14 font-bold text-foreground">
-                    {group.subject} · {group.curriculum}
+                    {group.curriculum ? `${group.subject} · ${group.curriculum}` : group.subject}
                   </p>
                   <p className="mt-1 text-pro-13 text-muted-foreground">
                     {group.ranges
@@ -357,12 +337,11 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                       )
                       .join("، ")}
                   </p>
-                  <p className="mt-1.5 text-pro-13 font-bold text-brand">
-                    {t("providerPage.session", {
-                      price: formatEGP(group.price),
-                      minutes: formatNumber(group.durationMin),
-                    })}
-                  </p>
+                  {teachingGroupPrice(group, t, (v) => formatEGP(v)) ? (
+                    <p className="mt-1.5 text-pro-13 font-bold text-brand">
+                      {teachingGroupPrice(group, t, (v) => formatEGP(v))}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -405,55 +384,8 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
           </Section>
         ) : null}
 
-        <Section
-          title={
-            reviews.length > 0
-              ? t("providerPage.reviewsTitle", { count: reviews.length })
-              : t("providerPage.reviewsTitleEmpty")
-          }
-        >
-          {reviewsQ.isError ? (
-            <QueryError compact onRetry={() => reviewsQ.refetch()} />
-          ) : reviews.length === 0 ? (
-            <p className="text-pro-14 text-muted-foreground">{t("providerPage.noReviews")}</p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {reviews.slice(0, 5).map((r: any) => (
-                <li key={r.id} className="py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <ProfileAvatar
-                        src={r.author_avatar}
-                        name={r.author_name || t("providerProfile.anonymous")}
-                        className="h-9 w-9 rounded-full text-pro-14"
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-pro-14 font-bold text-foreground">
-                          {r.author_name || t("providerProfile.anonymous")}
-                        </p>
-                        <p className="text-pro-12 text-muted-foreground">
-                          {formatDate(new Date(r.created_at), {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-pro-13 font-bold">
-                      <Star className="h-4 w-4 fill-warning text-warning" aria-hidden="true" />
-                      {formatNumber(r.rating)}
-                    </span>
-                  </div>
-                  {r.comment ? (
-                    <p className="mt-2 text-pro-14 leading-relaxed text-foreground/85">
-                      {r.comment}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
+        <Section title={t("providerTrust.reviewsHeading")}>
+          <PublicProviderReviews providerId={p.id} emptyText={t("providerPage.noReviews")} />
         </Section>
       </div>
 

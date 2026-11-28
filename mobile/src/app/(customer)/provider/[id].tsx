@@ -4,12 +4,11 @@ import { logFamyEvent } from "@/lib/analytics";
 import { Pressable, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ArrowRight, BadgeCheck, Heart, Share2, Star } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Heart, Share2, Star } from "lucide-react-native";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import {
   useDefaultAddress,
   useProvider,
-  useProviderReviews,
   useProviderServices,
   useBookableServiceIds,
   useApprovedTeachingCapabilities,
@@ -18,15 +17,15 @@ import {
 } from "@/lib/queries";
 import { useProviderAvailability } from "@/lib/provider/queries";
 import { appConfig } from "@/lib/supabase";
-import { customerNumber } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { localized, money } from "@/lib/presentation";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { workingHoursSummary } from "@shared/provider/workingHoursSummary";
 import { hapticLightImpact } from "@/ui/haptics";
-import { levelRanges } from "@shared/tutoring/levelRanges";
-import type { TeachingCapabilityOption } from "@shared/tutoring/teachingCapabilities";
+import { groupTeaching, teachingGroupPrice } from "@shared/provider/teachingGroups";
+import { useCurriculaWithStyle } from "@/lib/studentMatchQueries";
+import { ProviderTrustBadges, PublicProviderReviews } from "@/ui/provider/ProviderTrust";
 import { Avatar } from "@/ui/ProviderCard";
 import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -77,7 +76,7 @@ export default function ProviderProfile() {
     serviceMode === "online" ? undefined : address.data?.id,
     serviceMode,
   );
-  const reviews = useProviderReviews(id);
+  const curricula = useCurriculaWithStyle();
   const services = useProviderServices(id);
   const bookable = useBookableServiceIds(
     id,
@@ -107,18 +106,12 @@ export default function ProviderProfile() {
       .filter((row) => row.service.category?.slug === "tutoring")
       .map((row) => row.service.id),
   );
-  const grouped = new Map<string, TeachingCapabilityOption[]>();
-  for (const cap of caps.data ?? []) {
-    if (!tutoringIds.has(cap.serviceId)) continue;
-    const key = [
-      cap.serviceId,
-      cap.subjectCode,
-      cap.curriculumCode,
-      cap.durationMin,
-      cap.price,
-    ].join("|");
-    grouped.set(key, [...(grouped.get(key) ?? []), cap]);
-  }
+  const groups = groupTeaching(
+    (caps.data ?? []).filter((cap) => tutoringIds.has(cap.serviceId)),
+    new Map((curricula.data ?? []).map((c) => [c.code, c.level_label_style] as const)),
+    ar ? "ar" : "en",
+  );
+  const onlyTutoring = available.length > 0 && care.length === 0;
   const name = p?.profile.full_name || t("provider2.unnamed");
   const firstName = name.split(" ")[0];
   const bio = (ar ? p?.bio_ar : p?.bio_en) || p?.bio_en;
@@ -137,7 +130,7 @@ export default function ProviderProfile() {
   return (
     <Page
       title={name}
-      queries={[provider, reviews, services, bookable, caps, availability, favoriteIds]}
+      queries={[provider, services, bookable, caps, availability, favoriteIds]}
       contentStyle={{ paddingTop: space.sm, gap: space.lg }}
       header={
         <View
@@ -270,179 +263,13 @@ export default function ProviderProfile() {
                     {t("providerPage.newOnFamy")}
                   </Text>
                 )}
-                {p.is_verified ? (
-                  <View style={[customerStyle.row, { gap: space.xs }]}>
-                    <BadgeCheck size={16} color={colors.success} />
-                    <Text size="sm" tone="success">
-                      {t("providerPage.idVerified")}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             </View>
-            <View
-              style={[
-                customerStyle.card,
-                customerStyle.row,
-                { paddingVertical: space.md, paddingHorizontal: 0 },
-              ]}
-            >
-              {[
-                [
-                  t("providerPage.reviewsStat"),
-                  customerNumber(Number(p.ratings.rating_count ?? 0), i18n.language),
-                ],
-                [
-                  t("providerPage.experience"),
-                  t("providerPage.years", { count: Number(p.years_experience) }),
-                ],
-                [t("providerPage.area"), p.city || "—"],
-              ].map(([label, value], index) => (
-                <View
-                  key={label}
-                  style={{
-                    flex: 1,
-                    paddingHorizontal: space.sm,
-                    borderStartWidth: index ? 1 : 0,
-                    borderStartColor: colors.border,
-                  }}
-                >
-                  <Text size="xs" tone="muted" style={{ textAlign: "center" }}>
-                    {label}
-                  </Text>
-                  <Text size="lg" weight="bold" style={{ textAlign: "center" }}>
-                    {value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <QueryState
-              query={{
-                isLoading: services.isLoading || bookable.isLoading || caps.isLoading,
-                isError: services.isError || bookable.isError || caps.isError,
-                refetch: () =>
-                  Promise.all([services.refetch(), bookable.refetch(), caps.refetch()]),
-              }}
-            >
-              {care.length ? (
-                <Section title={t("providerPage.services")}>
-                  {care.map((row) => {
-                    const s = row.service;
-                    const fixed = isFixedPackage(s);
-                    const effective = bookable.data?.get(s.id);
-                    const rate = fixed
-                      ? (row.price_override ?? effective)
-                      : (effective ?? row.price_override ?? p.hourly_rate);
-                    const pack = fixed ? packageLabel(s) : null;
-                    return (
-                      <View
-                        key={s.id}
-                        style={{
-                          paddingVertical: space.md,
-                          borderBottomWidth: 1,
-                          borderBottomColor: colors.border,
-                          gap: space.sm,
-                        }}
-                      >
-                        <View style={[customerStyle.row, { justifyContent: "space-between" }]}>
-                          <View style={{ flex: 1 }}>
-                            <Text weight="bold">{localized(s, i18n.language)}</Text>
-                            <Text size="xs" tone="muted">
-                              {pack
-                                ? t(
-                                    pack.key === "packages.fullDay"
-                                      ? "providerPage.fullDayHint"
-                                      : pack.key === "packages.overnight"
-                                        ? "providerPage.overnightHint"
-                                        : pack.key,
-                                    pack.values,
-                                  )
-                                : t("providerPage.hourlyHint")}
-                            </Text>
-                          </View>
-                          {rate == null ? null : (
-                            <Text weight="bold" tone="brand">
-                              {fixed
-                                ? money(rate, i18n.language)
-                                : t("providerPage.perHour", { price: money(rate, i18n.language) })}
-                            </Text>
-                          )}
-                        </View>
-                        <CustomerPreparationNotesSection notes={row.preparation_notes} />
-                      </View>
-                    );
-                  })}
-                </Section>
-              ) : null}
-              {grouped.size ? (
-                <Section title={t("providerPage.teaches")}>
-                  {[...grouped].map(([key, rows]) => {
-                    const c = rows[0];
-                    const ranges = levelRanges(
-                      rows.map((row) => ({
-                        code: row.levelCode,
-                        name: ar ? row.levelNameAr : row.levelNameEn,
-                      })),
-                    );
-                    return (
-                      <View
-                        key={key}
-                        style={{
-                          borderRadius: 16,
-                          padding: space.lg,
-                          backgroundColor: colors.surface2,
-                          gap: space.xs,
-                        }}
-                      >
-                        <Text weight="bold">
-                          {joinUiParts(
-                            [
-                              ar ? c.subjectNameAr : c.subjectNameEn,
-                              ar ? c.curriculumNameAr : c.curriculumNameEn,
-                            ],
-                            i18n.language,
-                          )}
-                        </Text>
-                        <Text size="sm" tone="muted">
-                          {ranges
-                            .map((range) =>
-                              range.to ? t("providerPage.levelRange", range) : range.from,
-                            )
-                            .join("، ")}
-                        </Text>
-                        <Text size="sm" weight="bold" tone="brand">
-                          {t("providerPage.session", {
-                            price: money(c.price, i18n.language),
-                            minutes: String(c.durationMin),
-                          })}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </Section>
-              ) : null}
-              {!available.length ? (
-                <View
-                  style={{ borderRadius: 16, padding: space.lg, backgroundColor: colors.surface2 }}
-                >
-                  <Text tone="muted" style={{ textAlign: "center" }}>
-                    {t("providerPage.notBookable", { name: firstName })}
-                  </Text>
-                </View>
-              ) : null}
-            </QueryState>
-            <Section title={t("providerPage.hours")}>
-              <QueryState query={availability}>
-                {hours.length ? (
-                  hours.map((line) => <Text key={line}>{line}</Text>)
-                ) : (
-                  <Text tone="muted">{t("providerPage.noHours")}</Text>
-                )}
-              </QueryState>
-              <Text size="xs" tone="muted">
-                {t("providerPage.hoursHint")}
-              </Text>
-            </Section>
+            <ProviderTrustBadges
+              providerId={id}
+              tutoring={onlyTutoring}
+              verifiedFallback={p.is_verified}
+            />
             {bio ? (
               <Section title={t("providerPage.about", { name: firstName })}>
                 <Text style={{ lineHeight: 23 }}>{bio}</Text>
@@ -460,62 +287,136 @@ export default function ProviderProfile() {
                       .join("، ")}
                   </Text>
                 ) : null}
-              </Section>
-            ) : null}
-            <Section
-              title={t(
-                reviews.data?.length
-                  ? "providerPage.reviewsTitle"
-                  : "providerPage.reviewsTitleEmpty",
-                { count: reviews.data?.length ?? 0 },
-              )}
-            >
-              <QueryState query={reviews}>
-                {!reviews.data?.length ? (
-                  <Text tone="muted">{t("providerPage.noReviews")}</Text>
-                ) : (
-                  reviews.data.slice(0, 5).map((r) => (
+                <QueryState
+                  query={{
+                    isLoading: services.isLoading || bookable.isLoading || caps.isLoading,
+                    isError: services.isError || bookable.isError || caps.isError,
+                    refetch: () =>
+                      Promise.all([services.refetch(), bookable.refetch(), caps.refetch()]),
+                  }}
+                >
+                  {care.length ? (
+                    <Section title={t("providerPage.services")}>
+                      {care.map((row) => {
+                        const s = row.service;
+                        const fixed = isFixedPackage(s);
+                        const effective = bookable.data?.get(s.id);
+                        const rate = fixed
+                          ? (row.price_override ?? effective)
+                          : (effective ?? row.price_override ?? p.hourly_rate);
+                        const pack = fixed ? packageLabel(s) : null;
+                        return (
+                          <View
+                            key={s.id}
+                            style={{
+                              paddingVertical: space.md,
+                              borderBottomWidth: 1,
+                              borderBottomColor: colors.border,
+                              gap: space.sm,
+                            }}
+                          >
+                            <View style={[customerStyle.row, { justifyContent: "space-between" }]}>
+                              <View style={{ flex: 1 }}>
+                                <Text weight="bold">{localized(s, i18n.language)}</Text>
+                                <Text size="xs" tone="muted">
+                                  {pack
+                                    ? t(
+                                        pack.key === "packages.fullDay"
+                                          ? "providerPage.fullDayHint"
+                                          : pack.key === "packages.overnight"
+                                            ? "providerPage.overnightHint"
+                                            : pack.key,
+                                        pack.values,
+                                      )
+                                    : t("providerPage.hourlyHint")}
+                                </Text>
+                              </View>
+                              {rate == null ? null : (
+                                <Text weight="bold" tone="brand">
+                                  {fixed
+                                    ? money(rate, i18n.language)
+                                    : t("providerPage.perHour", {
+                                        price: money(rate, i18n.language),
+                                      })}
+                                </Text>
+                              )}
+                            </View>
+                            <CustomerPreparationNotesSection notes={row.preparation_notes} />
+                          </View>
+                        );
+                      })}
+                    </Section>
+                  ) : null}
+                  {groups.length ? (
+                    <Section title={t("providerPage.teaches")}>
+                      {groups.map((g) => {
+                        const price = teachingGroupPrice(g, t, (v) => money(v, i18n.language));
+                        return (
+                          <View
+                            key={g.key}
+                            style={{
+                              borderRadius: 16,
+                              padding: space.lg,
+                              backgroundColor: colors.surface2,
+                              gap: space.xs,
+                            }}
+                          >
+                            <Text weight="bold">
+                              {g.curriculum
+                                ? joinUiParts([g.subject, g.curriculum], i18n.language)
+                                : g.subject}
+                            </Text>
+                            <Text size="sm" tone="muted">
+                              {g.ranges
+                                .map((range) =>
+                                  range.to ? t("providerPage.levelRange", range) : range.from,
+                                )
+                                .join("، ")}
+                            </Text>
+                            {price ? (
+                              <Text size="sm" weight="bold" tone="brand">
+                                {price}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
+                    </Section>
+                  ) : null}
+                  {!available.length ? (
                     <View
-                      key={r.id}
                       style={{
-                        paddingVertical: space.md,
-                        gap: space.sm,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
+                        borderRadius: 16,
+                        padding: space.lg,
+                        backgroundColor: colors.surface2,
                       }}
                     >
-                      <View style={customerStyle.row}>
-                        <View style={{ flex: 1 }}>
-                          <Text size="xs" tone="muted">
-                            {new Date(r.created_at).toLocaleDateString(
-                              ar ? "ar-EG-u-nu-latn" : "en-EG",
-                              { day: "numeric", month: "long", year: "numeric" },
-                            )}
-                          </Text>
-                        </View>
-                        <Star size={16} color={colors.warning} fill={colors.warning} />
-                        <Text size="sm" weight="bold">
-                          {customerNumber(r.rating, i18n.language)}
-                        </Text>
-                      </View>
-                      {r.comment ? <Text>{r.comment}</Text> : null}
-                      {session?.user ? (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t("ugc.reportReview")}
-                          onPress={() => setReportReviewId(r.id)}
-                          style={{ alignSelf: "flex-start", paddingVertical: space.xs }}
-                        >
-                          <Text size="sm" tone="muted" weight="bold">
-                            {t("ugc.reportReview")}
-                          </Text>
-                        </Pressable>
-                      ) : null}
+                      <Text tone="muted" style={{ textAlign: "center" }}>
+                        {t("providerPage.notBookable", { name: firstName })}
+                      </Text>
                     </View>
-                  ))
-                )}
-              </QueryState>
-            </Section>
+                  ) : null}
+                </QueryState>
+                <Section title={t("providerTrust.reviewsHeading")}>
+                  <PublicProviderReviews
+                    providerId={id}
+                    onReport={session?.user ? (reviewId) => setReportReviewId(reviewId) : undefined}
+                  />
+                </Section>
+                <Section title={t("providerPage.hours")}>
+                  <QueryState query={availability}>
+                    {hours.length ? (
+                      hours.map((line) => <Text key={line}>{line}</Text>)
+                    ) : (
+                      <Text tone="muted">{t("providerPage.noHours")}</Text>
+                    )}
+                  </QueryState>
+                  <Text size="xs" tone="muted">
+                    {t("providerPage.hoursHint")}
+                  </Text>
+                </Section>
+              </Section>
+            ) : null}
           </>
         ) : null}
       </QueryState>

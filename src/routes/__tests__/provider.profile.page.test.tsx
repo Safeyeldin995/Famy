@@ -136,6 +136,22 @@ vi.mock("@/lib/db/queries", () => ({
 vi.mock("@/lib/db/teaching-queries", () => ({
   useApprovedTeachingCapabilities: () => query(capabilities),
 }));
+vi.mock("@/lib/db/student-match-queries", () => ({
+  useCurriculaWithStyle: () => query([{ code: "eg", level_label_style: "plain" }]),
+}));
+vi.mock("@/lib/db/trust-queries", () => ({
+  useProviderTrustStats: () =>
+    query({
+      provider_id: "p1",
+      is_verified: state.verified,
+      completed_bookings: 0,
+      completed_lessons: 0,
+      never_cancels: null,
+      offers_online: false,
+      offers_in_person: true,
+    }),
+  usePublicProviderReviews: () => ({ ...query({ pages: [[]] }), hasNextPage: false }),
+}));
 vi.mock("@/lib/db/provider-queries", () => ({
   useProviderAvailability: () =>
     query([{ weekday: 0, start_time: "09:00:00", end_time: "17:00:00" }]),
