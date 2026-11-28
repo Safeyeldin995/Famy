@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { LineChart, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   Card,
   EmptyState,
@@ -40,10 +40,13 @@ export function StudentsManager({
   confirm,
   onClearConfirm,
   signInTo,
+  progressHref,
 }: {
   confirm: string | undefined;
   onClearConfirm: () => void;
   signInTo: string;
+  /** «تقدم {name}» link per learner (family member id, or null for the account owner). */
+  progressHref?: (familyMemberId: string | null) => string;
 }) {
   const { t } = useTranslation();
   const lang = currentLang();
@@ -209,6 +212,18 @@ export function StudentsManager({
                     <div className="min-w-0">
                       <p className="truncate text-pro-16 font-extrabold">{displayName(l)}</p>
                       <p className="mt-0.5 text-pro-13 text-muted-foreground">{describe(l)}</p>
+                      {progressHref ? (
+                        <Link
+                          to={progressHref(learnerFamilyMemberId(l.id))}
+                          className="focus-ring mt-1.5 inline-flex min-h-11 items-center gap-1.5 text-pro-13 font-bold text-brand"
+                          data-testid="learner-progress-link"
+                        >
+                          <LineChart className="h-4 w-4" aria-hidden />
+                          {l.kind === "self"
+                            ? t("learnerProgress.selfLinkLabel")
+                            : t("learnerProgress.linkLabel", { name: l.firstName ?? "" })}
+                        </Link>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button

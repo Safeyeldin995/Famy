@@ -19,6 +19,7 @@ import { AdminOnlineSessionTimeline } from "@/components/admin/AdminOnlineSessio
 import { AdminOnlineSessionReviewQueue } from "@/components/admin/AdminOnlineSessionReviewQueue";
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
 import { AdminBookingMoneyCard } from "@/components/admin/AdminBookingMoneyCard";
+import { LessonReportSection } from "@/components/lessonReports/LessonReportSection";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import {
   ADMIN_PROBLEM_BOOKING_KINDS,
@@ -479,6 +480,7 @@ export function AdminBookings({
                       }
                     />
                     <AdminBookingReadContext bookingId={b.id} status={b.status} />
+                    <LessonReportSection bookingId={b.id} bookingStatus={String(b.status)} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>
                 )}

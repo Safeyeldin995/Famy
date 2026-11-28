@@ -11,7 +11,12 @@ export function onlineWebNotificationHref(deepLink: string | null | undefined): 
   if (!path.startsWith("/")) return null;
   if (path.startsWith("//") || path.includes("\\")) return null;
   // «أبنائي» (grade «صح؟» and «بلغني» alerts) lives under /online on the website.
-  if (path === "/account/students" || path.startsWith("/account/students?")) {
+  // «تقدم {name}» (lesson report alerts to a linked parent) opens /online/students/<id>.
+  if (
+    path === "/account/students" ||
+    path.startsWith("/account/students?") ||
+    path.startsWith("/account/students/")
+  ) {
     return ONLINE_WEB_ROUTE_IDS.students + path.slice("/account/students".length);
   }
   return path;

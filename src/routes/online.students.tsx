@@ -7,7 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { StudentsManager } from "@/components/student/StudentsManager";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
-import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS, onlineWebStudentProgressPath } from "@/lib/web/onlineWebSurface";
 import { siteHeadPrivate, siteLanguage } from "@/lib/site/seo";
 
 type StudentsSearch = { confirm?: string };
@@ -48,6 +48,7 @@ function OnlineStudents() {
         confirm={search.confirm}
         onClearConfirm={() => void nav({ search: {}, replace: true })}
         signInTo={ONLINE_WEB_ROUTE_IDS.login}
+        progressHref={onlineWebStudentProgressPath}
       />
     </div>
   );

@@ -149,6 +149,7 @@ import { Route as OnlineLessonsIndexRouteImport } from './routes/online.lessons.
 import { Route as OnlineLessonsBookingIdRouteImport } from './routes/online.lessons.$bookingId'
 import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
 import { Route as OnlineProviderRequestsRouteImport } from './routes/online.provider.requests'
+import { Route as OnlineStudentsStudentIdRouteImport } from './routes/online.students_.$studentId'
 import { Route as OnlineTutorsIndexRouteImport } from './routes/online.tutors.index'
 import { Route as OnlineTutorsProviderIdRouteImport } from './routes/online.tutors.$providerId'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
@@ -923,6 +924,11 @@ const OnlineProviderRequestsRoute = OnlineProviderRequestsRouteImport.update({
   path: '/provider/requests',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineStudentsStudentIdRoute = OnlineStudentsStudentIdRouteImport.update({
+  id: '/students_/$studentId',
+  path: '/students/$studentId',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineTutorsIndexRoute = OnlineTutorsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1409,6 +1415,7 @@ export interface FileRoutesByFullPath {
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
+  '/online/students/$studentId': typeof OnlineStudentsStudentIdRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRouteWithChildren
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1604,6 +1611,7 @@ export interface FileRoutesByTo {
   '/online/auth/callback': typeof OnlineAuthCallbackRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
+  '/online/students/$studentId': typeof OnlineStudentsStudentIdRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1811,6 +1819,7 @@ export interface FileRoutesById {
   '/online/lessons/$bookingId': typeof OnlineLessonsBookingIdRouteWithChildren
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
   '/online/provider/requests': typeof OnlineProviderRequestsRoute
+  '/online/students_/$studentId': typeof OnlineStudentsStudentIdRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRouteWithChildren
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -2021,6 +2030,7 @@ export interface FileRouteTypes {
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
+    | '/online/students/$studentId'
     | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -2216,6 +2226,7 @@ export interface FileRouteTypes {
     | '/online/auth/callback'
     | '/online/provider/lessons'
     | '/online/provider/requests'
+    | '/online/students/$studentId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -2422,6 +2433,7 @@ export interface FileRouteTypes {
     | '/online/lessons/$bookingId'
     | '/online/provider/lessons'
     | '/online/provider/requests'
+    | '/online/students_/$studentId'
     | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -3535,6 +3547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineProviderRequestsRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/students_/$studentId': {
+      id: '/online/students_/$studentId'
+      path: '/students/$studentId'
+      fullPath: '/online/students/$studentId'
+      preLoaderRoute: typeof OnlineStudentsStudentIdRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/tutors/': {
       id: '/online/tutors/'
       path: '/'
@@ -4206,6 +4225,7 @@ interface OnlineRouteChildren {
   OnlineAuthCallbackRoute: typeof OnlineAuthCallbackRoute
   OnlineProviderLessonsRoute: typeof OnlineProviderLessonsRoute
   OnlineProviderRequestsRoute: typeof OnlineProviderRequestsRoute
+  OnlineStudentsStudentIdRoute: typeof OnlineStudentsStudentIdRoute
 }
 
 const OnlineRouteChildren: OnlineRouteChildren = {
@@ -4224,6 +4244,7 @@ const OnlineRouteChildren: OnlineRouteChildren = {
   OnlineAuthCallbackRoute: OnlineAuthCallbackRoute,
   OnlineProviderLessonsRoute: OnlineProviderLessonsRoute,
   OnlineProviderRequestsRoute: OnlineProviderRequestsRoute,
+  OnlineStudentsStudentIdRoute: OnlineStudentsStudentIdRoute,
 }
 
 const OnlineRouteWithChildren =

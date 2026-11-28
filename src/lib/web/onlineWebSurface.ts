@@ -29,6 +29,11 @@ export function onlineWebLessonPath(bookingId: string): string {
   return `${ONLINE_WEB_ROUTE_IDS.lessons}/${bookingId}`;
 }
 
+/** «تقدم {name}»: a child (family member) id, a linked student's id, or `me`. */
+export function onlineWebStudentProgressPath(learnerId: string | null): string {
+  return `${ONLINE_WEB_ROUTE_IDS.students}/${learnerId ?? "me"}`;
+}
+
 export function onlineWebLessonRoomPath(bookingId: string): string {
   return `${onlineWebLessonPath(bookingId)}/room`;
 }
