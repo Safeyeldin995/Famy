@@ -25,6 +25,7 @@ import { useBookingPayment } from "@/lib/provider/payments";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
+import { LessonReportCard } from "@/ui/lessons/LessonReportCard";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { localized, money, dateTime } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -456,6 +457,9 @@ export default function ProBookingDetail() {
                 startAt={String(b.start_at)}
                 endAt={String(b.end_at)}
               />
+            ) : null}
+            {b && typeof b.id === "string" ? (
+              <LessonReportCard bookingId={String(b.id)} bookingStatus={status} />
             ) : null}
             <ProviderPaymentBlock bookingId={id!} bookingStatus={status} />
             <ActionError error={mut.error} />

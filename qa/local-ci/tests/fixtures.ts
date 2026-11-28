@@ -16,7 +16,10 @@ export type SeedReport = {
   providerId: string;
   serviceId: string;
   childId: string;
-  bookings: Record<"upcoming_paid" | "held_review", { bookingId: string; paymentId: string }>;
+  bookings: Record<
+    "upcoming_paid" | "held_review" | "completed_lesson",
+    { bookingId: string; paymentId: string }
+  >;
   walletBalance: number;
 };
 

@@ -165,9 +165,10 @@ INSERT INTO public.promo_codes (
 );
 
 -- ---------------------------------------------------------------------------
--- 5. Two paid online lessons for the child, booked and paid through the RPCs.
+-- 5. Three paid online lessons for the child, booked and paid through the RPCs.
 --    A: upcoming and paid (the admin refunds it to the wallet).
 --    B: already held and sent to admin review by the attendance check.
+--    C: finished a few hours ago, waiting for the tutor's lesson report.
 -- ---------------------------------------------------------------------------
 CREATE TEMP TABLE seeded_bookings (label text PRIMARY KEY, booking_id uuid, payment_id uuid);
 GRANT ALL ON seeded_bookings TO authenticated;
@@ -230,6 +231,7 @@ SELECT set_config('fx.customer_id', :'customer_id', false),
 
 SELECT pg_temp.book_and_pay('upcoming_paid', 3);
 SELECT pg_temp.book_and_pay('held_review', 4);
+SELECT pg_temp.book_and_pay('completed_lesson', 5);
 
 -- B happened yesterday and the attendance check flagged it. Moving a booking
 -- into the past has no app path, so this is fixture plumbing; the review is
@@ -242,6 +244,14 @@ SET start_at = now() - interval '26 hours',
     status = 'completed'
 FROM seeded_bookings s
 WHERE s.label = 'held_review' AND b.id = s.booking_id;
+-- C finished three hours ago: the tutor writes the lesson report (05-lesson-report).
+UPDATE public.bookings b
+SET start_at = now() - interval '4 hours',
+    end_at = now() - interval '3 hours',
+    completed_at = now() - interval '3 hours',
+    status = 'completed'
+FROM seeded_bookings s
+WHERE s.label = 'completed_lesson' AND b.id = s.booking_id;
 SET session_replication_role = origin;
 
 SELECT public.open_online_session_admin_review(

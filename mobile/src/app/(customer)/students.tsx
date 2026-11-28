@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { router, useLocalSearchParams } from "expo-router";
-import { GraduationCap } from "lucide-react-native";
+import { GraduationCap, LineChart } from "lucide-react-native";
 import {
   useActiveFamilyMembers,
   useCustomerEducationProfile,
@@ -24,7 +24,7 @@ import {
 import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { space } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { customerStyle } from "@/ui/customer/Primitives";
 import { StudentProfileSteps, gradeLabelFor } from "@/ui/customer/StudentMatchControls";
@@ -191,6 +191,22 @@ export default function Students() {
                   </Text>
                 </View>
               </View>
+              <Button
+                variant="ghost"
+                icon={<LineChart size={16} color={colors.brandText} />}
+                label={
+                  l.kind === "child" && l.firstName
+                    ? t("learnerProgress.linkLabel", { name: l.firstName })
+                    : t("learnerProgress.selfLinkLabel")
+                }
+                onPress={() =>
+                  router.push({
+                    pathname: "/progress/[id]",
+                    params: { id: learnerFamilyMemberId(l.id) ?? "me" },
+                  })
+                }
+                testID="learner-progress-link"
+              />
               <View style={{ flexDirection: "row", gap: space.sm }}>
                 <Button
                   variant="secondary"

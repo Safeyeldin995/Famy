@@ -10,7 +10,7 @@ import { useBookingCancellation, useCancelBooking } from "@/lib/db/cancellation-
 import { bookingTeachingSummary } from "@/lib/tutoring/bookingTeachingSummary";
 import { onlineLessonJourneyIndex } from "@/lib/online/onlineLessonJourney";
 import { cancelDialogCopy, cancelSuccessCopy } from "@/lib/online/onlineLessonCancelCopy";
-import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS, onlineWebStudentProgressPath } from "@/lib/web/onlineWebSurface";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 import { authorizeSessionJoin, paymentCapturedForJoin, sessionJoinWindow } from "@/lib/livekit/sessionAccess";
@@ -30,6 +30,7 @@ import { useNowTick } from "@/hooks/useNowTick";
 import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
 import type { OnlineProviderBookingSummaryRow } from "@/components/online/OnlineProviderBookingSummary";
 import { OnlineWebLessonIssueReport } from "@/components/online/OnlineWebLessonIssueReport";
+import { LessonReportSection } from "@/components/lessonReports/LessonReportSection";
 import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
 import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
 import { useBookingCancellationFee } from "@/lib/db/settings-queries";
@@ -224,6 +225,15 @@ function OnlineLessonDetail() {
         lang={lang}
         t={t}
       />
+
+      {userId && (isCustomer || isProvider) ? (
+        <LessonReportSection
+          bookingId={bookingId}
+          bookingStatus={String(booking.status)}
+          tutorName={provider?.name}
+          progressHref={(learnerId, isChild) => onlineWebStudentProgressPath(isChild ? learnerId : null)}
+        />
+      ) : null}
 
       {isCustomer && journeyIndex >= 0 ? <LessonSteps current={journeyIndex} t={t} /> : null}
 

@@ -2,6 +2,8 @@ import { PaymobAppReturn } from "@/components/site/PaymobAppReturn";
 import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { previewPath } from "@/lib/preview/previewPath";
+import { LessonReportSection } from "@/components/lessonReports/LessonReportSection";
+import { onlineWebStudentProgressPath } from "@/lib/web/onlineWebSurface";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   PhoneFrame,
@@ -522,6 +524,15 @@ export function BookingDetailContent({
               )}
             </Card>
           )}
+
+          {status ? (
+            <LessonReportSection
+              bookingId={id}
+              bookingStatus={status}
+              tutorName={provider.name}
+              progressHref={(learnerId, isChild) => onlineWebStudentProgressPath(isChild ? learnerId : null)}
+            />
+          ) : null}
 
           <SupportCasesCard
             tickets={supportTicketsQ.data ?? []}

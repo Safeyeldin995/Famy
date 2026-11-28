@@ -15,6 +15,7 @@ import {
 } from "@/lib/booking/timeWindow";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
+import { LessonReportSection } from "@/components/lessonReports/LessonReportSection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -490,6 +491,8 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
             )}
           </details>
         </Card>
+
+        <LessonReportSection bookingId={b.id} bookingStatus={String(b.status)} />
 
         <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" compactUnavailable />
 

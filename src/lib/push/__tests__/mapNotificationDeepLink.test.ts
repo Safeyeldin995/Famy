@@ -145,4 +145,13 @@ describe("mapNotificationDeepLink", () => {
       }
     }
   });
+  it("opens a linked student's progress for a parent", () => {
+    expect(mapNotificationDeepLink("/account/students/s1", "customer")).toEqual({
+      pathname: "/progress/[id]",
+      params: { id: "s1" },
+    });
+    expect(mapNotificationDeepLink("/account/students/s1", "provider")).toEqual({
+      pathname: "/dashboard",
+    });
+  });
 });

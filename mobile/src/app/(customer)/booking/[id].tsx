@@ -28,6 +28,7 @@ import { hapticSuccess } from "@/ui/haptics";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
+import { LessonReportCard } from "@/ui/lessons/LessonReportCard";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -509,6 +510,12 @@ export default function BookingDetail() {
               onJoin={() =>
                 router.push({ pathname: "/booking/[id]/session", params: { id: b.id } })
               }
+            />
+            <LessonReportCard
+              bookingId={b.id}
+              bookingStatus={String(b.status)}
+              tutorName={b.provider?.profile.full_name}
+              showProgressLink
             />
             {(b as { service_mode?: string }).service_mode === "online" ? (
               <OnlineLessonIssueReport bookingId={b.id} startAt={b.start_at} endAt={b.end_at} />

@@ -28,6 +28,7 @@ export type NativeDeepLinkTarget =
   | { pathname: "/pro-booking/[id]/session"; params: { id: string } }
   | { pathname: "/student-parent-link"; params?: { linkId?: string } }
   | { pathname: "/students"; params?: { confirm?: string } }
+  | { pathname: "/progress/[id]"; params: { id: string } }
   | { pathname: "/category/[id]"; params: { id: string } };
 
 export function workspaceHome(workspace: PushWorkspace): NativeDeepLinkTarget {
@@ -117,6 +118,12 @@ export function mapNotificationDeepLink(
     return linkId
       ? { pathname: "/student-parent-link", params: { linkId } }
       : { pathname: "/student-parent-link" };
+  }
+
+  // Lesson reports: a linked parent opens the student's «تقدم» page.
+  const learnerProgress = path.match(/^\/account\/students\/([^/]+)$/);
+  if (learnerProgress && workspace === "customer") {
+    return { pathname: "/progress/[id]", params: { id: learnerProgress[1]! } };
   }
 
   // Student profile (issue #536): the «صح؟» grade confirmation and «بلغني» tutor alerts.
