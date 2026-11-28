@@ -136,6 +136,10 @@ vi.mock("@/lib/db/queries", () => ({
 vi.mock("@/lib/db/teaching-queries", () => ({
   useApprovedTeachingCapabilities: () => query(capabilities),
 }));
+vi.mock("@/lib/db/launch-offers-queries", () => ({
+  useMyLaunchCommission: () => ({ data: undefined }),
+  useFirstLessonGuaranteeSettings: () => ({ data: undefined }),
+}));
 vi.mock("@/lib/db/provider-queries", () => ({
   useProviderAvailability: () =>
     query([{ weekday: 0, start_time: "09:00:00", end_time: "17:00:00" }]),

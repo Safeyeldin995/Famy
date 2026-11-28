@@ -141,6 +141,7 @@ import {
   useStudentParentLinkStatus,
 } from "@/lib/studentParentLinkQueries";
 import { useCancellationPolicy } from "@/lib/caseQueries";
+import { FirstLessonGuaranteePromise } from "@/ui/FirstLessonGuarantee";
 import { cancellationPolicyLine, normalizeCancellationPolicy } from "@/lib/customerCasesPure";
 import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 type Slot = { start: Date; end: Date; label: string };
@@ -1203,6 +1204,7 @@ function BookForm({
       )}
       {(step === 3 || isOnlineRequestStep(step, isOnlineBooking)) && (
         <>
+          <FirstLessonGuaranteePromise categorySlug={service?.service.category?.slug} />
           {isOnlineBooking ? (
             <Text size="sm" tone="muted">
               {t("onlineLesson.requestHint")}

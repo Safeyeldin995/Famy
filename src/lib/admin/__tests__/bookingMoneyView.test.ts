@@ -145,4 +145,32 @@ describe("bookingMoneyView", () => {
     expect(view.paid).toBe(0);
     expect(view.payment?.status).toBe("failed");
   });
+  it("counts a first-lesson guarantee as refunded, and its reversal takes it back", () => {
+    const entry = (id: string, direction: "credit" | "debit", reason: string) => ({
+      id,
+      direction,
+      amount: 350,
+      reason,
+      created_at: "x",
+      admin_name: null,
+      note: null,
+    });
+    const claimed = bookingMoneyView(
+      summary({
+        payments: [payment({})],
+        wallet_entries: [entry("g1", "credit", "first_lesson_guarantee")],
+      }),
+    );
+    expect(claimed.refunded).toBe(350);
+    const reversed = bookingMoneyView(
+      summary({
+        payments: [payment({})],
+        wallet_entries: [
+          entry("g1", "credit", "first_lesson_guarantee"),
+          entry("g2", "debit", "first_lesson_guarantee_reversal"),
+        ],
+      }),
+    );
+    expect(reversed.refunded).toBe(0);
+  });
 });

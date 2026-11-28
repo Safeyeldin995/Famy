@@ -54,6 +54,10 @@ import {
 import { toast } from "sonner";
 import { Save, Check, ChevronDown } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import {
+  FirstLessonGuaranteeSettingsSection,
+  LaunchCommissionSettingsSection,
+} from "@/components/admin/LaunchOffersSettings";
 
 export const Route = createFileRoute("/admin/settings")({ component: AdminSettings });
 
@@ -1327,6 +1331,8 @@ function AdminSettings() {
       <ReleaseFeaturesSection />
       <AppReleaseSection />
       <BillingSection />
+      <LaunchCommissionSettingsSection />
+      <FirstLessonGuaranteeSettingsSection />
       <ProviderSettlementSettingsSection />
       <CancellationPolicySection />
       <BookingExpirySection />

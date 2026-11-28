@@ -37,6 +37,7 @@ import { customerStyle } from "@/ui/customer/Primitives";
 import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 import { useSession } from "@/lib/session";
+import { FirstLessonGuaranteePromise } from "@/ui/FirstLessonGuarantee";
 import { UgcReportSheet } from "@/ui/ugc/UgcReportSheet";
 import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
@@ -428,6 +429,7 @@ export default function ProviderProfile() {
                       </View>
                     );
                   })}
+                  <FirstLessonGuaranteePromise categorySlug="tutoring" />
                 </Section>
               ) : null}
               {!available.length ? (

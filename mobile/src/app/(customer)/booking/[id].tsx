@@ -28,6 +28,7 @@ import { hapticSuccess } from "@/ui/haptics";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
+import { FirstLessonGuaranteeCard } from "@/ui/FirstLessonGuarantee";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -513,6 +514,7 @@ export default function BookingDetail() {
             {(b as { service_mode?: string }).service_mode === "online" ? (
               <OnlineLessonIssueReport bookingId={b.id} startAt={b.start_at} endAt={b.end_at} />
             ) : null}
+            {b.status === "completed" ? <FirstLessonGuaranteeCard bookingId={b.id} /> : null}
             {(b as { service_mode?: string }).service_mode === "online" &&
             b.status === "confirmed" ? (
               <OnlineLessonPaymentPanel

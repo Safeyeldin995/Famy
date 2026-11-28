@@ -15,6 +15,7 @@ import { ONLINE_WEB_TIME_ZONE } from "@/lib/online/onlineWebCairoTime";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
+import { LaunchCommissionBanner } from "@/components/provider/LaunchCommissionBanner";
 
 export const Route = createFileRoute("/online/provider/lessons")({
   beforeLoad: async ({ location }) => {
@@ -75,6 +76,7 @@ function OnlineProviderLessons() {
 
   return (
     <div className="space-y-6">
+      <LaunchCommissionBanner />
       <header className="rounded-3xl bg-white p-8 shadow-sm">
         <h1 className="text-pro-22 font-extrabold">{t("onlineWeb.providerLessons.title")}</h1>
         <p className="mt-3 text-pro-15 text-muted-foreground">{t("onlineWeb.providerLessons.lead")}</p>
