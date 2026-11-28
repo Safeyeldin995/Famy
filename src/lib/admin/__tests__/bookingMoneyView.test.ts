@@ -19,6 +19,8 @@ function payment(p: Partial<AdminMoneyPayment>): AdminMoneyPayment {
     refund_channel: null,
     refund_reference: null,
     wallet_refunded_total: 0,
+    gateway_refunded: 0,
+    gateway_refund_unknown: false,
     captured_at: "2026-11-26T10:00:00Z",
     created_at: "2026-11-26T09:00:00Z",
     ...p,
@@ -49,6 +51,7 @@ function summary(s: Partial<AdminBookingMoneySummary>): AdminBookingMoneySummary
       payment_method_type: "online",
       funded_total: 350,
       already_refunded: 0,
+      card_refunded: 0,
       cancellation_fee: 0,
       carried_fees: 0,
       max_refundable: 350,
@@ -129,6 +132,12 @@ describe("bookingMoneyView", () => {
     );
     expect(view.refunded).toBe(300);
     expect(view.feeToTutor).toBe(50);
+  });
+
+  it("shows a refund made in Paymob on its own line", () => {
+    const view = bookingMoneyView(summary({ payments: [payment({ gateway_refunded: 120 })] }));
+    expect(view.cardRefunded).toBe(120);
+    expect(view.refunded).toBe(0);
   });
 
   it("shows nothing paid when the only attempt failed", () => {

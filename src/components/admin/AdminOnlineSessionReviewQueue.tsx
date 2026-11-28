@@ -1,6 +1,9 @@
 import { adminErrorText } from "@/lib/admin/adminErrorText";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
-import { useAdminOnlineSessionReviews } from "@/lib/db/admin-online-session-queries";
+import {
+  onlineSessionReviewReasonText,
+  useAdminOnlineSessionReviews,
+} from "@/lib/db/admin-online-session-queries";
 import { useResolveOnlineSessionReview } from "@/lib/db/admin-online-lesson-queries";
 import { useTranslation } from "react-i18next";
 import { operationDate } from "@/components/admin/operations";
@@ -20,7 +23,7 @@ export function AdminOnlineSessionReviewQueue() {
       <ul className="space-y-2 text-xs">
         {q.data.map((row) => (
           <li key={row.id} className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-muted-foreground">{row.reason}</span>
+            <span className="text-muted-foreground">{onlineSessionReviewReasonText(t, row)}</span>
             <Link
               to="/admin/bookings"
               search={{ booking: row.booking_id }}

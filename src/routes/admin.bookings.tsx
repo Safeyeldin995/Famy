@@ -20,6 +20,11 @@ import { AdminOnlineSessionReviewQueue } from "@/components/admin/AdminOnlineSes
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
 import { AdminBookingMoneyCard } from "@/components/admin/AdminBookingMoneyCard";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
+import {
+  ADMIN_PROBLEM_BOOKING_KINDS,
+  type AdminProblemBookingKind,
+  useAdminProblemBookingIds,
+} from "@/lib/db/admin-wallet-ops-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
 import { useCancelBooking } from "@/lib/db/cancellation-queries";
 import { CancelBookingDialog } from "@/components/famio/ui";
@@ -152,7 +157,10 @@ export const Route = createFileRoute("/admin/bookings")({
     search: Record<string, unknown>,
   ): { status?: string; statuses?: string; booking?: string; filter?: string } => ({
     ...(typeof search.booking === "string" ? { booking: search.booking } : {}),
-    ...(search.filter === "lifecycle_attention" ? { filter: search.filter } : {}),
+    ...(search.filter === "lifecycle_attention" ||
+    ADMIN_PROBLEM_BOOKING_KINDS.includes(search.filter as AdminProblemBookingKind)
+      ? { filter: search.filter as string }
+      : {}),
     ...(typeof search.status === "string" ? { status: search.status } : {}),
     ...(search.statuses === "disputed,no_show" ? { statuses: search.statuses } : {}),
   }),
@@ -192,8 +200,8 @@ export function AdminBookings({
 }) {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<string>(
-    search.filter === "lifecycle_attention"
-      ? "lifecycle_attention"
+    search.filter
+      ? search.filter
       : search.statuses
         ? "problems"
         : (search.status ?? ""),
@@ -205,16 +213,22 @@ export function AdminBookings({
   const [cancelId, setCancelId] = useState<string | null>(null);
   const attention = status === "lifecycle_attention";
   const attentionQ = useLifecycleAttentionBookingIds();
-  // "lifecycle_attention" is a work queue, not a booking status: load those bookings by id.
+  // A home «مشاكل» card: the same list the card counts.
+  const problemKind = ADMIN_PROBLEM_BOOKING_KINDS.includes(status as AdminProblemBookingKind)
+    ? (status as AdminProblemBookingKind)
+    : null;
+  const problemQ = useAdminProblemBookingIds(problemKind);
+  const idsQ = attention ? attentionQ : problemKind ? problemQ : null;
+  // Work queues are not booking statuses: load those bookings by id.
   const bookingsQ = useAdminBookings(
-    attention
-      ? { ids: attentionQ.data ?? [] }
+    idsQ
+      ? { ids: idsQ.data ?? [] }
       : status === "problems"
         ? ["disputed", "no_show"]
         : status || undefined,
-    { enabled: !attention || attentionQ.isSuccess },
+    { enabled: !idsQ || idsQ.isSuccess },
   );
-  const q = attention && !attentionQ.isSuccess ? attentionQ : bookingsQ;
+  const q = idsQ && !idsQ.isSuccess ? idsQ : bookingsQ;
   const cancelBooking = useCancelBooking();
   const cancelTarget = (bookingsQ.data ?? []).find((b: any) => b.id === cancelId) as any;
 
@@ -255,6 +269,9 @@ export function AdminBookings({
             { key: "", labelKey: "adminOps.all" },
             { key: "problems", labelKey: "adminWorkQueue.bookings_needing_action" },
             { key: "lifecycle_attention", labelKey: "adminWorkQueue.bookings_lifecycle_attention" },
+            ...(problemKind
+              ? [{ key: problemKind, labelKey: `adminHome.problem.${problemKind}` }]
+              : []),
             ...STATUS_FILTERS,
           ].map((s) => (
             <button

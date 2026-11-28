@@ -139,16 +139,16 @@ test.describe.serial("online lesson: book for a child, accept, pay from wallet, 
     await context.close();
   });
 
-  // Product bug https://github.com/Safeyeldin995/Famy/issues/567: cancellationQ.refetch() runs with booking_id=undefined.
-  test.fixme("cancelling leaves no failed requests on the lesson page", () => {
+  // Regression for #567: no booking_id=undefined request after cancelling.
+  test("cancelling leaves no failed requests on the lesson page", () => {
     expect(cancelErrors.network).toEqual([]);
     expect(cancelErrors.console).toEqual([]);
   });
 });
 
 test.describe("learner picker for a parent who never gave their own birth date", () => {
-  // Product bug https://github.com/Safeyeldin995/Famy/issues/566: the learner picker sits inside the parent's birth-date gate.
-  test.fixme("«الحجز لمين؟» comes first; the parent's own birth date is not asked to book for a child", async ({ browser }) => {
+  // Regression for #566: the learner picker sits outside the parent birth-date gate.
+  test("«الحجز لمين؟» comes first; the parent's own birth date is not asked to book for a child", async ({ browser }) => {
     const { context, page } = await openAs(browser, "parentNoDob");
     await page.goto(`/online/tutors/${seed.providerId}/request`);
     const forWhom = page.getByRole("group", { name: "الحجز لمين؟" });
