@@ -92,7 +92,8 @@ export function isGoodFit(row: TutorDemandInsightRow): boolean {
 }
 
 export function sortDemandRows(rows: readonly TutorDemandInsightRow[]): TutorDemandInsightRow[] {
-  const score = (r: TutorDemandInsightRow) => (isGoodFit(r) ? 2 : 0) + (r.near_me ? 1 : 0);
+  const score = (r: TutorDemandInsightRow) =>
+    (isGoodFit(r) ? 2 : 0) + (r.near_me && r.mode_fits ? 1 : 0);
   return [...rows].sort(
     (a, b) =>
       score(b) - score(a) ||

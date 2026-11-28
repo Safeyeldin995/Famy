@@ -63,9 +63,9 @@ export function TutorDemandList({
   const shown = limit ? rows.slice(0, limit) : rows;
 
   return (
-    <section aria-labelledby="tutor-demand-title" data-testid="tutor-demand">
+    <section aria-label={t("tutorDemand.title")} data-testid="tutor-demand">
       {showHeader ? (
-        <div id="tutor-demand-title">
+        <div>
           <ProviderSectionHeader
             title={t("tutorDemand.title")}
             action={

@@ -236,7 +236,8 @@ describe("provider_tutor_demand_insights («الطلبة بيدوروا على �
     rows = await insights(IDS.providerUser);
     const giza = rows.find((r) => r.level_id === g5 && r.service_mode === "in_person");
     expect(giza).toMatchObject({ governorate_code: "giza", students: 2, near_me: true });
-    expect(rows[0]!.students).toBeGreaterThanOrEqual(rows[rows.length - 1]!.students);
+    // This tutor only teaches online, so the bigger online row stays first.
+    expect(rows[0]).toMatchObject({ level_id: g4, service_mode: "online", students: 3 });
   });
 
   it("marks what the tutor teaches, and an approved match notifies customers and drops the row", async () => {

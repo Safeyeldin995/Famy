@@ -104,6 +104,7 @@ BEGIN
      GROUP BY sf.service_id, sf.subject_id, sf.curriculum_id, sf.level_id,
               sf.service_mode, sf.governorate_code
   )
+  SELECT x.* FROM (
   SELECT bk.service_id, s.slug, s.name_ar, s.name_en,
          bk.subject_id, ts.code, ts.name_ar, ts.name_en,
          bk.curriculum_id, c.code, c.name_ar, c.name_en,
@@ -145,8 +146,11 @@ BEGIN
     LEFT JOIN public.teaching_subjects ts ON ts.id = bk.subject_id
     LEFT JOIN public.teaching_curricula c ON c.id = bk.curriculum_id
     LEFT JOIN public.teaching_levels l ON l.id = bk.level_id
-   ORDER BY bk.students DESC, bk.last_requested_at DESC
-   LIMIT 50;
+  ) x
+  -- What this tutor can take right away first, so the cap never hides it.
+  ORDER BY (x.teaches_subject AND x.mode_fits) DESC, (x.near_me AND x.mode_fits) DESC,
+           x.students DESC, x.last_requested_at DESC
+  LIMIT 50;
 END;
 $$;
 
