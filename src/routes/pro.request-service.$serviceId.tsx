@@ -5,13 +5,16 @@ import { useAllServices, useMyProvider, useMyProviderServices } from "@/lib/db/p
 import { useProPath } from "@/lib/provider/useProPath";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { readDemandPrefill, type DemandPrefill } from "@/lib/provider/tutorDemandInsights";
 
 export const Route = createFileRoute("/pro/request-service/$serviceId")({
+  validateSearch: (search: Record<string, unknown>): DemandPrefill => readDemandPrefill(search),
   component: ProRequestServicePage,
 });
 
 function ProRequestServicePage() {
   const { serviceId } = Route.useParams();
+  const prefill = Route.useSearch();
   const proPath = useProPath();
   const nav = useNavigate();
   const { t } = useTranslation();
@@ -95,6 +98,7 @@ function ProRequestServicePage() {
           <ProviderServiceRequestForm
             providerId={provider.id}
             service={service}
+            initial={prefill}
             onSubmitted={() => nav({ to: proPath("/pro/profile") as "/pro/profile" })}
           />
         </div>

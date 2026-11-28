@@ -33,6 +33,8 @@ import {
 import type { TeachingServiceLevelRow } from "@/lib/db/teaching-queries";
 import { LessonIllustration } from "@/components/lessons/LessonIllustration";
 import { LessonSubjectChipRow } from "@/components/lessons/LessonSubjectChipRow";
+import type { DemandPrefill } from "@/lib/provider/tutorDemandInsights";
+import { teachingSetupPrefill } from "@/lib/provider/teachingSetupPrefill";
 export type SetupTeachingService = {
   id: string;
   slug?: string | null;
@@ -55,6 +57,7 @@ export function GroupedTeachingSetup({
   onSave,
   onRemove,
   onBack,
+  initial,
 }: {
   services: SetupTeachingService[];
   subjects: TeachingSubjectRow[];
@@ -68,17 +71,22 @@ export function GroupedTeachingSetup({
   onSave: (input: SaveTeachingGroup) => Promise<void>;
   onRemove: (ids: string[]) => Promise<void>;
   onBack: () => void;
+  /** Prefill from «الطلبة بيدوروا على إيه» (service / subject / curriculum / level ids). */
+  initial?: DemandPrefill;
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
   const name = (row: { name_ar?: string; name_en?: string }) =>
     ar ? (row.name_ar ?? row.name_en ?? "") : (row.name_en ?? row.name_ar ?? "");
-  const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
-  const [subjectId, setSubjectId] = useState("");
-  const [curriculumId, setCurriculumId] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [duration, setDuration] = useState(60);
-  const [price, setPrice] = useState<number | null>(null);
+  const [prefill] = useState(() =>
+    teachingSetupPrefill(initial, { services, subjects, curricula, links, rows }),
+  );
+  const [serviceId, setServiceId] = useState(prefill?.serviceId ?? services[0]?.id ?? "");
+  const [subjectId, setSubjectId] = useState(prefill?.subjectId ?? "");
+  const [curriculumId, setCurriculumId] = useState(prefill?.curriculumId ?? "");
+  const [selected, setSelected] = useState<string[]>(prefill?.levelIds ?? []);
+  const [duration, setDuration] = useState(prefill?.durationMin ?? 60);
+  const [price, setPrice] = useState<number | null>(prefill?.price ?? null);
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

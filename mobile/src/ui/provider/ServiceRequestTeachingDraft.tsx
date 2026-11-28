@@ -13,6 +13,7 @@ import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { LessonSubjectChips } from "@/ui/lessons/LessonSubjectChips";
 import { isPriceInRange } from "@shared/provider/priceOptions";
 import type { TeachingGroupDraft } from "@shared/provider/serviceRequestPayload";
+import type { DemandPrefill } from "@shared/provider/tutorDemandInsights";
 import {
   useTeachingCurricula,
   useTeachingLevels,
@@ -39,10 +40,13 @@ export function ServiceRequestTeachingDraft({
   service,
   groups,
   onChangeGroups,
+  initial,
 }: {
   service: TeachingService;
   groups: TeachingGroupDraft[];
   onChangeGroups: (next: TeachingGroupDraft[]) => void;
+  /** Prefill from «الطلبة بيدوروا على إيه». */
+  initial?: DemandPrefill;
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
@@ -54,9 +58,14 @@ export function ServiceRequestTeachingDraft({
   const linksQ = useTeachingSubjectServices();
   const serviceLevelsQ = useTeachingServiceLevels();
 
-  const [subjectId, setSubjectId] = useState("");
-  const [curriculumId, setCurriculumId] = useState("");
-  const [levelIds, setLevelIds] = useState<string[]>([]);
+  const forThisService = initial?.service === service.id;
+  const [subjectId, setSubjectId] = useState(forThisService ? (initial?.subject ?? "") : "");
+  const [curriculumId, setCurriculumId] = useState(
+    forThisService ? (initial?.curriculum ?? "") : "",
+  );
+  const [levelIds, setLevelIds] = useState<string[]>(
+    forThisService && initial?.level ? [initial.level] : [],
+  );
   const [duration, setDuration] = useState(service.allowed_session_durations?.[0] ?? 60);
   const [price, setPrice] = useState<number | null>(null);
 

@@ -21,6 +21,7 @@ import {
   useTeachingSubjects,
 } from "@/lib/db/teaching-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import type { DemandPrefill } from "@/lib/provider/tutorDemandInsights";
 import { teachingLevelsForServiceAndCurriculum } from "@/lib/tutoring/teachingLevelFilters";
 import {
   isTeachingCurriculumNa,
@@ -53,10 +54,13 @@ export function ProviderServiceRequestForm({
   providerId,
   service,
   onSubmitted,
+  initial,
 }: {
   providerId: string;
   service: ServiceRow;
   onSubmitted: () => void;
+  /** Prefill from «الطلبة بيدوروا على إيه». */
+  initial?: DemandPrefill;
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === "ar" ? "ar" : "en";
@@ -72,7 +76,10 @@ export function ProviderServiceRequestForm({
   const linksQ = useTeachingSubjectServices();
   const serviceLevelsQ = useTeachingServiceLevels();
 
-  const isTutoring = isTutoringCategorySlug(service.category?.slug);
+  const linkedToService = (linksQ.data ?? []).some((link) => link.service_id === service.id);
+  // Teaching services are recognised by their linked subjects, so Quran and music
+  // keep their subject / grade step whatever category they sit in.
+  const isTutoring = isTutoringCategorySlug(service.category?.slug) || linkedToService;
   const requiresCurriculum = serviceRequiresTeachingCurriculum(service.slug);
   const naCurriculumId =
     (curriculaQ.data ?? []).find((row) => row.code === TEACHING_CURRICULUM_NA_CODE)?.id ?? "";
@@ -83,9 +90,15 @@ export function ProviderServiceRequestForm({
   const [ageChips, setAgeChips] = useState<string[]>([]);
   const [teachingGroups, setTeachingGroups] = useState<TeachingGroupDraft[]>([]);
 
-  const [draftSubject, setDraftSubject] = useState("");
-  const [draftCurriculum, setDraftCurriculum] = useState("");
-  const [draftLevels, setDraftLevels] = useState<string[]>([]);
+  const [draftSubject, setDraftSubject] = useState(
+    initial?.service === service.id ? (initial.subject ?? "") : "",
+  );
+  const [draftCurriculum, setDraftCurriculum] = useState(
+    initial?.service === service.id ? (initial.curriculum ?? "") : "",
+  );
+  const [draftLevels, setDraftLevels] = useState<string[]>(
+    initial?.service === service.id && initial.level ? [initial.level] : [],
+  );
   const [draftDuration, setDraftDuration] = useState(
     service.allowed_session_durations?.[0] ?? 60,
   );

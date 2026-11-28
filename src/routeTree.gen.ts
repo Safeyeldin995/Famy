@@ -120,6 +120,7 @@ import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as ProApplyRouteImport } from './routes/pro.apply'
 import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
 import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
+import { Route as ProDemandRouteImport } from './routes/pro.demand'
 import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
 import { Route as ProEarningsRouteImport } from './routes/pro.earnings'
 import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.notification-preferences'
@@ -774,6 +775,11 @@ const ProBookingsRoute = ProBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => ProRoute,
 } as any)
+const ProDemandRoute = ProDemandRouteImport.update({
+  id: '/demand',
+  path: '/demand',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProDocumentsRoute = ProDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -1376,6 +1382,7 @@ export interface FileRoutesByFullPath {
   '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
+  '/pro/demand': typeof ProDemandRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
@@ -1572,6 +1579,7 @@ export interface FileRoutesByTo {
   '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
+  '/pro/demand': typeof ProDemandRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
@@ -1778,6 +1786,7 @@ export interface FileRoutesById {
   '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
+  '/pro/demand': typeof ProDemandRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
@@ -1988,6 +1997,7 @@ export interface FileRouteTypes {
     | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
+    | '/pro/demand'
     | '/pro/documents'
     | '/pro/earnings'
     | '/pro/notification-preferences'
@@ -2184,6 +2194,7 @@ export interface FileRouteTypes {
     | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
+    | '/pro/demand'
     | '/pro/documents'
     | '/pro/earnings'
     | '/pro/notification-preferences'
@@ -2389,6 +2400,7 @@ export interface FileRouteTypes {
     | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
+    | '/pro/demand'
     | '/pro/documents'
     | '/pro/earnings'
     | '/pro/notification-preferences'
@@ -3330,6 +3342,13 @@ declare module '@tanstack/react-router' {
       path: '/bookings'
       fullPath: '/pro/bookings'
       preLoaderRoute: typeof ProBookingsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/demand': {
+      id: '/pro/demand'
+      path: '/demand'
+      fullPath: '/pro/demand'
+      preLoaderRoute: typeof ProDemandRouteImport
       parentRoute: typeof ProRoute
     }
     '/pro/documents': {
@@ -4430,6 +4449,7 @@ interface ProRouteChildren {
   ProApplyRoute: typeof ProApplyRoute
   ProAvailabilityRoute: typeof ProAvailabilityRoute
   ProBookingsRoute: typeof ProBookingsRoute
+  ProDemandRoute: typeof ProDemandRoute
   ProDocumentsRoute: typeof ProDocumentsRoute
   ProEarningsRoute: typeof ProEarningsRoute
   ProNotificationPreferencesRoute: typeof ProNotificationPreferencesRoute
@@ -4448,6 +4468,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProApplyRoute: ProApplyRoute,
   ProAvailabilityRoute: ProAvailabilityRoute,
   ProBookingsRoute: ProBookingsRoute,
+  ProDemandRoute: ProDemandRoute,
   ProDocumentsRoute: ProDocumentsRoute,
   ProEarningsRoute: ProEarningsRoute,
   ProNotificationPreferencesRoute: ProNotificationPreferencesRoute,
@@ -4527,13 +4548,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
