@@ -48,3 +48,6 @@ backup-recovery-codes*.txt
 
 .vercel
 mobile/qa/artifacts-*/
+
+# Local Supabase CLI state (supabase start)
+supabase/.branches/

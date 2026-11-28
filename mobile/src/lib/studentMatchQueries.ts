@@ -2,7 +2,7 @@
 // Mirrors src/lib/db/student-match-queries.ts. The RPCs come from migration 20261126160000.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 import { tutorMissingTeachingData } from "@shared/tutoring/studentLearnerFlow";
@@ -75,6 +75,16 @@ export function useConfirmStudentGrade() {
 
 const LEARNER_KEY = "famy.match.learner";
 
+// Every mounted picker follows the latest choice, including a child just added from
+// «ضيف ابن» on another screen (the picker stays mounted under it in the stack).
+const learnerListeners = new Set<(id: string) => void>();
+
+/** Remember a «الحجز لمين؟» choice on the device and tell every mounted picker. */
+export function rememberLearnerChoice(id: string) {
+  for (const listener of learnerListeners) listener(id);
+  void AsyncStorage.setItem(LEARNER_KEY, id).catch(() => undefined);
+}
+
 /** The last «الحجز لمين؟» choice, remembered on the device. */
 export function useRememberedLearner(): [string | null, (id: string) => void] {
   const [value, setValue] = useState<string | null>(null);
@@ -82,18 +92,16 @@ export function useRememberedLearner(): [string | null, (id: string) => void] {
     let live = true;
     AsyncStorage.getItem(LEARNER_KEY)
       .then((v) => {
-        if (live) setValue(v);
+        if (live) setValue((cur) => cur ?? v);
       })
       .catch(() => undefined);
+    learnerListeners.add(setValue);
     return () => {
       live = false;
+      learnerListeners.delete(setValue);
     };
   }, []);
-  const remember = useCallback((id: string) => {
-    setValue(id);
-    void AsyncStorage.setItem(LEARNER_KEY, id).catch(() => undefined);
-  }, []);
-  return [value, remember];
+  return [value, rememberLearnerChoice];
 }
 
 /** Tutor banner: an approved tutoring service with no approved subject / system / grade. */

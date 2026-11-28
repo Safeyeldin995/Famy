@@ -35,6 +35,14 @@ describe("buildContentSecurityPolicy", () => {
     expect(csp).toContain("https://famylive.example.com");
   });
 
+  it("allows the local Supabase stack's realtime websocket (e2e-local CI)", () => {
+    const csp = buildContentSecurityPolicy({ ...fullEnv, VITE_SUPABASE_URL: "http://127.0.0.1:54321" });
+    const connect = csp.split("; ").find((d) => d.startsWith("connect-src ")) ?? "";
+    expect(connect).toContain("http://127.0.0.1:54321");
+    expect(connect).toContain("ws://127.0.0.1:54321");
+    expect(connect).not.toContain("wss://127.0.0.1:54321");
+  });
+
   it("allows Google Maps (web address picker and admin zone map)", () => {
     const csp = buildContentSecurityPolicy(fullEnv);
     const directive = (name: string) =>

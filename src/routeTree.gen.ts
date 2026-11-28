@@ -88,6 +88,7 @@ import { Route as OnlineOtpRouteImport } from './routes/online.otp'
 import { Route as OnlineResetPasswordRouteImport } from './routes/online.reset-password'
 import { Route as OnlineSetPasswordRouteImport } from './routes/online.set-password'
 import { Route as OnlineSignupRouteImport } from './routes/online.signup'
+import { Route as OnlineStudentsRouteImport } from './routes/online.students'
 import { Route as OnlineTutorsRouteImport } from './routes/online.tutors'
 import { Route as OnlineWalletRouteImport } from './routes/online.wallet'
 import { Route as PIdRouteImport } from './routes/p.$id'
@@ -610,6 +611,11 @@ const OnlineSetPasswordRoute = OnlineSetPasswordRouteImport.update({
 const OnlineSignupRoute = OnlineSignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => OnlineRoute,
+} as any)
+const OnlineStudentsRoute = OnlineStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
   getParentRoute: () => OnlineRoute,
 } as any)
 const OnlineTutorsRoute = OnlineTutorsRouteImport.update({
@@ -1340,6 +1346,7 @@ export interface FileRoutesByFullPath {
   '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/signup': typeof OnlineSignupRoute
+  '/online/students': typeof OnlineStudentsRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
   '/p/$id': typeof PIdRoute
@@ -1539,6 +1546,7 @@ export interface FileRoutesByTo {
   '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/signup': typeof OnlineSignupRoute
+  '/online/students': typeof OnlineStudentsRoute
   '/online/wallet': typeof OnlineWalletRoute
   '/p/$id': typeof PIdRoute
   '/parent-guardian/flag': typeof ParentGuardianFlagRoute
@@ -1740,6 +1748,7 @@ export interface FileRoutesById {
   '/online/reset-password': typeof OnlineResetPasswordRoute
   '/online/set-password': typeof OnlineSetPasswordRoute
   '/online/signup': typeof OnlineSignupRoute
+  '/online/students': typeof OnlineStudentsRoute
   '/online/tutors': typeof OnlineTutorsRouteWithChildren
   '/online/wallet': typeof OnlineWalletRoute
   '/p/$id': typeof PIdRoute
@@ -1949,6 +1958,7 @@ export interface FileRouteTypes {
     | '/online/reset-password'
     | '/online/set-password'
     | '/online/signup'
+    | '/online/students'
     | '/online/tutors'
     | '/online/wallet'
     | '/p/$id'
@@ -2148,6 +2158,7 @@ export interface FileRouteTypes {
     | '/online/reset-password'
     | '/online/set-password'
     | '/online/signup'
+    | '/online/students'
     | '/online/wallet'
     | '/p/$id'
     | '/parent-guardian/flag'
@@ -2348,6 +2359,7 @@ export interface FileRouteTypes {
     | '/online/reset-password'
     | '/online/set-password'
     | '/online/signup'
+    | '/online/students'
     | '/online/tutors'
     | '/online/wallet'
     | '/p/$id'
@@ -3094,6 +3106,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/online/signup'
       preLoaderRoute: typeof OnlineSignupRouteImport
+      parentRoute: typeof OnlineRoute
+    }
+    '/online/students': {
+      id: '/online/students'
+      path: '/students'
+      fullPath: '/online/students'
+      preLoaderRoute: typeof OnlineStudentsRouteImport
       parentRoute: typeof OnlineRoute
     }
     '/online/tutors': {
@@ -4180,6 +4199,7 @@ interface OnlineRouteChildren {
   OnlineResetPasswordRoute: typeof OnlineResetPasswordRoute
   OnlineSetPasswordRoute: typeof OnlineSetPasswordRoute
   OnlineSignupRoute: typeof OnlineSignupRoute
+  OnlineStudentsRoute: typeof OnlineStudentsRoute
   OnlineTutorsRoute: typeof OnlineTutorsRouteWithChildren
   OnlineWalletRoute: typeof OnlineWalletRoute
   OnlineIndexRoute: typeof OnlineIndexRoute
@@ -4197,6 +4217,7 @@ const OnlineRouteChildren: OnlineRouteChildren = {
   OnlineResetPasswordRoute: OnlineResetPasswordRoute,
   OnlineSetPasswordRoute: OnlineSetPasswordRoute,
   OnlineSignupRoute: OnlineSignupRoute,
+  OnlineStudentsRoute: OnlineStudentsRoute,
   OnlineTutorsRoute: OnlineTutorsRouteWithChildren,
   OnlineWalletRoute: OnlineWalletRoute,
   OnlineIndexRoute: OnlineIndexRoute,
