@@ -24,7 +24,7 @@ test.describe.serial("online lesson: book for a child, accept, pay from wallet, 
 
     await page.goto("/online/tutors");
     await page.getByRole("link", { name: new RegExp(LOCAL_CI_USERS.tutor.fullName) }).first().click();
-    await page.getByRole("link", { name: "اطلب درس" }).first().click();
+    await page.getByRole("link", { name: /^احجز مع / }).first().click();
     await expect(page).toHaveURL(/\/online\/tutors\/[0-9a-f-]{36}\/request/);
 
     // Learner picker: the child, not the account owner.
