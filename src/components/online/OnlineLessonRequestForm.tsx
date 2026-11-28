@@ -122,7 +122,7 @@ export function OnlineLessonRequestForm({
   // be with the child or supervising (the server stores it as supervision_mode 'parent_online').
   const selectedChild = bookingForSelf
     ? null
-    : (membersQ.data ?? []).find((m) => m.id === learnerId) ?? null;
+    : ((membersQ.data ?? []).find((m) => m.id === learnerId) ?? null);
   const childAge = selectedChild?.date_of_birth
     ? memberAgeFromDate(selectedChild.date_of_birth)
     : null;
@@ -337,40 +337,43 @@ export function OnlineLessonRequestForm({
     return <p className="text-pro-14 text-muted-foreground">{t("onlineWeb.request.noService")}</p>;
   }
 
+  // «الحجز لمين؟» stays outside the birth-date gate: the 12+ rule applies to the student,
+  // so a parent booking for a child is never asked for their own birth date (#566).
+  const forWhomPicker = shouldAskForWhom(learners) ? (
+    <div className="space-y-2">
+      <p className="text-pro-13 font-bold text-muted-foreground">
+        {t("studentMatch.forWhomTitle")}
+      </p>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label={t("studentMatch.forWhomTitle")}
+      >
+        {learners.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            className={chipClass(l.id === learnerId)}
+            aria-pressed={l.id === learnerId}
+            onClick={() => {
+              setLearnerId(l.id);
+              setCapabilityPick({
+                subjectCode: "",
+                curriculumId: l.curriculumId ?? "",
+                levelId: l.levelId ?? "",
+              });
+              setCapabilityId(null);
+            }}
+          >
+            {l.kind === "self" ? t("studentMatch.me") : l.firstName}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   const form = (
     <div className="space-y-5">
-      {shouldAskForWhom(learners) ? (
-        <div className="space-y-2">
-          <p className="text-pro-13 font-bold text-muted-foreground">
-            {t("studentMatch.forWhomTitle")}
-          </p>
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label={t("studentMatch.forWhomTitle")}
-          >
-            {learners.map((l) => (
-              <button
-                key={l.id}
-                type="button"
-                className={chipClass(l.id === learnerId)}
-                aria-pressed={l.id === learnerId}
-                onClick={() => {
-                  setLearnerId(l.id);
-                  setCapabilityPick({
-                    subjectCode: "",
-                    curriculumId: l.curriculumId ?? "",
-                    levelId: l.levelId ?? "",
-                  });
-                  setCapabilityId(null);
-                }}
-              >
-                {l.kind === "self" ? t("studentMatch.me") : l.firstName}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
       {childNeedsParentSupervision ? (
         <label className="flex items-start gap-3 rounded-2xl border border-border bg-muted/40 p-3 text-pro-14">
           <Checkbox
@@ -539,7 +542,9 @@ export function OnlineLessonRequestForm({
 
       <PrimaryButton
         className="h-12 w-full"
-        disabled={!selectedSlot || !selectedCapability || create.isPending || parentSupervisionMissing}
+        disabled={
+          !selectedSlot || !selectedCapability || create.isPending || parentSupervisionMissing
+        }
         onClick={() => void submit()}
       >
         {t("onlineWeb.walkthrough.requestLesson")}
@@ -547,5 +552,10 @@ export function OnlineLessonRequestForm({
     </div>
   );
 
-  return bookingForSelf ? <OnlineWebCustomerDobGate>{form}</OnlineWebCustomerDobGate> : form;
+  return (
+    <div className="space-y-5">
+      {forWhomPicker}
+      {bookingForSelf ? <OnlineWebCustomerDobGate>{form}</OnlineWebCustomerDobGate> : form}
+    </div>
+  );
 }
