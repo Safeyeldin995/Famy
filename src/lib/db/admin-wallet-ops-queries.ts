@@ -12,7 +12,13 @@ const rpc: UntypedRpc = (fn, args) =>
   (supabase.rpc as unknown as UntypedRpc).call(supabase, fn, args);
 
 export type WalletRefundBlock =
-  "booking_not_found" | "no_held_money" | "booking_active" | "already_refunded" | "nothing_left";
+  | "booking_not_found"
+  | "no_held_money"
+  | "booking_active"
+  | "already_refunded"
+  | "nothing_left"
+  | "refunded_to_card"
+  | "card_refund_unknown";
 
 export type AdminRefundTerms = {
   booking_id: string;
@@ -24,6 +30,8 @@ export type AdminRefundTerms = {
   payment_method_type: string | null;
   funded_total: number;
   already_refunded: number;
+  /** Returned to the card by Paymob; no longer held. */
+  card_refunded: number;
   cancellation_fee: number;
   carried_fees: number;
   max_refundable: number;
@@ -43,6 +51,9 @@ export type AdminMoneyPayment = {
   refund_channel: string | null;
   refund_reference: string | null;
   wallet_refunded_total: number;
+  /** Returned to the card by Paymob (refund webhook). */
+  gateway_refunded: number;
+  gateway_refund_unknown: boolean;
   captured_at: string | null;
   created_at: string;
 };
@@ -134,6 +145,7 @@ export type AdminOpsProblems = {
   app_errors: number;
   stuck_pending: number;
   stuck_active: number;
+  attendance_failed: number;
 };
 
 function num(v: unknown): number {
@@ -152,6 +164,7 @@ export function normalizeRefundTerms(raw: Record<string, unknown>): AdminRefundT
     payment_method_type: (raw.payment_method_type as string | null) ?? null,
     funded_total: num(raw.funded_total),
     already_refunded: num(raw.already_refunded),
+    card_refunded: num(raw.card_refunded),
     cancellation_fee: num(raw.cancellation_fee),
     carried_fees: num(raw.carried_fees),
     max_refundable: num(raw.max_refundable),
@@ -327,6 +340,26 @@ export function useAdminOpsToday() {
   });
 }
 
+export type AdminProblemBookingKind = "stuck_pending" | "stuck_active" | "attendance_failed";
+export const ADMIN_PROBLEM_BOOKING_KINDS: AdminProblemBookingKind[] = [
+  "stuck_pending",
+  "stuck_active",
+  "attendance_failed",
+];
+
+/** The bookings a home problem card counts (admin_ops_problem_booking_ids). */
+export function useAdminProblemBookingIds(kind: AdminProblemBookingKind | null) {
+  return useQuery({
+    queryKey: ["admin", "ops-problem-bookings", kind],
+    enabled: !!kind,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await rpc("admin_ops_problem_booking_ids", { p_kind: kind });
+      if (error) throw error;
+      return (data ?? []) as string[];
+    },
+  });
+}
+
 export function useAdminOpsProblems() {
   return useQuery({
     queryKey: ["admin", "ops-problems"],
@@ -341,6 +374,7 @@ export function useAdminOpsProblems() {
         app_errors: num(raw.app_errors),
         stuck_pending: num(raw.stuck_pending),
         stuck_active: num(raw.stuck_active),
+        attendance_failed: num(raw.attendance_failed),
       };
     },
   });

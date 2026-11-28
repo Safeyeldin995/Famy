@@ -159,6 +159,9 @@ function MoneyCardBody({
         {view.refunded > 0 ? (
           <Row label={t("adminMoney.refunded")} value={egp(view.refunded)} tone="good" />
         ) : null}
+        {view.cardRefunded > 0 ? (
+          <Row label={t("adminMoney.cardRefunded")} value={egp(view.cardRefunded)} tone="good" />
+        ) : null}
         {view.feeToTutor > 0 ? (
           <Row label={t("adminMoney.feeToTutor")} value={egp(view.feeToTutor)} tone="muted" />
         ) : null}

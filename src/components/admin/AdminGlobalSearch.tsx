@@ -108,7 +108,8 @@ export function AdminGlobalSearch() {
                       onClick={() => setOpen(false)}
                     >
                       <span className="font-semibold">
-                        <bdi dir="ltr">{bookingCode(b.id)}</bdi> · {b.status}
+                        <bdi dir="ltr">{bookingCode(b.id)}</bdi> ·{" "}
+                        {t(`adminOps.status.${b.status}`, { defaultValue: t("adminOps.unknown") })}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {b.customer_name ?? "—"} → {b.provider_name ?? "—"}
