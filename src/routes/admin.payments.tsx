@@ -50,6 +50,7 @@ export const Route = createFileRoute("/admin/payments")({
       "refunds_due",
       "receipts_ready",
       "cash_to_confirm",
+      "paymob",
       "fee_payments",
       "all",
     ];
@@ -394,12 +395,19 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
 const PAYMENT_TABS: {
   key: PaymentsTab;
   labelKey: string;
-  countKey?: "needs_action" | "refunds_due" | "receipts_ready" | "cash_to_confirm" | "fee_payments";
+  countKey?:
+    | "needs_action"
+    | "refunds_due"
+    | "receipts_ready"
+    | "cash_to_confirm"
+    | "paymob"
+    | "fee_payments";
 }[] = [
   { key: "needs_action", labelKey: "admin.paymentsQueue.needsAction", countKey: "needs_action" },
   { key: "refunds_due", labelKey: "admin.paymentsQueue.refunds", countKey: "refunds_due" },
   { key: "receipts_ready", labelKey: "admin.paymentsQueue.receipts", countKey: "receipts_ready" },
   { key: "cash_to_confirm", labelKey: "admin.paymentsQueue.cash", countKey: "cash_to_confirm" },
+  { key: "paymob", labelKey: "admin.paymentsQueue.paymob", countKey: "paymob" },
   { key: "fee_payments", labelKey: "admin.paymentsQueue.fees", countKey: "fee_payments" },
   { key: "all", labelKey: "admin.paymentsQueue.all" },
 ];
@@ -426,7 +434,8 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
     tab === "needs_action" ||
     tab === "refunds_due" ||
     tab === "receipts_ready" ||
-    tab === "cash_to_confirm"
+    tab === "cash_to_confirm" ||
+    tab === "paymob"
       ? tab
       : null;
   const queue = useAdminPaymentQueue(

@@ -15,15 +15,17 @@ import { formatEGP } from "@/lib/format/egp";
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
+// Each card opens the exact list it counts (same SQL condition, #551).
 const PROBLEM_LINKS: Record<
   keyof AdminOpsProblems,
-  { route: string; search?: Record<string, string> }
+  { route: string; search?: Record<string, string>; hash?: string }
 > = {
-  paymob_flags: { route: "/admin/payments", search: { tab: "needs_action" } },
-  stuck_active: { route: "/admin/bookings", search: { filter: "lifecycle_attention" } },
-  stuck_pending: { route: "/admin/bookings", search: { status: "pending" } },
-  push_failures: { route: "/admin/monitoring" },
-  app_errors: { route: "/admin/monitoring" },
+  paymob_flags: { route: "/admin/payments", search: { tab: "paymob" } },
+  attendance_failed: { route: "/admin/bookings", search: { filter: "attendance_failed" } },
+  stuck_active: { route: "/admin/bookings", search: { filter: "stuck_active" } },
+  stuck_pending: { route: "/admin/bookings", search: { filter: "stuck_pending" } },
+  push_failures: { route: "/admin/monitoring", hash: "failed-notifications" },
+  app_errors: { route: "/admin/monitoring", hash: "recent-errors" },
 };
 
 function AdminHome() {
@@ -128,6 +130,7 @@ function AdminHome() {
                 <Link
                   to={PROBLEM_LINKS[k].route as never}
                   search={PROBLEM_LINKS[k].search as never}
+                  hash={PROBLEM_LINKS[k].hash}
                   className="focus-ring block rounded-2xl border border-coral/40 bg-coral/5 px-4 py-3 hover:border-coral"
                 >
                   <span className="flex items-center justify-between gap-3">
