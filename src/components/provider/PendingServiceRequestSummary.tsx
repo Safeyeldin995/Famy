@@ -8,7 +8,7 @@ import {
   useTeachingLevels,
   useTeachingSubjects,
 } from "@/lib/db/teaching-queries";
-import { localizedTaxonomyName } from "@/lib/tutoring/teachingCapabilities";
+import { localizedTaxonomyName, isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
@@ -60,14 +60,14 @@ export function PendingServiceRequestSummary({
   const approvalReqs = (reqQ.data ?? []).filter((r) => r.required_for_provider_approval);
   const fulfillments = mineQ.data ?? [];
 
-  if (categorySlug === "tutoring" && groups.length === 0 && teachingQ.isLoading) {
+  if (isTutoringCategorySlug(categorySlug) && groups.length === 0 && teachingQ.isLoading) {
     return <p className="text-xs text-muted-foreground">{t("pro.common.loading")}</p>;
   }
 
   return (
     <div className="mt-2 space-y-2 rounded-xl border border-border/60 bg-surface-2/40 p-3 text-xs">
       <p className="font-bold text-foreground">{t("pro.serviceRequest.submittedSummaryTitle")}</p>
-      {categorySlug === "tutoring" &&
+      {isTutoringCategorySlug(categorySlug) &&
         groups.map((group) => {
           const first = group.first;
           const subject = subjectsQ.data?.find((s) => s.id === first.subject_id);
@@ -85,7 +85,7 @@ export function PendingServiceRequestSummary({
             </p>
           );
         })}
-      {categorySlug !== "tutoring" && priceOverride != null && (
+      {!isTutoringCategorySlug(categorySlug) && priceOverride != null && (
         <p className="text-muted-foreground">
           {t("pro.serviceRequest.summaryPrice", { price: priceOverride })}
         </p>

@@ -142,6 +142,7 @@ import {
 } from "@/lib/studentParentLinkQueries";
 import { useCancellationPolicy } from "@/lib/caseQueries";
 import { cancellationPolicyLine, normalizeCancellationPolicy } from "@/lib/customerCasesPure";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
   const {
@@ -296,7 +297,7 @@ function BookForm({
   );
   const service = services.find((s) => s.service.id === serviceId) ?? services[0];
   const eligibilityServiceId = checkoutEligibilityServiceId(serviceId, service?.service.id);
-  const tutoring = service?.service.category?.slug === "tutoring";
+  const tutoring = isTutoringCategorySlug(service?.service.category?.slug);
   const isLessonService = isLessonServiceSlug(service?.service.slug);
   const babysitting = service?.service.category?.slug === "babysitting";
   const supervisionRequired = requiresSupervisionMode(service?.service.category?.slug);
@@ -968,7 +969,7 @@ function BookForm({
                 // Same subtitles as web book.$providerId ServiceCard.
                 if (isFixedPackage(s.service))
                   return t(packageLabel(s.service).key, packageLabel(s.service).values);
-                if (s.service.category?.slug === "tutoring") {
+                if (isTutoringCategorySlug(s.service.category?.slug)) {
                   const prices = (allCaps.data ?? [])
                     .filter((c) => c.serviceId === s.service.id)
                     .map((c) => c.price);
@@ -986,7 +987,7 @@ function BookForm({
                   : undefined
               }
               icon={
-                s.service.category?.slug === "tutoring" ? (
+                isTutoringCategorySlug(s.service.category?.slug) ? (
                   <BookOpen size={22} color={colors.brand} />
                 ) : isFixedPackage(s.service) ? (
                   <Clock size={22} color={colors.brand} />
@@ -1001,7 +1002,7 @@ function BookForm({
                 setChoices({});
               }}
             >
-              {!isFixedPackage(s.service) && s.service.category?.slug !== "tutoring" ? (
+              {!isFixedPackage(s.service) && !isTutoringCategorySlug(s.service.category?.slug) ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <Button
                     variant="secondary"

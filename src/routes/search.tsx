@@ -53,12 +53,34 @@ function SearchPage() {
     addressId: selectedAddressId,
     limit: 60,
   });
-  const teachersQ = useProviders({
+  // Teaching lives in three categories (school tutoring, Quran, music); the «مدرس» filter covers all three.
+  const tutorsQ = useProviders({
     categorySlug: "tutoring",
     serviceId: serviceId || undefined,
     addressId: selectedAddressId,
     limit: 60,
   });
+  const quranQ = useProviders({
+    categorySlug: "quran",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddressId,
+    limit: 60,
+  });
+  const musicQ = useProviders({
+    categorySlug: "music",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddressId,
+    limit: 60,
+  });
+  const teachersQ = {
+    data:
+      tutorsQ.data || quranQ.data || musicQ.data
+        ? [...(tutorsQ.data ?? []), ...(quranQ.data ?? []), ...(musicQ.data ?? [])]
+        : undefined,
+    isLoading: tutorsQ.isLoading || quranQ.isLoading || musicQ.isLoading,
+    isError: tutorsQ.isError || quranQ.isError || musicQ.isError,
+    refetch: () => Promise.all([tutorsQ.refetch(), quranQ.refetch(), musicQ.refetch()]),
+  };
   const provsQ = {
     isLoading: babysittersQ.isLoading || teachersQ.isLoading,
     isError: babysittersQ.isError || teachersQ.isError,
@@ -74,7 +96,8 @@ function SearchPage() {
     );
     return list.filter((p) => {
       if (filter === "babysitting" && !p.categorySlugs.includes("babysitting")) return false;
-      if (filter === "tutoring" && !p.categorySlugs.includes("tutoring")) return false;
+      if (filter === "tutoring" && !p.categorySlugs.some((slug) => isTutoringCategorySlug(slug)))
+        return false;
       if (filter === "top" && p.rating < 4.85) return false;
       if (!term) return true;
       return (
@@ -83,7 +106,7 @@ function SearchPage() {
         p.areas.some((a) => a.toLowerCase().includes(term))
       );
     });
-  }, [q, filter, babysittersQ.data, teachersQ.data]);
+  }, [q, filter, babysittersQ.data, tutorsQ.data, quranQ.data, musicQ.data]);
   const capabilityRows = useApprovedTeachingCapabilitiesForProviders(results.map((p) => p.id));
 
   const recoveryActions = (
@@ -262,7 +285,9 @@ function SearchPage() {
             results.map((p) => {
               const cap = (capabilityRows.data ?? []).find((row) => row.providerId === p.id);
               const subtitle =
-                p.categorySlugs.includes("tutoring") && filter === "tutoring" && cap
+                p.categorySlugs.some((slug) => isTutoringCategorySlug(slug)) &&
+                filter === "tutoring" &&
+                cap
                   ? formatTeachingCapabilityLine({
                       subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
                       curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,

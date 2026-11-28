@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { Text } from "@/ui/Text";
 import { space } from "@/ui/theme";
 import { proCard } from "./cards";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 export function PendingServiceRequestSummary({
   providerId,
@@ -70,7 +71,7 @@ export function PendingServiceRequestSummary({
       <Text weight="bold" size="sm">
         {t("pro.serviceRequest.submittedSummaryTitle")}
       </Text>
-      {categorySlug === "tutoring" &&
+      {isTutoringCategorySlug(categorySlug) &&
         groups.map((group) => {
           const first = group.first;
           const subject = subjectsQ.data?.find((s) => s.id === first.subject_id);
@@ -95,7 +96,7 @@ export function PendingServiceRequestSummary({
             </Text>
           );
         })}
-      {categorySlug !== "tutoring" && priceOverride != null && (
+      {!isTutoringCategorySlug(categorySlug) && priceOverride != null && (
         <Text tone="muted" size="sm">
           {t("pro.serviceRequest.summaryPrice", { price: priceOverride })}
         </Text>

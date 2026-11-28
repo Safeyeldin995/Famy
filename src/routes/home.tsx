@@ -18,7 +18,12 @@ import {
   useDefaultAddress,
   useMyBookings,
 } from "@/lib/db/queries";
-import { visibleHomeDoors, type HomeDoorId } from "@/lib/catalog/homeCategories";
+import {
+  homeCategoryLessonSlug,
+  visibleHomeDoors,
+  type HomeDoorId,
+} from "@/lib/catalog/homeCategories";
+import { LessonIllustration } from "@/components/lessons/LessonIllustration";
 import { previewPath } from "@/lib/preview/previewPath";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
@@ -75,42 +80,48 @@ function Home() {
           {categories.isError ? (
             <QueryError compact onRetry={() => categories.refetch()} />
           ) : categories.isLoading ? (
-            <div className="grid gap-3" aria-busy="true">
-              <div className="h-28 animate-pulse rounded-3xl bg-surface-2" />
-              <div className="h-28 animate-pulse rounded-3xl bg-surface-2" />
+            <div className="grid grid-cols-2 gap-3" aria-busy="true">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-40 animate-pulse rounded-3xl bg-surface-2" />
+              ))}
             </div>
           ) : !doors.length ? (
             <p className="rounded-2xl border border-border/60 p-4 text-pro-14">
               {t("home.doors.empty")}
             </p>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {doors.map((id) => {
                 const door = DOORS[id];
                 const Icon = door.icon;
+                const lesson = homeCategoryLessonSlug(id);
                 return (
                   <Link
                     key={id}
                     data-testid={`home-door-${id}`}
                     to={isPreviewRoute() ? "/preview/category/$id" : "/category/$id"}
                     params={{ id }}
-                    className={`focus-ring tap-scale relative flex min-h-28 items-center gap-4 overflow-hidden rounded-3xl p-5 ${door.surface}`}
+                    className={`focus-ring tap-scale relative flex min-h-40 flex-col justify-between gap-3 overflow-hidden rounded-3xl p-4 ${door.surface}`}
                   >
                     <span
-                      className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white shadow-sm ${door.ink}`}
+                      className={`grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ${door.ink}`}
                     >
-                      <Icon className="h-7 w-7" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+                      {lesson ? (
+                        <LessonIllustration serviceSlug={lesson} className="h-11 w-11" />
+                      ) : Icon ? (
+                        <Icon className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+                      ) : null}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-pro-22 font-extrabold text-foreground">
+                    <span>
+                      <span className="block text-pro-18 font-extrabold text-foreground">
                         {t(door.titleKey)}
                       </span>
-                      <span className="mt-1 block text-pro-13 font-semibold leading-snug text-foreground/60">
+                      <span className="mt-1 block text-pro-12 font-semibold leading-snug text-foreground/60">
                         {t(door.bodyKey)}
                       </span>
                     </span>
                     <ArrowUpRight
-                      className={`h-6 w-6 shrink-0 rtl:-scale-x-100 ${door.ink}`}
+                      className={`absolute end-3 top-3 h-5 w-5 rtl:-scale-x-100 ${door.ink}`}
                       aria-hidden="true"
                     />
                   </Link>
@@ -170,7 +181,7 @@ function Home() {
 
 const DOORS: Record<
   HomeDoorId,
-  { icon: typeof Baby; surface: string; ink: string; titleKey: string; bodyKey: string }
+  { surface: string; ink: string; titleKey: string; bodyKey: string; icon?: typeof Baby }
 > = {
   tutoring: {
     icon: GraduationCap,
@@ -178,6 +189,18 @@ const DOORS: Record<
     ink: "text-lavender",
     titleKey: "home.doors.tutorTitle",
     bodyKey: "home.doors.tutorBody",
+  },
+  quran: {
+    surface: "bg-brand/[0.08]",
+    ink: "text-brand",
+    titleKey: "home.doors.quranTitle",
+    bodyKey: "home.doors.quranBody",
+  },
+  music: {
+    surface: "bg-lavender/[0.14]",
+    ink: "text-lavender",
+    titleKey: "home.doors.musicTitle",
+    bodyKey: "home.doors.musicBody",
   },
   babysitting: {
     icon: Baby,

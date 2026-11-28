@@ -57,10 +57,51 @@ function Landing() {
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
 
   const iconBox = "grid h-16 w-16 shrink-0 place-items-center rounded-2xl";
-  const tutoringShortcuts = [
-    { key: "subjects", label: t("home.doors.tutorSubjects"), lesson: null },
-    { key: "quran", label: t("home.doors.quran"), lesson: "quran-lessons" as const },
-    { key: "music", label: t("home.doors.music"), lesson: "music-lessons" as const },
+  const doors = [
+    {
+      key: "tutoring",
+      title: t("home.doors.tutorTitle"),
+      body: t("home.doors.tutorBody"),
+      art: (
+        <span className={`${iconBox} bg-lavender/15 text-lavender`}>
+          <GraduationCap className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
+      online: true,
+    },
+    {
+      key: "quran",
+      title: t("home.doors.quranTitle"),
+      body: t("home.doors.quranBody"),
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="quran-lessons" className="h-16 w-16" />
+        </span>
+      ),
+      online: true,
+    },
+    {
+      key: "music",
+      title: t("home.doors.musicTitle"),
+      body: t("home.doors.musicBody"),
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="music-lessons" className="h-16 w-16" />
+        </span>
+      ),
+      online: true,
+    },
+    {
+      key: "babysitting",
+      title: t("home.doors.babysitterTitle"),
+      body: t("home.doors.babysitterBody"),
+      art: (
+        <span className={`${iconBox} bg-brand/10 text-brand`}>
+          <Baby className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
+      online: false,
+    },
   ];
 
   return (
@@ -125,67 +166,38 @@ function Landing() {
 
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.services.title")} body={t("site.services.body")} />
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
-          <article
-            data-testid="landing-door-tutoring"
-            className="flex flex-col gap-5 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
-          >
-            <div className="flex items-start gap-4">
-              <span className={`${iconBox} bg-lavender/15 text-lavender`}>
-                <GraduationCap className="h-8 w-8" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-pro-24 font-extrabold">{t("home.doors.tutorTitle")}</h3>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {doors.map((door) => (
+            <article
+              key={door.key}
+              data-testid={`landing-door-${door.key}`}
+              className="flex flex-col gap-4 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
+            >
+              {door.art}
+              <div>
+                <h3 className="text-pro-22 font-extrabold">{door.title}</h3>
                 <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
-                  {t("home.doors.tutorBody")}
+                  {door.body}
                 </p>
               </div>
-            </div>
-            <ul className="flex flex-wrap gap-2" aria-label={t("home.doors.tutorTitle")}>
-              {tutoringShortcuts.map((item) => (
-                <li
-                  key={item.key}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lavender/10 px-3.5 text-pro-14 font-bold"
+              {door.online ? (
+                <Link
+                  to="/online"
+                  className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand px-4 text-pro-14 font-extrabold text-white shadow-sm"
                 >
-                  {item.lesson ? (
-                    <LessonIllustration serviceSlug={item.lesson} className="h-7 w-7" />
-                  ) : (
-                    <GraduationCap className="h-5 w-5 text-lavender" aria-hidden="true" />
-                  )}
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-            <Link
-              to="/online"
-              className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand px-5 text-pro-14 font-extrabold text-white shadow-sm"
-            >
-              <Video className="h-5 w-5" aria-hidden="true" />
-              {t("home.doors.onlineCta")}
-            </Link>
-          </article>
-          <article
-            data-testid="landing-door-babysitting"
-            className="flex flex-col gap-5 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
-          >
-            <div className="flex items-start gap-4">
-              <span className={`${iconBox} bg-brand/10 text-brand`}>
-                <Baby className="h-8 w-8" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-pro-24 font-extrabold">{t("home.doors.babysitterTitle")}</h3>
-                <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
-                  {t("home.doors.babysitterBody")}
-                </p>
-              </div>
-            </div>
-            <a
-              href="#download"
-              className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/25 bg-white px-5 text-pro-14 font-extrabold text-brand shadow-sm"
-            >
-              {t("home.doors.appCta")}
-            </a>
-          </article>
+                  <Video className="h-5 w-5" aria-hidden="true" />
+                  {t("home.doors.onlineCta")}
+                </Link>
+              ) : (
+                <a
+                  href="#download"
+                  className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/25 bg-white px-4 text-pro-14 font-extrabold text-brand shadow-sm"
+                >
+                  {t("home.doors.appCta")}
+                </a>
+              )}
+            </article>
+          ))}
         </div>
       </SiteSection>
 

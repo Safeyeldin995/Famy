@@ -28,7 +28,7 @@ describe("homeCategories", () => {
   });
 
   it("maps groups to their DB category and lesson service", () => {
-    expect(homeCategoryDbSlug("quran")).toBe("tutoring");
+    expect(homeCategoryDbSlug("quran")).toBe("quran");
     expect(homeCategoryDbSlug("babysitting")).toBe("babysitting");
     expect(homeCategoryLessonSlug("music")).toBe("music-lessons");
     expect(homeCategoryLessonSlug("tutoring")).toBeNull();
@@ -38,20 +38,24 @@ describe("homeCategories", () => {
 });
 
 describe("home doors", () => {
-  it("shows tutoring before babysitting and only live categories", async () => {
+  it("shows four doors in order, only for live categories", async () => {
     const { visibleHomeDoors } = await import("../homeCategories");
+    expect(visibleHomeDoors(["babysitting", "music", "tutoring", "quran"])).toEqual([
+      "tutoring",
+      "quran",
+      "music",
+      "babysitting",
+    ]);
     expect(visibleHomeDoors(["babysitting", "tutoring"])).toEqual(["tutoring", "babysitting"]);
-    expect(visibleHomeDoors(["babysitting"])).toEqual(["babysitting"]);
     expect(visibleHomeDoors(["cleaning"])).toEqual([]);
   });
 
-  it("shows Quran and music shortcuts only when their service is live", async () => {
-    const { visibleTutoringShortcuts } = await import("../homeCategories");
-    expect(visibleTutoringShortcuts(["quran-lessons", "music-lessons", "math"])).toEqual([
-      "quran",
-      "music",
-    ]);
-    expect(visibleTutoringShortcuts(["music-lessons", null])).toEqual(["music"]);
-    expect(visibleTutoringShortcuts([])).toEqual([]);
+  it("maps lesson services to their own categories", async () => {
+    const { lessonServiceCategorySlug, homeCategoryDbSlug } = await import("../homeCategories");
+    expect(lessonServiceCategorySlug("quran-lessons")).toBe("quran");
+    expect(lessonServiceCategorySlug("music-lessons")).toBe("music");
+    expect(lessonServiceCategorySlug("math")).toBeNull();
+    expect(homeCategoryDbSlug("quran")).toBe("quran");
+    expect(homeCategoryDbSlug("music")).toBe("music");
   });
 });

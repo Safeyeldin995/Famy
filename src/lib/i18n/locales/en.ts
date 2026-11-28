@@ -66,7 +66,7 @@ const en = {
     },
     services: {
       title: "Our services",
-      body: "Pick what you need: a tutor, or a babysitter at home.",
+      body: "Pick what you need: lessons, Quran, music, or a babysitter at home.",
       babysittingHourly: "Hourly babysitting",
       babysittingHourlyBody: "Trusted sitters at home, by the hour.",
       babysittingFullDay: "Full-day babysitting",
@@ -945,11 +945,12 @@ const en = {
   home: {
     doors: {
       empty: "No services are available right now. Try again later.",
-      tutorTitle: "Tutor",
-      tutorBody: "School subjects, Quran and music, at home or online",
-      tutorSubjects: "School subjects",
-      quran: "Quran",
-      music: "Music",
+      tutorTitle: "Lessons",
+      tutorBody: "School subjects, languages and homework help, at home or online",
+      quranTitle: "Quran",
+      quranBody: "Memorization, tajweed and review, at home or online",
+      musicTitle: "Music",
+      musicBody: "Piano, guitar, oud and violin, at home or online",
       babysitterTitle: "Babysitter",
       babysitterBody: "Care for your kids at home, by the hour, full day or overnight",
       onlineCta: "Book an online lesson",

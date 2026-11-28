@@ -37,14 +37,12 @@ import {
   useUnreadNotificationCount,
   useMyBookings,
   useFeaturedPromoCodes,
-  useMarketplaceServices,
 } from "@/lib/queries";
 import { Text } from "@/ui/Text";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import {
   homeCategoryLessonSlug,
   visibleHomeDoors,
-  visibleTutoringShortcuts,
   type HomeDoorId,
 } from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
@@ -67,7 +65,7 @@ import {
 
 const DOORS: Record<
   HomeDoorId,
-  { icon: typeof Baby; surface: string; ink: string; titleKey: string; bodyKey: string }
+  { surface: string; ink: string; titleKey: string; bodyKey: string; icon?: typeof Baby }
 > = {
   tutoring: {
     icon: GraduationCap,
@@ -75,6 +73,18 @@ const DOORS: Record<
     ink: colors.lavender,
     titleKey: "home.doors.tutorTitle",
     bodyKey: "home.doors.tutorBody",
+  },
+  quran: {
+    surface: colors.brandTint,
+    ink: colors.brand,
+    titleKey: "home.doors.quranTitle",
+    bodyKey: "home.doors.quranBody",
+  },
+  music: {
+    surface: colors.lavenderTint,
+    ink: colors.lavender,
+    titleKey: "home.doors.musicTitle",
+    bodyKey: "home.doors.musicBody",
   },
   babysitting: {
     icon: Baby,
@@ -96,7 +106,6 @@ export default function Home() {
   const profile = useMyProfile();
   const address = useDefaultAddress();
   const categories = useCategories();
-  const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
   const [dismissedRatePrompts, setDismissedRatePrompts] = useState<Set<string> | null>(null);
@@ -147,7 +156,6 @@ export default function Home() {
       ["profile", profile.isFetching],
       ["address", address.isFetching],
       ["categories", categories.isFetching],
-      ["tutoringServices", tutoringServices.isFetching],
       ["unread", unread.isFetching],
       ["bookings", bookings.isFetching],
       ["parties", parties.isFetching],
@@ -161,7 +169,6 @@ export default function Home() {
     profile.isFetching,
     address.isFetching,
     categories.isFetching,
-    tutoringServices.isFetching,
     unread.isFetching,
     bookings.isFetching,
     parties.isFetching,
@@ -204,7 +211,6 @@ export default function Home() {
   const recent = recentProviders(bookings.data ?? []);
   const returning = activeIds.length > 0 || recent.length > 0;
   const doors = visibleHomeDoors((categories.data ?? []).map((c) => c.slug));
-  const shortcuts = visibleTutoringShortcuts((tutoringServices.data ?? []).map((svc) => svc.slug));
 
   const bookAgainSection =
     returning && recent.length ? (
@@ -233,7 +239,6 @@ export default function Home() {
                 profile,
                 address,
                 categories,
-                tutoringServices,
                 unread,
                 bookings,
                 promos,
@@ -323,63 +328,40 @@ export default function Home() {
             {doors.map((id) => {
               const door = DOORS[id];
               const Icon = door.icon;
+              const lesson = homeCategoryLessonSlug(id);
               return (
-                <View
+                <Pressable
                   key={id}
                   testID={`home-door-${id}`}
-                  style={[styles.door, { backgroundColor: door.surface }]}
+                  onPress={() => router.push({ pathname: "/category/[id]", params: { id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(door.titleKey)}
+                  accessibilityHint={t(door.bodyKey)}
+                  style={({ pressed }) => [
+                    styles.door,
+                    { backgroundColor: door.surface },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  ]}
                 >
-                  <Pressable
-                    onPress={() => router.push({ pathname: "/category/[id]", params: { id } })}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(door.titleKey)}
-                    accessibilityHint={t(door.bodyKey)}
-                    style={({ pressed }) => [
-                      styles.doorMain,
-                      pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-                    ]}
-                  >
+                  <View style={styles.doorTop}>
                     <View style={styles.tileIcon}>
-                      <Icon size={26} color={door.ink} strokeWidth={2.4} />
+                      {lesson ? (
+                        <LessonIllustration serviceSlug={lesson} width={40} height={40} />
+                      ) : Icon ? (
+                        <Icon size={24} color={door.ink} strokeWidth={2.4} />
+                      ) : null}
                     </View>
-                    <View style={{ flex: 1, gap: space.xs }}>
-                      <Text size="xl" weight="heavy">
-                        {t(door.titleKey)}
-                      </Text>
-                      <Text size="sm" weight="bold" tone="muted">
-                        {t(door.bodyKey)}
-                      </Text>
-                    </View>
-                    <Arrow size={22} color={door.ink} />
-                  </Pressable>
-                  {id === "tutoring" && shortcuts.length ? (
-                    <View style={styles.shortcuts}>
-                      {shortcuts.map((group) => {
-                        const lesson = homeCategoryLessonSlug(group);
-                        const label = t(`home.doors.${group}`);
-                        return (
-                          <Pressable
-                            key={group}
-                            testID={`home-door-shortcut-${group}`}
-                            onPress={() =>
-                              router.push({ pathname: "/category/[id]", params: { id: group } })
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel={label}
-                            style={({ pressed }) => [styles.shortcut, pressed && { opacity: 0.8 }]}
-                          >
-                            {lesson ? (
-                              <LessonIllustration serviceSlug={lesson} width={28} height={28} />
-                            ) : null}
-                            <Text size="sm" weight="bold">
-                              {label}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  ) : null}
-                </View>
+                    <Arrow size={20} color={door.ink} />
+                  </View>
+                  <View style={{ gap: space.xs }}>
+                    <Text size="lg" weight="heavy">
+                      {t(door.titleKey)}
+                    </Text>
+                    <Text size="xs" weight="bold" tone="muted">
+                      {t(door.bodyKey)}
+                    </Text>
+                  </View>
+                </Pressable>
               );
             })}
           </View>
@@ -479,19 +461,17 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: space.xl, paddingTop: space.xxl, gap: space.md },
   sectionCompact: { paddingHorizontal: space.xl, paddingTop: space.lg, gap: space.md },
   sectionAboveFold: { paddingTop: space.md },
-  doors: { gap: space.md },
-  door: { borderRadius: radius.xl, padding: space.lg, gap: space.md },
-  doorMain: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 72 },
-  shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  shortcut: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.xs + 2,
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+  doors: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
+  door: {
+    flexGrow: 1,
+    flexBasis: "45%",
+    minHeight: 148,
+    borderRadius: radius.xl,
+    padding: space.lg,
+    gap: space.md,
+    justifyContent: "space-between",
   },
+  doorTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   tileIcon: {
     width: 48,
     height: 48,

@@ -36,6 +36,8 @@ const labels: Record<string, [string, string]> = {
   card: ["بطاقة", "Card"],
   babysitting: ["جليسة أطفال", "Babysitting"],
   tutoring: ["دروس خصوصية", "Tutoring"],
+  quran: ["قرآن", "Quran"],
+  music: ["موسيقى", "Music"],
   submit: ["قدم الطلب", "Submitted application"],
   submitted: ["الطلب اتقدم", "Submitted"],
   start_review: ["بدأ مراجعة الطلب", "Started review"],
