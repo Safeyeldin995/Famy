@@ -56,48 +56,11 @@ function Landing() {
   const areas = useServiceAreas();
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
 
-  const iconBox = "grid h-16 w-16 place-items-center rounded-2xl";
-  const services = [
-    {
-      key: "babysitting",
-      title: t("roles.babysitter"),
-      body: t("site.services.babysittingAllBody"),
-      art: (
-        <span className={`${iconBox} bg-brand/10 text-brand`}>
-          <Baby className="h-8 w-8" aria-hidden="true" />
-        </span>
-      ),
-    },
-    {
-      key: "tutoring",
-      title: t("categories.tutorSubtitle"),
-      body: t("site.services.tutoringAllBody"),
-      art: (
-        <span className={`${iconBox} bg-lavender/15 text-lavender`}>
-          <GraduationCap className="h-8 w-8" aria-hidden="true" />
-        </span>
-      ),
-    },
-    {
-      key: "quran",
-      title: t("site.services.quran"),
-      body: t("site.services.quranBody"),
-      art: (
-        <span className={`${iconBox} overflow-hidden`}>
-          <LessonIllustration serviceSlug="quran-lessons" className="h-16 w-16" />
-        </span>
-      ),
-    },
-    {
-      key: "music",
-      title: t("site.services.music"),
-      body: t("site.services.musicBody"),
-      art: (
-        <span className={`${iconBox} overflow-hidden`}>
-          <LessonIllustration serviceSlug="music-lessons" className="h-16 w-16" />
-        </span>
-      ),
-    },
+  const iconBox = "grid h-16 w-16 shrink-0 place-items-center rounded-2xl";
+  const tutoringShortcuts = [
+    { key: "subjects", label: t("home.doors.tutorSubjects"), lesson: null },
+    { key: "quran", label: t("home.doors.quran"), lesson: "quran-lessons" as const },
+    { key: "music", label: t("home.doors.music"), lesson: "music-lessons" as const },
   ];
 
   return (
@@ -162,21 +125,67 @@ function Landing() {
 
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.services.title")} body={t("site.services.body")} />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((item) => (
-            <article
-              key={item.key}
-              className="flex flex-col gap-4 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
-            >
-              {item.art}
-              <div>
-                <h3 className="text-pro-18 font-extrabold">{item.title}</h3>
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
+          <article
+            data-testid="landing-door-tutoring"
+            className="flex flex-col gap-5 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              <span className={`${iconBox} bg-lavender/15 text-lavender`}>
+                <GraduationCap className="h-8 w-8" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-pro-24 font-extrabold">{t("home.doors.tutorTitle")}</h3>
                 <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
-                  {item.body}
+                  {t("home.doors.tutorBody")}
                 </p>
               </div>
-            </article>
-          ))}
+            </div>
+            <ul className="flex flex-wrap gap-2" aria-label={t("home.doors.tutorTitle")}>
+              {tutoringShortcuts.map((item) => (
+                <li
+                  key={item.key}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lavender/10 px-3.5 text-pro-14 font-bold"
+                >
+                  {item.lesson ? (
+                    <LessonIllustration serviceSlug={item.lesson} className="h-7 w-7" />
+                  ) : (
+                    <GraduationCap className="h-5 w-5 text-lavender" aria-hidden="true" />
+                  )}
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/online"
+              className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand px-5 text-pro-14 font-extrabold text-white shadow-sm"
+            >
+              <Video className="h-5 w-5" aria-hidden="true" />
+              {t("home.doors.onlineCta")}
+            </Link>
+          </article>
+          <article
+            data-testid="landing-door-babysitting"
+            className="flex flex-col gap-5 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              <span className={`${iconBox} bg-brand/10 text-brand`}>
+                <Baby className="h-8 w-8" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-pro-24 font-extrabold">{t("home.doors.babysitterTitle")}</h3>
+                <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
+                  {t("home.doors.babysitterBody")}
+                </p>
+              </div>
+            </div>
+            <a
+              href="#download"
+              className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/25 bg-white px-5 text-pro-14 font-extrabold text-brand shadow-sm"
+            >
+              {t("home.doors.appCta")}
+            </a>
+          </article>
         </div>
       </SiteSection>
 
@@ -246,7 +255,7 @@ function Landing() {
         </div>
       </SiteSection>
 
-      <div className="bg-surface-2/60">
+      <div id="download" className="scroll-mt-20 bg-surface-2/60">
         <SiteSection className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
           <picture className="md:order-2">
             <source srcSet={appWebp} type="image/webp" />

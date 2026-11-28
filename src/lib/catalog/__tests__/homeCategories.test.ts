@@ -36,3 +36,22 @@ describe("homeCategories", () => {
     expect(isHomeCategoryId("cleaning")).toBe(false);
   });
 });
+
+describe("home doors", () => {
+  it("shows tutoring before babysitting and only live categories", async () => {
+    const { visibleHomeDoors } = await import("../homeCategories");
+    expect(visibleHomeDoors(["babysitting", "tutoring"])).toEqual(["tutoring", "babysitting"]);
+    expect(visibleHomeDoors(["babysitting"])).toEqual(["babysitting"]);
+    expect(visibleHomeDoors(["cleaning"])).toEqual([]);
+  });
+
+  it("shows Quran and music shortcuts only when their service is live", async () => {
+    const { visibleTutoringShortcuts } = await import("../homeCategories");
+    expect(visibleTutoringShortcuts(["quran-lessons", "music-lessons", "math"])).toEqual([
+      "quran",
+      "music",
+    ]);
+    expect(visibleTutoringShortcuts(["music-lessons", null])).toEqual(["music"]);
+    expect(visibleTutoringShortcuts([])).toEqual([]);
+  });
+});

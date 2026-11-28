@@ -43,3 +43,29 @@ export function servicesForHomeCategory<T extends { slug?: string | null }>(
   if (id === "tutoring") return services.filter((s) => !isLessonServiceSlug(s.slug));
   return services;
 }
+
+/**
+ * The customer home shows two separate doors (PO, 28 Nov 2026): tutoring and
+ * babysitting are different services and never share a list on the home.
+ * Quran and music sit inside the tutoring door as shortcuts.
+ */
+export type HomeDoorId = "tutoring" | "babysitting";
+
+export const HOME_DOOR_IDS: readonly HomeDoorId[] = ["tutoring", "babysitting"];
+
+export const TUTORING_DOOR_SHORTCUTS: readonly ("quran" | "music")[] = ["quran", "music"];
+
+/** A door shows only when its DB category is live. */
+export function visibleHomeDoors(categorySlugs: readonly string[]): HomeDoorId[] {
+  return HOME_DOOR_IDS.filter((id) => categorySlugs.includes(id));
+}
+
+/** Quran/music shortcuts show only when their lesson service is live. */
+export function visibleTutoringShortcuts(
+  serviceSlugs: readonly (string | null | undefined)[],
+): ("quran" | "music")[] {
+  return TUTORING_DOOR_SHORTCUTS.filter((id) => {
+    const lesson = homeCategoryLessonSlug(id);
+    return lesson ? serviceSlugs.includes(lesson) : false;
+  });
+}

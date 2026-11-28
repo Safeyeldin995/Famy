@@ -4,9 +4,17 @@ import { router, useFocusEffect } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
 import { HomePromoStrip } from "@/ui/HomePromoStrip";
-import { recentProviders, uniqueProviders } from "@/lib/presentation";
+import { recentProviders } from "@/lib/presentation";
 import { takeGuestIntent } from "@/lib/guest";
-import { Platform, Pressable, ScrollView, RefreshControl, StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +28,6 @@ import {
   ChevronDown,
   GraduationCap,
   MapPin,
-  Search,
   ShieldCheck,
 } from "lucide-react-native";
 import {
@@ -28,14 +35,18 @@ import {
   useDefaultAddress,
   useMyProfile,
   useUnreadNotificationCount,
-  useProviders,
   useMyBookings,
   useFeaturedPromoCodes,
   useMarketplaceServices,
 } from "@/lib/queries";
 import { Text } from "@/ui/Text";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
-import { HOME_CATEGORY_IDS, homeCategoryLessonSlug } from "@shared/catalog/homeCategories";
+import {
+  homeCategoryLessonSlug,
+  visibleHomeDoors,
+  visibleTutoringShortcuts,
+  type HomeDoorId,
+} from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
 import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
 import { RatingPromptCard } from "@/ui/customer/RatingPromptCard";
@@ -54,36 +65,25 @@ import {
   resetHomeFreezeDiagnostics,
 } from "@/lib/homeFreezeDiagnostics";
 
-const SERVICE_TILES = {
-  babysitting: {
-    icon: Baby,
-    surface: colors.brandTint,
-    ink: colors.brand,
-    taglineKey: "home.babysittingTag",
-    titleKey: "roles.babysitter",
-  },
+const DOORS: Record<
+  HomeDoorId,
+  { icon: typeof Baby; surface: string; ink: string; titleKey: string; bodyKey: string }
+> = {
   tutoring: {
     icon: GraduationCap,
     surface: colors.lavenderTint,
     ink: colors.lavender,
-    taglineKey: "home.tutoringTag",
-    titleKey: "categories.tutorSubtitle",
+    titleKey: "home.doors.tutorTitle",
+    bodyKey: "home.doors.tutorBody",
   },
-  quran: {
-    lesson: "quran-lessons",
+  babysitting: {
+    icon: Baby,
     surface: colors.brandTint,
     ink: colors.brand,
-    taglineKey: "home.quranTag",
-    titleKey: "home.quranTitle",
+    titleKey: "home.doors.babysitterTitle",
+    bodyKey: "home.doors.babysitterBody",
   },
-  music: {
-    lesson: "music-lessons",
-    surface: colors.lavenderTint,
-    ink: colors.lavender,
-    taglineKey: "home.musicTag",
-    titleKey: "home.musicTitle",
-  },
-} as const;
+};
 
 export default function Home() {
   const { session } = useSession();
@@ -203,6 +203,8 @@ export default function Home() {
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
   const recent = recentProviders(bookings.data ?? []);
   const returning = activeIds.length > 0 || recent.length > 0;
+  const doors = visibleHomeDoors((categories.data ?? []).map((c) => c.slug));
+  const shortcuts = visibleTutoringShortcuts((tutoringServices.data ?? []).map((svc) => svc.slug));
 
   const bookAgainSection =
     returning && recent.length ? (
@@ -293,19 +295,6 @@ export default function Home() {
           <Text size={returning ? "xl" : "xxl"} weight="heavy">
             {t("home.headline")}
           </Text>
-
-          <Pressable
-            testID="customer-home-search"
-            onPress={() => router.push("/search")}
-            style={({ pressed }) => [styles.search, shadow.card, pressed && { opacity: 0.8 }]}
-            accessibilityRole="button"
-            accessibilityLabel={t("customerSearch.placeholder")}
-          >
-            <Search size={20} color={colors.brand} strokeWidth={2.4} />
-            <Text tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {t("customerSearch.placeholder")}
-            </Text>
-          </Pressable>
         </SafeAreaView>
       </LinearGradient>
 
@@ -329,49 +318,68 @@ export default function Home() {
       {bookAgainSection}
 
       <View style={[styles.sectionCompact, !returning && styles.sectionAboveFold]}>
-        <Text size="lg" weight="heavy">
-          {t("home.chooseService")}
-        </Text>
-        <QueryState query={categories} empty={!categories.data?.length}>
-          <View style={styles.tiles}>
-            {HOME_CATEGORY_IDS.map((id) => {
-              const tile = SERVICE_TILES[id];
-              const lesson = homeCategoryLessonSlug(id);
-              const available = lesson
-                ? (tutoringServices.data ?? []).some((svc) => svc.slug === lesson)
-                : (categories.data ?? []).some((c) => c.slug === id);
-              if (!available) return null;
+        <QueryState query={categories} empty={!doors.length} emptyKey="home.doors.empty">
+          <View style={styles.doors}>
+            {doors.map((id) => {
+              const door = DOORS[id];
+              const Icon = door.icon;
               return (
-                <Pressable
+                <View
                   key={id}
-                  onPress={() => router.push({ pathname: "/category/[id]", params: { id } })}
-                  accessibilityRole="button"
-                  accessibilityLabel={t(tile.titleKey)}
-                  style={({ pressed }) => [
-                    styles.tile,
-                    { backgroundColor: tile.surface },
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                  ]}
+                  testID={`home-door-${id}`}
+                  style={[styles.door, { backgroundColor: door.surface }]}
                 >
-                  <View style={styles.tileTop}>
+                  <Pressable
+                    onPress={() => router.push({ pathname: "/category/[id]", params: { id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(door.titleKey)}
+                    accessibilityHint={t(door.bodyKey)}
+                    style={({ pressed }) => [
+                      styles.doorMain,
+                      pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+                    ]}
+                  >
                     <View style={styles.tileIcon}>
-                      {lesson ? (
-                        <LessonIllustration serviceSlug={lesson} width={44} height={44} />
-                      ) : "icon" in tile ? (
-                        <tile.icon size={24} color={tile.ink} strokeWidth={2.4} />
-                      ) : null}
+                      <Icon size={26} color={door.ink} strokeWidth={2.4} />
                     </View>
-                    <Arrow size={20} color={tile.ink} />
-                  </View>
-                  <View style={{ gap: space.xs }}>
-                    <Text size="lg" weight="heavy">
-                      {t(tile.titleKey)}
-                    </Text>
-                    <Text size="xs" weight="bold" tone="muted">
-                      {t(tile.taglineKey)}
-                    </Text>
-                  </View>
-                </Pressable>
+                    <View style={{ flex: 1, gap: space.xs }}>
+                      <Text size="xl" weight="heavy">
+                        {t(door.titleKey)}
+                      </Text>
+                      <Text size="sm" weight="bold" tone="muted">
+                        {t(door.bodyKey)}
+                      </Text>
+                    </View>
+                    <Arrow size={22} color={door.ink} />
+                  </Pressable>
+                  {id === "tutoring" && shortcuts.length ? (
+                    <View style={styles.shortcuts}>
+                      {shortcuts.map((group) => {
+                        const lesson = homeCategoryLessonSlug(group);
+                        const label = t(`home.doors.${group}`);
+                        return (
+                          <Pressable
+                            key={group}
+                            testID={`home-door-shortcut-${group}`}
+                            onPress={() =>
+                              router.push({ pathname: "/category/[id]", params: { id: group } })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={label}
+                            style={({ pressed }) => [styles.shortcut, pressed && { opacity: 0.8 }]}
+                          >
+                            {lesson ? (
+                              <LessonIllustration serviceSlug={lesson} width={28} height={28} />
+                            ) : null}
+                            <Text size="sm" weight="bold">
+                              {label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </View>
               );
             })}
           </View>
@@ -396,17 +404,13 @@ export default function Home() {
         </ScrollView>
       ) : null}
       <View style={styles.sectionCompact}>
-        <QueryState query={address}>
-          {address.data ? (
-            <NearbyProviders addressId={address.data.id} />
-          ) : (
-            <Row
-              label={t("customerHome.chooseArea")}
-              detail={t("customerHome.addressHint")}
-              href="/addresses"
-            />
-          )}
-        </QueryState>
+        {address.isSuccess && !address.data ? (
+          <Row
+            label={t("customerHome.chooseArea")}
+            detail={t("customerHome.addressHint")}
+            href="/addresses"
+          />
+        ) : null}
         {["home.trust1", "home.trust2", "home.trust3"].map((k) => (
           <View
             key={k}
@@ -472,29 +476,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.surface,
   },
-  search: {
-    marginTop: space.xl,
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.md,
-    paddingHorizontal: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-  },
   section: { paddingHorizontal: space.xl, paddingTop: space.xxl, gap: space.md },
   sectionCompact: { paddingHorizontal: space.xl, paddingTop: space.lg, gap: space.md },
   sectionAboveFold: { paddingTop: space.md },
-  tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
-  tile: {
-    flexGrow: 1,
-    flexBasis: "45%",
-    minHeight: 148,
-    borderRadius: radius.xl,
-    padding: space.lg,
-    justifyContent: "space-between",
+  doors: { gap: space.md },
+  door: { borderRadius: radius.xl, padding: space.lg, gap: space.md },
+  doorMain: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 72 },
+  shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  shortcut: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs + 2,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
   },
-  tileTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   tileIcon: {
     width: 48,
     height: 48,
@@ -504,49 +501,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-
-function NearbyProviders({ addressId }: { addressId: string }) {
-  const { t } = useTranslation();
-  const a = useProviders({ addressId, categorySlug: "babysitting", limit: 20 });
-  const b = useProviders({ addressId, categorySlug: "tutoring", limit: 20 });
-  const providers = uniqueProviders([...(a.data ?? []), ...(b.data ?? [])]);
-  return (
-    <View style={{ gap: space.md }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: space.md,
-        }}
-      >
-        <Text size="lg" weight="heavy">
-          {t("customerHome.nearby")}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("common.seeAll")}
-          onPress={() => router.push("/search")}
-          style={{ minHeight: 44, justifyContent: "center" }}
-        >
-          <Text size="sm" tone="brand" weight="bold">
-            {t("common.seeAll")}
-          </Text>
-        </Pressable>
-      </View>
-      <QueryState
-        query={{
-          isLoading: a.isLoading || b.isLoading,
-          isError: a.isError || b.isError,
-          refetch: () => Promise.all([a.refetch(), b.refetch()]),
-        }}
-        empty={!providers.length}
-        emptyKey="customerHome.empty"
-      >
-        {providers.map((p) => (
-          <ProviderCard key={p.id} provider={p} />
-        ))}
-      </QueryState>
-    </View>
-  );
-}
