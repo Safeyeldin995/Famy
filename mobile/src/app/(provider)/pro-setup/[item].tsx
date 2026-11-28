@@ -22,6 +22,7 @@ import {
 import { SetupItemForm } from "@/ui/provider/SetupItemForm";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { TeachingGroupsSetup } from "@/ui/provider/TeachingGroupsSetup";
+import { readDemandPrefill } from "@shared/provider/tutorDemandInsights";
 import { Page, QueryState } from "@/ui/Page";
 
 const SETUP_ITEMS = [
@@ -35,7 +36,15 @@ const SETUP_ITEMS = [
 ] as const;
 
 export default function ProSetupItemScreen() {
-  const { item } = useLocalSearchParams<{ item: string }>();
+  const params = useLocalSearchParams<{
+    item: string;
+    service?: string;
+    subject?: string;
+    curriculum?: string;
+    level?: string;
+  }>();
+  const item = params.item;
+  const prefill = readDemandPrefill(params);
   const { t } = useTranslation();
   const qc = useQueryClient();
   const providerQ = useMyProvider();
@@ -129,8 +138,11 @@ export default function ProSetupItemScreen() {
       item === "subjects" ? (
         <TeachingGroupsSetup
           providerId={providerId!}
+          initial={prefill}
+          // Every non-babysitting service the tutor picked; the setup keeps only
+          // services with linked teaching subjects (school, languages, Quran, music).
           services={
-            selected.filter((s) => s.category?.slug === "tutoring") as {
+            selected.filter((s) => s.category?.slug !== "babysitting") as {
               id: string;
               name_ar: string;
               name_en: string;

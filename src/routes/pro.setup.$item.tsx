@@ -44,7 +44,9 @@ import {
   type SetupSnapshot,
 } from "@/lib/provider/setupHelpers";
 import { supabase } from "@/integrations/supabase/client";
+import { readDemandPrefill, type DemandPrefill } from "@/lib/provider/tutorDemandInsights";
 export const Route = createFileRoute("/pro/setup/$item")({
+  validateSearch: (search: Record<string, unknown>): DemandPrefill => readDemandPrefill(search),
   beforeLoad: ({ params }) => {
     if (!setupItems.includes(params.item as SetupItem)) throw notFound();
   },
@@ -52,6 +54,7 @@ export const Route = createFileRoute("/pro/setup/$item")({
 });
 function ProviderSetupRoute() {
   const { item } = Route.useParams();
+  const prefill = Route.useSearch();
   const nav = useNavigate();
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -88,8 +91,11 @@ function ProviderSetupRoute() {
     return (
       <LiveSubjects
         providerId={provider.data.id}
-        services={selectedServices.filter((s) => s.category?.slug === "tutoring")}
+        // Any service with linked teaching subjects (school, languages, Quran, music),
+        // whatever category it sits in.
+        services={selectedServices.filter((s) => s.category?.slug !== "babysitting")}
         serviceStatuses={serviceStatusById}
+        initial={prefill}
         onBack={back}
       />
     );
@@ -164,11 +170,13 @@ function LiveSubjects({
   providerId,
   services,
   serviceStatuses,
+  initial,
   onBack,
 }: {
   providerId: string;
   services: import("@/components/provider/GroupedTeachingSetup").SetupTeachingService[];
   serviceStatuses: Record<string, string>;
+  initial?: DemandPrefill;
   onBack: () => void;
 }) {
   const { t } = useTranslation();
@@ -193,7 +201,8 @@ function LiveSubjects({
     );
   return (
     <GroupedTeachingSetup
-      services={services}
+      services={services.filter((s) => links.data!.some((link) => link.service_id === s.id))}
+      initial={initial}
       subjects={subjects.data!}
       curricula={curricula.data!}
       levels={levels.data!}

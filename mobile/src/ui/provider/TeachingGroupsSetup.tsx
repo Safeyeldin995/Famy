@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -31,6 +31,8 @@ import { space } from "@/ui/theme";
 import { BottomSheetSelect } from "./BottomSheetSelect";
 import { ProviderPriceStepper } from "./ProviderPriceStepper";
 import { proCard } from "./cards";
+import type { DemandPrefill } from "@shared/provider/tutorDemandInsights";
+import { teachingSetupPrefill } from "@shared/provider/teachingSetupPrefill";
 
 type Named = { id: string; code?: string | null; name_ar: string; name_en: string };
 type SubjectRow = { id: string; code: string; name_ar: string; name_en: string };
@@ -54,10 +56,13 @@ type TeachingRow = {
 
 export function TeachingGroupsSetup({
   providerId,
-  services,
+  services: offeredServices,
+  initial,
 }: {
   providerId: string;
   services: TeachingService[];
+  /** Prefill from «الطلبة بيدوروا على إيه» (service / subject / curriculum / level ids). */
+  initial?: DemandPrefill;
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
@@ -69,6 +74,12 @@ export function TeachingGroupsSetup({
   const levelsQ = useTeachingLevels();
   const linksQ = useTeachingSubjectServices();
   const serviceLevelsQ = useTeachingServiceLevels();
+  // Only services with linked teaching subjects, whatever category they sit in.
+  const services = linksQ.data
+    ? offeredServices.filter((row) =>
+        (linksQ.data as { service_id: string }[]).some((link) => link.service_id === row.id),
+      )
+    : offeredServices;
   const saveGroup = useSaveTeachingGroup();
   const removeGroup = useRemoveTeachingCapability();
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
@@ -81,6 +92,26 @@ export function TeachingGroupsSetup({
   const [busy, setBusy] = useState(false);
 
   const queries = [rowsQ, subjectsQ, curriculaQ, levelsQ, linksQ, serviceLevelsQ];
+  const allReady = queries.every((query) => query.isSuccess);
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !allReady || !initial?.service) return;
+    prefilled.current = true;
+    const start = teachingSetupPrefill(initial, {
+      services,
+      subjects: (subjectsQ.data ?? []) as { id: string }[],
+      curricula: (curriculaQ.data ?? []) as { id: string; code: string }[],
+      links: (linksQ.data ?? []) as { subject_id: string; service_id: string }[],
+      rows: (rowsQ.data ?? []) as TeachingRow[],
+    });
+    if (!start) return;
+    setServiceId(start.serviceId);
+    setSubjectId(start.subjectId);
+    setCurriculumId(start.curriculumId);
+    setLevelIds(start.levelIds);
+    if (start.durationMin) setDuration(start.durationMin);
+    if (start.price != null) setPrice(start.price);
+  }, [allReady, initial, services, subjectsQ.data, curriculaQ.data, linksQ.data, rowsQ.data]);
   if (queries.some((query) => query.isLoading)) return <Text>{t("common.loading")}</Text>;
   if (queries.some((query) => query.isError))
     return <Text tone="danger">{t("providerApply.saveError")}</Text>;

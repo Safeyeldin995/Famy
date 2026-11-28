@@ -22,6 +22,7 @@ import { joinUiParts } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
 import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
 import { TutorTeachingDataBanner } from "@/ui/provider/TutorTeachingDataBanner";
+import { TutorDemandCard } from "@/ui/provider/TutorDemandCard";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
@@ -329,6 +330,7 @@ export default function ProviderDashboard() {
           />
         </ProviderEmptyState>
       )}
+      <TutorDemandCard limit={3} />
     </Page>
   );
 }

@@ -19,6 +19,8 @@ import {
 } from "@shared/provider/serviceRequestPayload";
 import { AGE_GROUP_CHIP_IDS } from "@shared/provider/ageGroupCapabilities";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { readDemandPrefill } from "@shared/provider/tutorDemandInsights";
+import { useTeachingSubjectServices } from "@/lib/provider/teachingQueries";
 import { useRequirementsForService } from "@/lib/bookingQueries";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -33,7 +35,15 @@ import { Text } from "@/ui/Text";
 import { space } from "@/ui/theme";
 
 export default function ProRequestServiceScreen() {
-  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const params = useLocalSearchParams<{
+    serviceId: string;
+    service?: string;
+    subject?: string;
+    curriculum?: string;
+    level?: string;
+  }>();
+  const serviceId = params.serviceId;
+  const prefill = readDemandPrefill(params);
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const providerQ = useMyProvider();
@@ -53,7 +63,14 @@ export default function ProRequestServiceScreen() {
     [servicesQ.data, serviceId],
   );
   const categorySlug = (service?.category as { slug?: string } | undefined)?.slug;
-  const tutoring = isTutoringCategorySlug(categorySlug);
+  // Teaching services are recognised by their linked subjects too, so Quran and
+  // music keep the subject / grade step whatever category they sit in.
+  const linksQ = useTeachingSubjectServices();
+  const tutoring =
+    isTutoringCategorySlug(categorySlug) ||
+    ((linksQ.data ?? []) as { service_id: string }[]).some(
+      (link) => link.service_id === String(service?.id ?? ""),
+    );
   const babysitting = categorySlug === "babysitting";
   const reqQ = useRequirementsForService(service?.id as string | undefined);
   const fulfillQ = useQuery({
@@ -153,6 +170,7 @@ export default function ProRequestServiceScreen() {
             </Text>
             {tutoring && providerId ? (
               <ServiceRequestTeachingDraft
+                initial={prefill}
                 service={service as Parameters<typeof ServiceRequestTeachingDraft>[0]["service"]}
                 groups={teachingGroups}
                 onChangeGroups={setTeachingGroups}
