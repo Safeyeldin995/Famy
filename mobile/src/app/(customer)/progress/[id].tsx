@@ -1,6 +1,6 @@
 // «تقدم {name}» (migration 20261128140000): lesson reports over time, Quran memorization
 // (surahs and juz) and music level for one learner. `id` is a child (family member) id,
-// `me`, or a linked student's id (parent link, #419).
+// `me`, or a linked student's id (parent link, issue 419).
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";

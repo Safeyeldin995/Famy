@@ -245,6 +245,11 @@ CREATE TABLE IF NOT EXISTS public.lesson_report_reminders (
 
 CREATE INDEX IF NOT EXISTS lesson_report_quran_entries_report_idx
   ON public.lesson_report_quran_entries (report_id);
+CREATE INDEX IF NOT EXISTS lesson_report_quran_entries_from_surah_idx
+  ON public.lesson_report_quran_entries (from_surah);
+CREATE INDEX IF NOT EXISTS lesson_report_quran_entries_to_surah_idx
+  ON public.lesson_report_quran_entries (to_surah);
+CREATE INDEX IF NOT EXISTS quran_juz_start_surah_idx ON public.quran_juz (start_surah);
 
 ALTER TABLE public.lesson_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_report_quran_entries ENABLE ROW LEVEL SECURITY;
