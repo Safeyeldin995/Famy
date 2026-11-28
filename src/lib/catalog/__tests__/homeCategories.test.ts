@@ -28,11 +28,34 @@ describe("homeCategories", () => {
   });
 
   it("maps groups to their DB category and lesson service", () => {
-    expect(homeCategoryDbSlug("quran")).toBe("tutoring");
+    expect(homeCategoryDbSlug("quran")).toBe("quran");
     expect(homeCategoryDbSlug("babysitting")).toBe("babysitting");
     expect(homeCategoryLessonSlug("music")).toBe("music-lessons");
     expect(homeCategoryLessonSlug("tutoring")).toBeNull();
     expect(isHomeCategoryId("quran")).toBe(true);
     expect(isHomeCategoryId("cleaning")).toBe(false);
+  });
+});
+
+describe("home doors", () => {
+  it("shows four doors in order, only for live categories", async () => {
+    const { visibleHomeDoors } = await import("../homeCategories");
+    expect(visibleHomeDoors(["babysitting", "music", "tutoring", "quran"])).toEqual([
+      "tutoring",
+      "quran",
+      "music",
+      "babysitting",
+    ]);
+    expect(visibleHomeDoors(["babysitting", "tutoring"])).toEqual(["tutoring", "babysitting"]);
+    expect(visibleHomeDoors(["cleaning"])).toEqual([]);
+  });
+
+  it("maps lesson services to their own categories", async () => {
+    const { lessonServiceCategorySlug, homeCategoryDbSlug } = await import("../homeCategories");
+    expect(lessonServiceCategorySlug("quran-lessons")).toBe("quran");
+    expect(lessonServiceCategorySlug("music-lessons")).toBe("music");
+    expect(lessonServiceCategorySlug("math")).toBeNull();
+    expect(homeCategoryDbSlug("quran")).toBe("quran");
+    expect(homeCategoryDbSlug("music")).toBe("music");
   });
 });

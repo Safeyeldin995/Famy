@@ -15,6 +15,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 /** Public provider profile for guests. Booking needs an account; we resume here after sign-up. */
 export default function GuestProvider() {
@@ -52,7 +53,8 @@ export default function GuestProvider() {
   const name = p?.profile.full_name || t("provider2.unnamed");
   const bio = (ar ? p?.bio_ar : p?.bio_en) || p?.bio_en;
   const serviceSlugs = (detail.data?.services ?? []).map(({ service }) => service.category?.slug);
-  const onlyTutoring = serviceSlugs.length > 0 && serviceSlugs.every((slug) => slug === "tutoring");
+  const onlyTutoring =
+    serviceSlugs.length > 0 && serviceSlugs.every((slug) => isTutoringCategorySlug(slug));
 
   const book = async () => {
     if (id) await saveGuestIntent(id, serviceId);
@@ -141,7 +143,7 @@ export default function GuestProvider() {
                     <Text weight="bold" tone="brand">
                       {isFixedPackage(service)
                         ? money(price, i18n.language)
-                        : service.category?.slug === "tutoring"
+                        : isTutoringCategorySlug(service.category?.slug)
                           ? t("providerPage.perSession", { price: money(price, i18n.language) })
                           : t("providerPage.perHour", { price: money(price, i18n.language) })}
                     </Text>

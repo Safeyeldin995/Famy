@@ -14,6 +14,7 @@ import { useProviderTrustStats } from "@/lib/trustQueries";
 import { Text } from "./Text";
 import { colors, fontSizeTokenForAvatarInitial, radius, space } from "./theme";
 import { ui } from "./Page";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 export function Avatar({
   raw,
@@ -71,7 +72,7 @@ export function ProviderCard({
   const packageInfo = service && isFixedPackage(service) ? packageLabel(service) : null;
   const categorySlugs = [...new Set(p.services.map((item) => item.service?.category?.slug))];
   const tutoringOnly =
-    categorySlugs.length > 0 && categorySlugs.every((slug) => slug === "tutoring");
+    categorySlugs.length > 0 && categorySlugs.every((slug) => isTutoringCategorySlug(slug));
   const stats = useProviderTrustStats(p.id);
   const completed = cardCompletedCount(stats.data, tutoringOnly);
   const bio = bioSnippet((i18n.language === "ar" ? p.bio_ar : p.bio_en) || p.bio_en);
@@ -118,14 +119,18 @@ export function ProviderCard({
           )}
         </View>
         <Text size="sm" tone="muted">
-          {categorySlugs
-            .map((slug) =>
-              slug === "babysitting"
-                ? t("roles.babysitter")
-                : slug === "tutoring"
-                  ? t("roles.teacher")
-                  : "",
-            )
+          {[
+            ...new Set(
+              p.services.map((item) => {
+                const slug = item.service?.category?.slug;
+                return slug === "babysitting"
+                  ? t("roles.babysitter")
+                  : isTutoringCategorySlug(slug)
+                    ? t("roles.teacher")
+                    : "";
+              }),
+            ),
+          ]
             .filter(Boolean)
             .join(uiListSeparator(i18n.language)) || localized(service, i18n.language)}
         </Text>
@@ -168,7 +173,7 @@ export function ProviderCard({
                     ],
                     i18n.language,
                   )
-                : service?.category?.slug === "tutoring"
+                : isTutoringCategorySlug(service?.category?.slug)
                   ? t("providerPage.perSession", {
                       price: customerMoney(p.hourly_rate, i18n.language),
                     })

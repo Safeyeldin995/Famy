@@ -4,6 +4,7 @@ import type { TeachingCapabilityOption } from "../tutoring/teachingCapabilities"
 import { joinUiParts } from "../format/uiJoin";
 import { isFixedPackage, packageLabel, type PackageService } from "../pricing/servicePackages";
 import { formatEGP } from "../format/egp";
+import { isTutoringCategorySlug } from "../tutoring/teachingCapabilities";
 
 type ServiceRow = {
   price_override: number | null;
@@ -39,7 +40,7 @@ export function providerProfilePriceLine(
   },
 ): string {
   const service = row.service;
-  const tutoring = service.category?.slug === "tutoring";
+  const tutoring = isTutoringCategorySlug(service.category?.slug);
   if (opts.capability) {
     return t("providerPage.session", {
       price: formatEGP(opts.capability.price, undefined, language),
@@ -67,7 +68,7 @@ export function providerProfileQualificationLine(
   language: string,
   t: BookCopy,
 ): string | null {
-  if (row.service.category?.slug !== "tutoring") return null;
+  if (!isTutoringCategorySlug(row.service.category?.slug)) return null;
   const cap = capabilities.find((c) => c.serviceId === row.service.id);
   if (!cap) return null;
   const ar = language.startsWith("ar");

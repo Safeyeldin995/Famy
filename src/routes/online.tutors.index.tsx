@@ -1,3 +1,4 @@
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -57,7 +58,10 @@ function OnlineTutorsIndex() {
   const curriculaQ = useTeachingCurricula();
 
   const base = useMemo(
-    () => customerProviders(tutorsQ.data ?? []).filter((p) => p.categorySlugs.includes("tutoring")),
+    () =>
+      customerProviders(tutorsQ.data ?? []).filter((p) =>
+        p.categorySlugs.some((slug) => isTutoringCategorySlug(slug)),
+      ),
     [tutorsQ.data],
   );
   const capsQ = useApprovedTeachingCapabilitiesForProviders(base.map((p) => p.id));

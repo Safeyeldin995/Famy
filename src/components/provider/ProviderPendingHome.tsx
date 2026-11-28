@@ -35,6 +35,7 @@ import { workingHoursState } from "@/lib/provider/setupHelpers";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { pendingHomeModel, type PendingHomeData } from "@/lib/provider/pendingHomeModel";
 import "@/components/famio/providerApply.css";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 const icons = {
   basics: MapPin,
@@ -247,9 +248,9 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
         needsBabysitting: selected.some((s) => s.category?.slug === "babysitting"),
         babysitting:
           !!data.provider?.max_children_per_booking && !!data.age_group_capabilities?.length,
-        missingSubjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!),
-        needsSubjects: selected.some((s) => s.category?.slug === "tutoring"),
-        subjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!).length === 0,
+        missingSubjects: missingTeachingServices(selected.filter(s => isTutoringCategorySlug(s.category?.slug)), subjects.data!),
+        needsSubjects: selected.some((s) => isTutoringCategorySlug(s.category?.slug)),
+        subjects: missingTeachingServices(selected.filter(s => isTutoringCategorySlug(s.category?.slug)), subjects.data!).length === 0,
       }}
     />
   );
