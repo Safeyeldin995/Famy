@@ -25,6 +25,10 @@ vi.mock("@/components/provider/ProviderPayoutMethodsPanel", () => ({
 vi.mock("@/components/provider/ProviderWalletPanel", () => ({
   ProviderWalletPanel: () => null,
 }));
+vi.mock("@/lib/db/launch-offers-queries", () => ({
+  useMyLaunchCommission: () => ({ data: undefined }),
+  useFirstLessonGuaranteeSettings: () => ({ data: undefined }),
+}));
 vi.mock("@/lib/db/provider-queries", () => ({
   useMyProvider: () => ({ data: { id: "provider" } }),
   useProviderEarnings: () => ({
