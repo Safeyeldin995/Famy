@@ -56,47 +56,51 @@ function Landing() {
   const areas = useServiceAreas();
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
 
-  const iconBox = "grid h-16 w-16 place-items-center rounded-2xl";
-  const services = [
-    {
-      key: "babysitting",
-      title: t("roles.babysitter"),
-      body: t("site.services.babysittingAllBody"),
-      art: (
-        <span className={`${iconBox} bg-brand/10 text-brand`}>
-          <Baby className="h-8 w-8" aria-hidden="true" />
-        </span>
-      ),
-    },
+  const iconBox = "grid h-16 w-16 shrink-0 place-items-center rounded-2xl";
+  const doors = [
     {
       key: "tutoring",
-      title: t("categories.tutorSubtitle"),
-      body: t("site.services.tutoringAllBody"),
+      title: t("home.doors.tutorTitle"),
+      body: t("home.doors.tutorBody"),
       art: (
         <span className={`${iconBox} bg-lavender/15 text-lavender`}>
           <GraduationCap className="h-8 w-8" aria-hidden="true" />
         </span>
       ),
+      online: true,
     },
     {
       key: "quran",
-      title: t("site.services.quran"),
-      body: t("site.services.quranBody"),
+      title: t("home.doors.quranTitle"),
+      body: t("home.doors.quranBody"),
       art: (
         <span className={`${iconBox} overflow-hidden`}>
           <LessonIllustration serviceSlug="quran-lessons" className="h-16 w-16" />
         </span>
       ),
+      online: true,
     },
     {
       key: "music",
-      title: t("site.services.music"),
-      body: t("site.services.musicBody"),
+      title: t("home.doors.musicTitle"),
+      body: t("home.doors.musicBody"),
       art: (
         <span className={`${iconBox} overflow-hidden`}>
           <LessonIllustration serviceSlug="music-lessons" className="h-16 w-16" />
         </span>
       ),
+      online: true,
+    },
+    {
+      key: "babysitting",
+      title: t("home.doors.babysitterTitle"),
+      body: t("home.doors.babysitterBody"),
+      art: (
+        <span className={`${iconBox} bg-brand/10 text-brand`}>
+          <Baby className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
+      online: false,
     },
   ];
 
@@ -163,18 +167,35 @@ function Landing() {
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.services.title")} body={t("site.services.body")} />
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((item) => (
+          {doors.map((door) => (
             <article
-              key={item.key}
+              key={door.key}
+              data-testid={`landing-door-${door.key}`}
               className="flex flex-col gap-4 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
             >
-              {item.art}
+              {door.art}
               <div>
-                <h3 className="text-pro-18 font-extrabold">{item.title}</h3>
+                <h3 className="text-pro-22 font-extrabold">{door.title}</h3>
                 <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
-                  {item.body}
+                  {door.body}
                 </p>
               </div>
+              {door.online ? (
+                <Link
+                  to="/online"
+                  className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand px-4 text-pro-14 font-extrabold text-white shadow-sm"
+                >
+                  <Video className="h-5 w-5" aria-hidden="true" />
+                  {t("home.doors.onlineCta")}
+                </Link>
+              ) : (
+                <a
+                  href="#download"
+                  className="focus-ring mt-auto inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/25 bg-white px-4 text-pro-14 font-extrabold text-brand shadow-sm"
+                >
+                  {t("home.doors.appCta")}
+                </a>
+              )}
             </article>
           ))}
         </div>
@@ -246,7 +267,7 @@ function Landing() {
         </div>
       </SiteSection>
 
-      <div className="bg-surface-2/60">
+      <div id="download" className="scroll-mt-20 bg-surface-2/60">
         <SiteSection className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
           <picture className="md:order-2">
             <source srcSet={appWebp} type="image/webp" />

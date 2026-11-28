@@ -31,6 +31,7 @@ import {
   type ServiceRequirementRow,
 } from "@shared/provider/applyDocumentChecklist";
 import { onboardingMutationErrorMessage } from "@/lib/provider/onboardingErrors";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 export function ProviderApplyFlow({
   initial,
@@ -237,7 +238,7 @@ export function ProviderApplyFlow({
             const selected = draft.services.includes(service.id);
             const locked = lockedServices.includes(service.id);
             const Icon =
-              service.category?.slug === "tutoring"
+              isTutoringCategorySlug(service.category?.slug)
                 ? BookOpen
                 : service.category?.slug === "babysitting"
                   ? Baby
@@ -291,7 +292,7 @@ export function ProviderApplyFlow({
                     {selected ? <Check size={14} color={colors.brandForeground} /> : null}
                   </View>
                 </Pressable>
-                {selected && service.category?.slug === "tutoring" ? (
+                {selected && isTutoringCategorySlug(service.category?.slug) ? (
                   <Text size="xs" tone="muted">
                     {t("providerApply.teachingLater")}
                   </Text>

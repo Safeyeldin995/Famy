@@ -4,8 +4,19 @@ export const DEFAULT_SESSION_DURATION_MIN: SessionDurationMin = 120;
 
 export const LESSON_SESSION_DURATIONS_MIN = [45, 60, 90] as const;
 
-export function isTutoringCategorySlug(slug: string | null | undefined): boolean {
-  return slug === "tutoring";
+/**
+ * Categories that follow the teaching rules (subjects, grades or levels,
+ * capability prices, online allowed). Quran and music became their own
+ * categories on 28 Nov 2026; they were part of "tutoring" before.
+ */
+export const TEACHING_CATEGORY_SLUGS = ["tutoring", "quran", "music"] as const;
+
+export type TeachingCategorySlug = (typeof TEACHING_CATEGORY_SLUGS)[number];
+
+export function isTutoringCategorySlug(
+  slug: string | null | undefined,
+): slug is TeachingCategorySlug {
+  return slug === "tutoring" || slug === "quran" || slug === "music";
 }
 
 export function isTutoringServiceSlug(slug: string | null | undefined): boolean {

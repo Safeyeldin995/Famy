@@ -41,6 +41,7 @@ import { proCard } from "./cards";
 import { ProviderAccountMenu } from "./ProviderAccountMenu";
 import { ProviderHeader } from "./ProviderHeader";
 import { colors, radius, space } from "@/ui/theme";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 const icons = {
   photo: User,
@@ -160,13 +161,13 @@ export function PendingHomeScreen({
         babysitting:
           !!data.provider?.max_children_per_booking && !!(data.age_group_capabilities ?? []).length,
         missingSubjects: missingTeachingServices(
-          selectedFiltered.filter((s) => s.category?.slug === "tutoring"),
+          selectedFiltered.filter((s) => isTutoringCategorySlug(s.category?.slug)),
           subjects.data ?? [],
         ),
-        needsSubjects: selectedFiltered.some((s) => s.category?.slug === "tutoring"),
+        needsSubjects: selectedFiltered.some((s) => isTutoringCategorySlug(s.category?.slug)),
         subjects:
           missingTeachingServices(
-            selectedFiltered.filter((s) => s.category?.slug === "tutoring"),
+            selectedFiltered.filter((s) => isTutoringCategorySlug(s.category?.slug)),
             subjects.data ?? [],
           ).length === 0,
       };

@@ -116,6 +116,14 @@ describe("mapNotificationDeepLink", () => {
       pathname: "/category/[id]",
       params: { id: "tutoring" },
     });
+    expect(mapNotificationDeepLink("/category/quran", "customer")).toEqual({
+      pathname: "/category/[id]",
+      params: { id: "quran" },
+    });
+    expect(mapNotificationDeepLink("/category/music", "customer")).toEqual({
+      pathname: "/category/[id]",
+      params: { id: "music" },
+    });
     expect(mapNotificationDeepLink("/account/students", "provider")).toEqual({
       pathname: "/dashboard",
     });

@@ -16,6 +16,7 @@ import {
   providerProfilePriceLine,
   providerProfileQualificationLine,
 } from "@/lib/booking/providerProfileDecision";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 type ServiceRow = {
   price_override: number | null;
@@ -49,7 +50,7 @@ export function ProviderBookingDecision({
   const capsQ = useApprovedTeachingCapabilities(providerId, row?.service.id);
   const capability = capsQ.data?.[0] ?? null;
   const fixed = row ? isFixedPackage(row.service) : false;
-  const tutoring = row?.service.category?.slug === "tutoring";
+  const tutoring = isTutoringCategorySlug(row?.service.category?.slug);
   const duration = capability
     ? capability.durationMin
     : fixed

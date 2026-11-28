@@ -45,6 +45,7 @@ import {
 } from "@/lib/provider/setupHelpers";
 import { supabase } from "@/integrations/supabase/client";
 import { readDemandPrefill, type DemandPrefill } from "@/lib/provider/tutorDemandInsights";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 export const Route = createFileRoute("/pro/setup/$item")({
   validateSearch: (search: Record<string, unknown>): DemandPrefill => readDemandPrefill(search),
   beforeLoad: ({ params }) => {
@@ -91,9 +92,7 @@ function ProviderSetupRoute() {
     return (
       <LiveSubjects
         providerId={provider.data.id}
-        // Any service with linked teaching subjects (school, languages, Quran, music),
-        // whatever category it sits in.
-        services={selectedServices.filter((s) => s.category?.slug !== "babysitting")}
+        services={selectedServices.filter((s) => isTutoringCategorySlug(s.category?.slug))}
         serviceStatuses={serviceStatusById}
         initial={prefill}
         onBack={back}

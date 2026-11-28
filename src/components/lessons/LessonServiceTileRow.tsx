@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { LessonIllustration } from "@/components/lessons/LessonIllustration";
 import { isLessonServiceSlug } from "@/lib/tutoring/lessonServices";
 import { isPreviewRoute } from "@/lib/preview/constants";
+import { lessonServiceCategorySlug } from "@/lib/catalog/homeCategories";
 
 type LessonService = {
   id: string;
@@ -65,7 +66,7 @@ export function LessonServiceTileRow({
           <Link
             key={service.id}
             to={categoryTo}
-            params={{ id: categorySlug }}
+            params={{ id: lessonServiceCategorySlug(service.slug) ?? categorySlug }}
             className={surface}
           >
             {inner}

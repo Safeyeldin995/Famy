@@ -6,8 +6,8 @@ appId: com.famy.app
       MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
       MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
 - assertVisible:
-    id: "customer-home-search"
+    id: "home-door-babysitting"
 - tapOn:
-    id: "customer-home-search"
+    id: "home-door-babysitting"
 - assertVisible:
-    id: "search-discovery"
+    id: "category-discovery"

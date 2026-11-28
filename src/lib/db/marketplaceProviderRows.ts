@@ -11,7 +11,7 @@ type MarketplaceProviderRow = {
 /** Keep one card per provider, after selecting the requested beta category. */
 export function selectMarketplaceProviderRows<T extends MarketplaceProviderRow>(
   rows: T[],
-  opts: { categorySlug?: string; limit?: number } = {},
+  opts: { categorySlug?: string; categorySlugs?: readonly string[]; limit?: number } = {},
 ): T[] {
   const seenProviders = new Set<string>();
   return rows
@@ -21,6 +21,7 @@ export function selectMarketplaceProviderRows<T extends MarketplaceProviderRow>(
         isQaFixtureName(row.full_name) ||
         !isClosedBetaCategorySlug(row.category_slug) ||
         (opts.categorySlug && row.category_slug !== opts.categorySlug) ||
+        (opts.categorySlugs && !opts.categorySlugs.includes(row.category_slug ?? "")) ||
         seenProviders.has(row.id)
       ) {
         return false;

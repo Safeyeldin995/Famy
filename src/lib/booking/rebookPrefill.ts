@@ -1,5 +1,6 @@
 import { isFixedPackage, type PackageService } from "@/lib/pricing/servicePackages";
 import { isSupervisionMode, type SupervisionMode } from "./supervisionMode";
+import { isTutoringCategorySlug } from "../tutoring/teachingCapabilities";
 
 export type RebookNoticeCode =
   | "serviceUnavailable"
@@ -124,7 +125,7 @@ export function mapRebookPrefill(
     notices.push({ code: "serviceUnavailable" });
   } else {
     values.serviceId = booking.service_id;
-    const tutoring = service.category?.slug === "tutoring";
+    const tutoring = isTutoringCategorySlug(service.category?.slug);
     const fixed = isFixedPackage(service);
 
     if (tutoring) {

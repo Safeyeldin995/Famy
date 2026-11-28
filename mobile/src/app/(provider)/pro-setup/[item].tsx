@@ -24,6 +24,7 @@ import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { TeachingGroupsSetup } from "@/ui/provider/TeachingGroupsSetup";
 import { readDemandPrefill } from "@shared/provider/tutorDemandInsights";
 import { Page, QueryState } from "@/ui/Page";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 const SETUP_ITEMS = [
   "photo",
@@ -139,10 +140,8 @@ export default function ProSetupItemScreen() {
         <TeachingGroupsSetup
           providerId={providerId!}
           initial={prefill}
-          // Every non-babysitting service the tutor picked; the setup keeps only
-          // services with linked teaching subjects (school, languages, Quran, music).
           services={
-            selected.filter((s) => s.category?.slug !== "babysitting") as {
+            selected.filter((s) => isTutoringCategorySlug(s.category?.slug)) as {
               id: string;
               name_ar: string;
               name_en: string;
