@@ -15,6 +15,8 @@ export type BookingMoneyView = {
   walletApplied: number;
   /** Returned to the customer (card refund, wallet refund, automatic refunds). */
   refunded: number;
+  /** Returned to the card by Paymob (refund made in Paymob, reported by its webhook). */
+  cardRefunded: number;
   /** Cancellation / no-show fees credited to the tutor. */
   feeToTutor: number;
 };
@@ -52,6 +54,8 @@ export function bookingMoneyView(data: AdminBookingMoneySummary): BookingMoneyVi
     .filter((p) => p.refund_reference && p.refund_channel !== "customer_wallet")
     .reduce((sum, p) => sum + n(p.refund_amount), 0);
 
+  const cardRefunded = payments.reduce((sum, p) => sum + n(p.gateway_refunded), 0);
+
   const feeToTutor = (data.provider_ledger ?? [])
     .filter((l) => l.kind === "cancellation_fee_provider_share" && l.direction === "credit")
     .reduce((sum, l) => sum + n(l.amount), 0);
@@ -62,6 +66,7 @@ export function bookingMoneyView(data: AdminBookingMoneySummary): BookingMoneyVi
     paid,
     walletApplied,
     refunded: walletRefunds + cardRefunds,
+    cardRefunded,
     feeToTutor,
   };
 }
