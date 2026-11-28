@@ -30,6 +30,7 @@ import { useNowTick } from "@/hooks/useNowTick";
 import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
 import type { OnlineProviderBookingSummaryRow } from "@/components/online/OnlineProviderBookingSummary";
 import { OnlineWebLessonIssueReport } from "@/components/online/OnlineWebLessonIssueReport";
+import { FirstLessonGuaranteeCard } from "@/components/booking/FirstLessonGuarantee";
 import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
 import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
 import { useBookingCancellationFee } from "@/lib/db/settings-queries";
@@ -226,6 +227,10 @@ function OnlineLessonDetail() {
       />
 
       {isCustomer && journeyIndex >= 0 ? <LessonSteps current={journeyIndex} t={t} /> : null}
+
+      {isCustomer && String(booking.status) === "completed" ? (
+        <FirstLessonGuaranteeCard bookingId={bookingId} />
+      ) : null}
 
       {guidance ? (
         <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4 text-pro-14">

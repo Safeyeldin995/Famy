@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { PrimaryButton } from "@/components/famio/ui";
+import { FirstLessonGuaranteePromise } from "@/components/booking/FirstLessonGuarantee";
 import { TutoringCapabilityCascadeFields } from "@/components/booking/TutoringCapabilityCascadeFields";
 import {
   useAvailableSlots,
@@ -536,6 +537,8 @@ export function OnlineLessonRequestForm({
       ) : null}
 
       <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.timezoneLabel")}</p>
+
+      <FirstLessonGuaranteePromise categorySlug="tutoring" />
 
       <PrimaryButton
         className="h-12 w-full"

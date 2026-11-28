@@ -17,6 +17,7 @@ import {
 } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { StarRatingInput } from "@/components/famio/StarRatingInput";
+import { FirstLessonGuaranteeCard } from "@/components/booking/FirstLessonGuarantee";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
   useBooking,
@@ -585,6 +586,7 @@ export function BookingDetailContent({
       <PhoneFrame bg="bg-white">
         {overview(t("bookingDetail.completedTitle"), justCreated)}
         <div className="flex-1 px-5 pt-4">
+          <FirstLessonGuaranteeCard bookingId={real.id} />
           <Card className="mt-4 p-4">
             {existingReview ? (
               <>

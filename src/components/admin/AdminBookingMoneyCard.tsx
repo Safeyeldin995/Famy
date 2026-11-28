@@ -14,6 +14,11 @@ import {
   useAdminRefundBookingToWallet,
 } from "@/lib/db/admin-wallet-ops-queries";
 import { bookingMoneyView } from "@/lib/admin/bookingMoneyView";
+import {
+  type AdminGuaranteeClaim,
+  useAdminFirstLessonGuarantee,
+  useAdminReverseFirstLessonGuarantee,
+} from "@/lib/db/launch-offers-queries";
 
 function Row({
   label,
@@ -198,6 +203,8 @@ function MoneyCardBody({
         </div>
       ) : null}
 
+      <FirstLessonGuaranteeRow bookingId={data.booking_id} customerId={customerId} egp={egp} />
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -312,6 +319,147 @@ function RefundToWalletModal({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder={t("adminMoney.refundNotePlaceholder")}
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+        />
+      </div>
+    </AdminConfirmModal>
+  );
+}
+
+/** «ضمان أول حصة» on this booking, with the admin's take-back action. */
+function FirstLessonGuaranteeRow({
+  bookingId,
+  customerId,
+  egp,
+}: {
+  bookingId: string;
+  customerId: string;
+  egp: (n: number) => string;
+}) {
+  const { t, i18n } = useTranslation();
+  const q = useAdminFirstLessonGuarantee(bookingId);
+  const [open, setOpen] = useState(false);
+  if (q.isLoading || (!q.isError && !q.data)) return null;
+  if (q.isError) {
+    return (
+      <AdminQueryError
+        compact
+        message={t("firstLessonGuarantee.admin.loadError")}
+        error={q.error}
+        onRetry={() => q.refetch()}
+      />
+    );
+  }
+  const claim = q.data as AdminGuaranteeClaim;
+  return (
+    <div className="mt-2 rounded-lg border border-border/60 bg-surface-2 p-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs font-bold">{t("firstLessonGuarantee.admin.title")}</p>
+        <span className="text-xs text-muted-foreground">
+          {adminDate(claim.created_at, i18n.language)}
+        </span>
+      </div>
+      <p className="mt-1 text-xs">
+        {t("firstLessonGuarantee.admin.claimed", { amount: egp(claim.amount) })}
+        {claim.status === "reversed" ? (
+          <span className="ms-2 rounded-full bg-muted px-2 py-0.5 font-bold">
+            {t("firstLessonGuarantee.admin.reversedTag")}
+          </span>
+        ) : null}
+      </p>
+      {claim.feedback ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("firstLessonGuarantee.admin.feedback")}: {claim.feedback}
+        </p>
+      ) : null}
+      {claim.status === "reversed" && claim.reverse_note ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("firstLessonGuarantee.admin.reverseNote")}: {claim.reverse_note}
+        </p>
+      ) : null}
+      {claim.status === "claimed" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="focus-ring mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-bold"
+        >
+          {t("firstLessonGuarantee.admin.reverse")}
+        </button>
+      ) : null}
+      {open ? (
+        <ReverseGuaranteeModal
+          claim={claim}
+          bookingId={bookingId}
+          customerId={customerId}
+          egp={egp}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ReverseGuaranteeModal({
+  claim,
+  bookingId,
+  customerId,
+  egp,
+  onClose,
+}: {
+  claim: AdminGuaranteeClaim;
+  bookingId: string;
+  customerId: string;
+  egp: (n: number) => string;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const reverse = useAdminReverseFirstLessonGuarantee();
+  const [note, setNote] = useState("");
+  const key = useRef(crypto.randomUUID());
+  return (
+    <AdminConfirmModal
+      open
+      title={t("firstLessonGuarantee.admin.reverse")}
+      confirmLabel={t("firstLessonGuarantee.admin.reverse")}
+      confirmDisabled={note.trim().length === 0}
+      busy={reverse.isPending}
+      onCancel={onClose}
+      onConfirm={() =>
+        reverse.mutate(
+          {
+            claimId: claim.id,
+            bookingId,
+            customerId,
+            note: note.trim(),
+            idempotencyKey: key.current,
+          },
+          {
+            onSuccess: () => {
+              toast.success(t("firstLessonGuarantee.admin.reverseDone"));
+              onClose();
+            },
+            onError: (e) =>
+              toast.error(
+                /WALLET_BALANCE_TOO_LOW/.test(String((e as { message?: string })?.message ?? ""))
+                  ? t("firstLessonGuarantee.admin.balanceTooLow")
+                  : adminErrorText(t, e, t("adminMoney.refundError")),
+              ),
+          },
+        )
+      }
+    >
+      <div className="mt-3 grid gap-2">
+        <p className="text-xs text-muted-foreground">
+          {t("firstLessonGuarantee.admin.reverseConfirm", { amount: egp(claim.amount) })}
+        </p>
+        <label className="text-xs font-semibold" htmlFor="guarantee-reverse-note">
+          {t("firstLessonGuarantee.admin.reverseNote")}
+        </label>
+        <textarea
+          id="guarantee-reverse-note"
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
         />
       </div>

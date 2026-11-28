@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "@/components/famio/ui";
+import { FirstLessonGuaranteePromise } from "@/components/booking/FirstLessonGuarantee";
 import { QueryError } from "@/components/famio/QueryError";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMyProvider } from "@/lib/db/provider-queries";
@@ -234,6 +235,7 @@ function OnlineTutorProfile() {
               </p>
             ) : null}
             <p className="text-pro-13 leading-relaxed text-muted-foreground">{t("onlineWeb.hub.bookCardBody")}</p>
+            <FirstLessonGuaranteePromise categorySlug="tutoring" />
             <div className="hidden lg:block">{bookCta}</div>
           </section>
           <section className="space-y-2 rounded-3xl bg-white p-6 shadow-sm">

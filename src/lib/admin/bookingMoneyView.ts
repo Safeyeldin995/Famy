@@ -46,8 +46,13 @@ export function bookingMoneyView(data: AdminBookingMoneySummary): BookingMoneyVi
           "customer_cancelled_refund",
           "online_no_show_refund",
           "admin_lesson_refund",
+          "first_lesson_guarantee",
         ].includes(e.reason),
     )
+    .reduce((sum, e) => sum + n(e.amount), 0);
+  // An admin taking a first-lesson guarantee back debits it from the wallet.
+  const guaranteeReversed = (data.wallet_entries ?? [])
+    .filter((e) => e.direction === "debit" && e.reason === "first_lesson_guarantee_reversal")
     .reduce((sum, e) => sum + n(e.amount), 0);
   // A card refund recorded by reference is not in the wallet.
   const cardRefunds = payments
@@ -65,7 +70,7 @@ export function bookingMoneyView(data: AdminBookingMoneySummary): BookingMoneyVi
     isCash,
     paid,
     walletApplied,
-    refunded: walletRefunds + cardRefunds,
+    refunded: Math.max(walletRefunds - guaranteeReversed, 0) + cardRefunds,
     cardRefunded,
     feeToTutor,
   };

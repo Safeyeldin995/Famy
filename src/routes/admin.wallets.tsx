@@ -15,6 +15,8 @@ const REASONS = [
   "admin_credit",
   "admin_debit",
   "admin_lesson_refund",
+  "first_lesson_guarantee",
+  "first_lesson_guarantee_reversal",
   "provider_cancelled",
   "customer_cancelled_refund",
   "online_no_show_refund",

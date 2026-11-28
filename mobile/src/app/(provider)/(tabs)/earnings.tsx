@@ -9,6 +9,7 @@ import {
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
 import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
+import { LaunchCommissionBanner } from "@/ui/provider/LaunchCommissionBanner";
 import { ProviderPayoutMethods } from "@/components/provider/ProviderPayoutMethods";
 import {
   useProviderSettlementBalance,
@@ -101,6 +102,7 @@ export default function ProviderEarnings() {
       queries={[p, e, bookingsQ, balanceQ, walletQ]}
       contentStyle={{ gap: space.md }}
     >
+      <LaunchCommissionBanner enabled={!!provider?.id} />
       <ProviderWalletPanel providerId={provider?.id} />
       <ProviderPayoutMethods providerId={provider?.id} />
       <View style={{ ...card, borderColor: colors.brand, backgroundColor: colors.brandTint }}>

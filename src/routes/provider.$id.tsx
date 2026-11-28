@@ -34,6 +34,7 @@ import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomer
 import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
 import { ProviderWebShare } from "@/components/site/ProviderWebShare";
 import { siteHead, siteLanguage } from "@/lib/site/seo";
+import { FirstLessonGuaranteePromise } from "@/components/booking/FirstLessonGuarantee";
 import { ProviderBookingDecision } from "@/components/booking/ProviderBookingDecision";
 
 export const Route = createFileRoute("/provider/$id")({
@@ -366,6 +367,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                 </li>
               ))}
             </ul>
+            <FirstLessonGuaranteePromise categorySlug="tutoring" className="mt-3" />
           </Section>
         ) : null}
 
