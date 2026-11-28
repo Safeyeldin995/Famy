@@ -15,6 +15,7 @@ import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
 import { ProviderCredentialsSection } from "@/ui/provider/ProviderCredentialsSection";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 /** Public provider profile for guests. Booking needs an account; we resume here after sign-up. */
 export default function GuestProvider() {
@@ -143,7 +144,7 @@ export default function GuestProvider() {
                     <Text weight="bold" tone="brand">
                       {isFixedPackage(service)
                         ? money(price, i18n.language)
-                        : service.category?.slug === "tutoring"
+                        : isTutoringCategorySlug(service.category?.slug)
                           ? t("providerPage.perSession", { price: money(price, i18n.language) })
                           : t("providerPage.perHour", { price: money(price, i18n.language) })}
                     </Text>

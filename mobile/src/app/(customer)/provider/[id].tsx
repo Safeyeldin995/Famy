@@ -39,6 +39,7 @@ import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 import { useSession } from "@/lib/session";
 import { UgcReportSheet } from "@/ui/ugc/UgcReportSheet";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -99,13 +100,13 @@ export default function ProviderProfile() {
   const available = (services.data ?? []).filter(
     (row) =>
       bookable.data?.has(row.service.id) &&
-      (row.service.category?.slug !== "tutoring" ||
+      (!isTutoringCategorySlug(row.service.category?.slug) ||
         caps.data?.some((cap) => cap.serviceId === row.service.id)),
   );
-  const care = available.filter((row) => row.service.category?.slug !== "tutoring");
+  const care = available.filter((row) => !isTutoringCategorySlug(row.service.category?.slug));
   const tutoringIds = new Set(
     available
-      .filter((row) => row.service.category?.slug === "tutoring")
+      .filter((row) => isTutoringCategorySlug(row.service.category?.slug))
       .map((row) => row.service.id),
   );
   const grouped = new Map<string, TeachingCapabilityOption[]>();
@@ -250,8 +251,16 @@ export default function ProviderProfile() {
                 {name}
               </Text>
               <Text tone="muted">
-                {[...new Set(available.map((row) => row.service.category?.slug))]
-                  .map((slug) => t(slug === "tutoring" ? "roles.teacher" : "roles.babysitter"))
+                {[
+                  ...new Set(
+                    available.map((row) =>
+                      isTutoringCategorySlug(row.service.category?.slug)
+                        ? "roles.teacher"
+                        : "roles.babysitter",
+                    ),
+                  ),
+                ]
+                  .map((key) => t(key))
                   .join(uiListSeparator(i18n.language))}
               </Text>
               <View style={[customerStyle.row, { justifyContent: "center", flexWrap: "wrap" }]}>

@@ -46,6 +46,7 @@ import {
   type SetupSnapshot,
 } from "@/lib/provider/setupHelpers";
 import { supabase } from "@/integrations/supabase/client";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 export const Route = createFileRoute("/pro/setup/$item")({
   beforeLoad: ({ params }) => {
     if (
@@ -98,7 +99,7 @@ function ProviderSetupRoute() {
     return (
       <LiveSubjects
         providerId={provider.data.id}
-        services={selectedServices.filter((s) => s.category?.slug === "tutoring")}
+        services={selectedServices.filter((s) => isTutoringCategorySlug(s.category?.slug))}
         serviceStatuses={serviceStatusById}
         onBack={back}
       />

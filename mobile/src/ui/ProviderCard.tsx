@@ -12,6 +12,7 @@ import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { Text } from "./Text";
 import { colors, fontSizeTokenForAvatarInitial, radius, space } from "./theme";
 import { ui } from "./Page";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 export function Avatar({
   raw,
@@ -110,14 +111,18 @@ export function ProviderCard({
           )}
         </View>
         <Text size="sm" tone="muted">
-          {[...new Set(p.services.map((item) => item.service?.category?.slug))]
-            .map((slug) =>
-              slug === "babysitting"
-                ? t("roles.babysitter")
-                : slug === "tutoring"
-                  ? t("roles.teacher")
-                  : "",
-            )
+          {[
+            ...new Set(
+              p.services.map((item) => {
+                const slug = item.service?.category?.slug;
+                return slug === "babysitting"
+                  ? t("roles.babysitter")
+                  : isTutoringCategorySlug(slug)
+                    ? t("roles.teacher")
+                    : "";
+              }),
+            ),
+          ]
             .filter(Boolean)
             .join(uiListSeparator(i18n.language)) || localized(service, i18n.language)}
         </Text>
@@ -147,7 +152,7 @@ export function ProviderCard({
                     [customerMoney(p.hourly_rate, i18n.language), t(packageInfo.key, packageInfo.values)],
                     i18n.language,
                   )
-                : service?.category?.slug === "tutoring"
+                : isTutoringCategorySlug(service?.category?.slug)
                   ? t("providerPage.perSession", {
                       price: customerMoney(p.hourly_rate, i18n.language),
                     })

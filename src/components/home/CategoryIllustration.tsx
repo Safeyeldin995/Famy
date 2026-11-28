@@ -47,6 +47,8 @@ export function CategoryIllustration({ slug, className = "h-16 w-16" }: { slug: 
           <circle cx="48" cy="46" r="6" fill="#FFD59A" />
         </svg>
       );
+    case "quran":
+    case "music":
     case "quran-lessons":
     case "music-lessons":
       return (

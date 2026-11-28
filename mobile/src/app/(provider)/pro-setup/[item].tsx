@@ -24,6 +24,7 @@ import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { TeachingGroupsSetup } from "@/ui/provider/TeachingGroupsSetup";
 import { CredentialsEditor } from "@/ui/provider/CredentialsEditor";
 import { Page, QueryState } from "@/ui/Page";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 const SETUP_ITEMS = [
   "photo",
@@ -140,7 +141,7 @@ export default function ProSetupItemScreen() {
       <TeachingGroupsSetup
         providerId={providerId!}
         services={
-          selected.filter((s) => s.category?.slug === "tutoring") as {
+          selected.filter((s) => isTutoringCategorySlug(s.category?.slug)) as {
             id: string;
             name_ar: string;
             name_en: string;

@@ -255,6 +255,8 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       cat("elderly-care", "Elderly care", "رعاية كبار السن", 3),
       cat("cooking", "Home cooking", "طبخ منزلي", 4),
       cat("tutoring", "Tutoring", "دروس خصوصية", 5),
+      cat("quran", "Quran", "قرآن", 6),
+      cat("music", "Music", "موسيقى", 7),
     ],
   );
   qc.setQueryData(["providers", { limit: 20 }], [p1, p2, p3]);

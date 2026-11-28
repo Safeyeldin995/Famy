@@ -1,5 +1,7 @@
 import { formatNumber } from "@/lib/format";
 import { toUIProvider, type UIProvider } from "@/lib/db/adapters";
+import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 export type CustomerProvider = UIProvider & { categorySlugs: string[] };
 
 export function customerRoleLabel(categories: string[], t: (key: string) => string): string {
@@ -7,7 +9,7 @@ export function customerRoleLabel(categories: string[], t: (key: string) => stri
     ...(categories.includes("babysitting") || categories.includes("kids")
       ? ["roles.babysitter"]
       : []),
-    ...(categories.includes("tutoring") ? ["roles.teacher"] : []),
+    ...(categories.some((slug) => isTutoringCategorySlug(slug)) ? ["roles.teacher"] : []),
   ];
   return keys.map((key) => t(key)).join(" · ");
 }
@@ -17,7 +19,7 @@ export function customerProviders(rows: Parameters<typeof toUIProvider>[0][]): C
   const providers = new Map<string, CustomerProvider>();
   for (const row of rows) {
     const p = toUIProvider(row);
-    if (!["babysitting", "tutoring"].includes(p.categorySlug)) continue;
+    if (!isClosedBetaCategorySlug(p.categorySlug)) continue;
     const existing = providers.get(p.id);
     const categorySlugs = [...new Set([...(existing?.categorySlugs ?? []), p.categorySlug])];
     providers.set(p.id, { ...(existing ?? p), categorySlugs });

@@ -318,8 +318,10 @@ function OnlineLessonDetail() {
                   }),
                   { duration: 8000 },
                 );
+                // The cancellation record loads once the refetched booking reads cancelled
+                // (useCancelBooking also invalidates it); a manual refetch here would run
+                // with booking_id=undefined because the query is still disabled.
                 void bookingQ.refetch();
-                void cancellationQ.refetch();
               },
               onError: () => toast.error(t("onlineWeb.lessonDetail.cancelFailed")),
             },

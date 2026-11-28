@@ -21,6 +21,7 @@ import {
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
+import { isTutoringCategorySlug } from "@shared/tutoring/teachingCapabilities";
 
 type ServiceRow = {
   price_override: number | null;
@@ -54,7 +55,7 @@ export function ProviderBookingDecision({
   const caps = useApprovedTeachingCapabilities(providerId, row?.service.id);
   const capability = caps.data?.[0] ?? null;
   const fixed = row ? isFixedPackage(row.service) : false;
-  const tutoring = row?.service.category?.slug === "tutoring";
+  const tutoring = isTutoringCategorySlug(row?.service.category?.slug);
   const duration = capability
     ? capability.durationMin
     : fixed

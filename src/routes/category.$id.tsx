@@ -32,6 +32,7 @@ import { formatNumber } from "@/lib/format";
 import { SlidersHorizontal } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { LessonServiceTileRow } from "@/components/lessons/LessonServiceTileRow";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 export const Route = createFileRoute("/category/$id")({ component: CategoryPage });
 
@@ -57,7 +58,7 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   const myProfileQ = useMyProfile();
   const [sort, setSort] = useState<"top" | "price" | "experience">("top");
   const [forWhom, setForWhom] = useState("myself");
-  const isTutoring = id === "tutoring";
+  const isTutoring = isTutoringCategorySlug(id);
 
   const cat = useMemo(() => {
     const row = (catsQ.data ?? []).find((c: { slug: string }) => c.slug === id);

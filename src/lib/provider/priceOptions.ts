@@ -1,3 +1,5 @@
+import { isTutoringCategorySlug } from "../tutoring/teachingCapabilities";
+
 export function buildPriceOptions(min: number | null, max: number | null): number[] {
   if (min == null || max == null || !Number.isFinite(min) || !Number.isFinite(max) || min > max)
     return [];
@@ -39,7 +41,7 @@ type PricedService = {
   category?: { slug?: string | null } | null;
 };
 export function needsServicePrice(service: PricedService) {
-  return !!service.provider_pricing_allowed && service.category?.slug !== "tutoring";
+  return !!service.provider_pricing_allowed && !isTutoringCategorySlug(service.category?.slug);
 }
 export function hasSelectedServicePrices(
   services: PricedService[],
